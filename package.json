@@ -1,0 +1,26 @@
+{
+  "name": "node-profiler",
+  "version": "0.0.0",
+  "description": "Sampling based nodejs profiler",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run test"
+  },
+  "keywords": [
+    "profiling",
+    "cpu",
+    "node"
+  ],
+  "author": "jonas.badalic@sentry.io",
+  "license": "ISC",
+  "dependencies": {
+    "nan": "^2.16.0",
+    "node-gyp": "^9.0.0"
+  },
+  "devDependencies": {
+    "autocannon": "^7.9.0",
+    "benchmark": "^2.1.4",
+    "express": "^4.18.1",
+    "sqlite3": "^5.0.8"
+  }
+}
