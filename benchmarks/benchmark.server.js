@@ -4,30 +4,43 @@ const autocannon = require("autocannon");
 
 const db = new sqlite3.Database("memory_db");
 
-db.exec("DROP TABLE IF EXISTS benchmarks");
-db.exec(
-  "CREATE TABLE benchmarks (id INTEGER PRIMARY KEY, name TEXT)",
-  (err) => {
-    console.log("Table created", err);
-  }
-);
+db.serialize(() => {
+  db.run("DROP TABLE IF EXISTS benchmarks;", (db, err) => {
+    if (err) {
+      console.log(err);
+    }
+  });
 
-for (let i = 0; i < 100; i++) {
-  db.exec(
-    `INSERT INTO benchmarks VALUES ('${i}','Just something very random ${i}')`,
-    (err) => {
+  db.run(
+    "CREATE TABLE IF NOT EXISTS benchmarks (id INTEGER PRIMARY KEY, name TEXT);",
+    (res, err) => {
       if (err) {
-        console.log("Failed to insrt with", err);
+        console.log("Table creation failed", res, err);
       }
     }
   );
-}
 
-db.exec("SELECT * FROM benchmarks", (err, rows) => {
-  console.log(rows);
-  if (!rows) {
-    throw new Error("Failed to prep db", err, rows);
-  }
+  db.parallelize(() => {
+    for (let i = 0; i < 1e3; i++) {
+      db.run(
+        `INSERT INTO benchmarks (id, name) VALUES (?, ?);`,
+        [i, `Benchmark ${i}`],
+        (res, err) => {
+          if (err) {
+            console.log("Failed to insert with", err);
+          }
+        }
+      );
+    }
+  });
+});
+
+db.serialize(() => {
+  db.get("SELECT COUNT(*) as c FROM benchmarks;", (err, row) => {
+    if (err || row.c < 1e3) {
+      throw new Error("Failed to prep db", err, row);
+    }
+  });
 });
 
 const express = require("express");
@@ -37,59 +50,76 @@ app.disable("etag");
 app.disable("x-powered-by");
 
 app.get("/benchmark/db", (req, res) => {
-  res.setHeader("content-type", "text/plain");
-
-  db.exec(
+  res.setHeader("content-type", "application/json");
+  db.get(
     `SELECT * FROM benchmarks WHERE id = ${Math.floor(Math.random() * 100)}`,
-    (err, rows) => {
-      console.log(rows);
-      res.send(`Hey ${rows}`);
+    (err, row) => {
+      res.status(200).json(row);
     }
   );
 });
 
-app.get("/benchmark/simple", (req, res) => {
-  res.setHeader("content-type", "text/plain");
-  res.send(`Hey ${req.query.name} ${req.query.name}`);
+app.get("/benchmark/db/profiled", (req, res) => {
+  res.setHeader("content-type", "application/json");
+  db.get(
+    `SELECT * FROM benchmarks WHERE id = ${Math.floor(Math.random() * 100)}`,
+    (err, row) => {
+      res.status(200).json(row);
+    }
+  );
 });
 
-app.get("/benchmark/simple/profiled", (req, res) => {
-  cpu_profiler.startProfiling("simple - profiled");
+app.get("/benchmark/isAlive", (req, res) => {
   res.setHeader("content-type", "text/plain");
-  res.send(`Hey ${req.query.name} ${req.query.name}`);
-  cpu_profiler.stopProfiling("simple - profiled");
+  res.status(200).send("OK");
+});
+
+app.get("/benchmark/isAlive/profiled", (req, res) => {
+  cpu_profiler.startProfiling("isAlive - profiled");
+  res.setHeader("content-type", "text/plain");
+  res.status(200).send("OK");
+  cpu_profiler.stopProfiling("isAlive - profiled");
 });
 
 const server = app.listen(3000, async () => {
-  const simpleRun = await autocannon({
-    url: "http://localhost:3000/benchmark/simple",
+  const isAliveRun = await autocannon({
+    url: "http://localhost:3000/benchmark/isAlive",
     connections: 10, //default
     pipelining: 1, // default
     duration: 10, // default
   });
 
-  console.log("Simple result\n", autocannon.printResult(simpleRun));
+  console.log("isAlive result\n", autocannon.printResult(isAliveRun));
 
-  const simpleRunProfiled = await autocannon({
-    url: "http://localhost:3000/benchmark/simple/profiled",
+  const isAliveRunProfiled = await autocannon({
+    url: "http://localhost:3000/benchmark/isAlive/profiled",
     connections: 10, //default
     pipelining: 1, // default
     duration: 10, // default
   });
 
   console.log(
-    "Simple resp (profiled)\n",
-    autocannon.printResult(simpleRunProfiled)
+    "isAlive resp (profiled)\n",
+    autocannon.printResult(isAliveRunProfiled)
   );
 
-  const simpleRunDb = await autocannon({
+  const isAliveRunDb = await autocannon({
     url: "http://localhost:3000/benchmark/db",
     connections: 10, //default
     pipelining: 1, // default
     duration: 10, // default
   });
 
-  console.log("DB query\n", autocannon.printResult(simpleRunDb));
+  console.log("DB query\n", autocannon.printResult(isAliveRunDb));
+
+  const simpleRunDbProfiled = await autocannon({
+    url: "http://localhost:3000/benchmark/db/profiled",
+    connections: 10, //default
+    pipelining: 1, // default
+    duration: 10, // default
+  });
+
+  console.log("DB query\n", autocannon.printResult(simpleRunDbProfiled));
   server.close();
   db.close();
 });
