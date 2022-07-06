@@ -2,8 +2,9 @@
 // For example, if the profiler is started and stopped frequently, it is likely that the overhead is
 // going to be large due to frequent initialization. It also serves to give us a finer grained understanding
 // of where the profiler is spending time and where we may have regressed.
-const cpu_profiler = require("./../build/Release/cpu_profiler");
-const title = "test";
+const cpu_profiler = require('./../build/Release/cpu_profiler');
+
+console.log('\nBenchmarking individual CPU profiler methods...');
 
 const quantile = (arr, q) => {
   arr.sort();
@@ -38,7 +39,7 @@ function computeRunResults(arr) {
     mean: mean(arr),
     stdev: stdev(arr),
     variance: variance(arr),
-    variancepct: "±" + (variancepct(arr) * 100).toFixed(2) + "%",
+    variancepct: '±' + (variancepct(arr) * 100).toFixed(2) + '%',
     p75: quantile(arr, 0.75),
     p99: quantile(arr, 0.99),
   };
@@ -59,28 +60,28 @@ function benchmark(name, n, { before, run, cleanup }) {
   const results = computeRunResults(timings);
   console.log(
     `${name} N=${n}`,
-    `ops/s ${results.hz.toFixed(2)} mean ${results.mean.toFixed(
-      2
-    )}ms ±${results.stdev.toFixed(2)}ms ${results.variancepct}`
+    `ops/s ${results.hz.toFixed(2)} mean ${results.mean.toFixed(2)}ms ±${results.stdev.toFixed(2)}ms ${
+      results.variancepct
+    }`
   );
 }
 
 // Benchmarking startProfiling
-benchmark("StartProfiling", 100, {
+benchmark('StartProfiling', 100, {
   run: function run() {
-    cpu_profiler.startProfiling(title);
+    cpu_profiler.startProfiling('startProfiling');
   },
   cleanup: () => {
-    const profile = cpu_profiler.stopProfiling(title);
+    const profile = cpu_profiler.stopProfiling('startProfiling');
   },
 });
 
 // Benchmarking stopProfiling
-benchmark("StopProfiling", 100, {
+benchmark('StopProfiling', 100, {
   before: function before() {
-    cpu_profiler.startProfiling(title);
+    cpu_profiler.startProfiling('stopProfiling');
   },
   run: function run() {
-    cpu_profiler.stopProfiling(title);
+    cpu_profiler.stopProfiling('stopProfiling');
   },
 });

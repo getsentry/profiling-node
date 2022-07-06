@@ -1,6 +1,8 @@
-const fs = require("fs");
-const suite = require("benchmark");
-const cpu_profiler = require("./../build/Release/cpu_profiler");
+const fs = require('fs');
+const suite = require('benchmark');
+const cpu_profiler = require('./../build/Release/cpu_profiler');
+
+console.log('\nBenchmarking CPU profiler use cases');
 
 // 0(2^n) on purpose
 const fibonacci = (n) => {
@@ -11,7 +13,7 @@ const fibonacci = (n) => {
 };
 
 const random = (len) => {
-  let str = "";
+  let str = '';
   let start = 0;
   while (start < len) {
     str += Math.floor(Math.random());
@@ -29,27 +31,27 @@ suite
     fibonacci(10);
   })
   .add(`Fibonacci (profiled)`, () => {
-    cpu_profiler.startProfiling("test");
+    cpu_profiler.startProfiling('test');
     fibonacci(10);
-    cpu_profiler.stopProfiling("test");
+    cpu_profiler.stopProfiling('test');
   })
   .add(`Disk I/O`, () => {
-    const outfile = "./profile.json";
+    const outfile = './profile.json';
     if (fs.existsSync(outfile)) {
       fs.unlinkSync(outfile);
     }
-    fs.writeFileSync("profile.json", random(2 << 12));
+    fs.writeFileSync('profile.json', random(2 << 12));
   })
   .add(`Disk I/O (profiled)`, () => {
-    cpu_profiler.startProfiling("test");
-    const outfile = "./profile.json";
+    cpu_profiler.startProfiling('test');
+    const outfile = './profile.json';
     if (fs.existsSync(outfile)) {
       fs.unlinkSync(outfile);
     }
-    fs.writeFileSync("profile.json", random(2 << 12));
-    cpu_profiler.stopProfiling("test");
+    fs.writeFileSync('profile.json', random(2 << 12));
+    cpu_profiler.stopProfiling('test');
   })
-  .add("Long task", () => {
+  .add('Long task', () => {
     const started = performance.now();
     while (true) {
       if (performance.now() - started > 500) {
@@ -58,8 +60,8 @@ suite
       noop();
     }
   })
-  .add("Long task (profiled)", () => {
-    cpu_profiler.startProfiling("test");
+  .add('Long task (profiled)', () => {
+    cpu_profiler.startProfiling('test');
     const started = performance.now();
     while (true) {
       if (performance.now() - started > 500) {
@@ -67,15 +69,15 @@ suite
       }
       noop();
     }
-    cpu_profiler.stopProfiling("test");
+    cpu_profiler.stopProfiling('test');
   })
-  .on("error", (error) => {
-    console.log("error", error);
+  .on('error', (error) => {
+    console.log('error', error);
   })
-  .on("complete", function () {
+  .on('complete', function () {
     const result = this.sort((a, b) => a.stats.hz - b.stats.hz)
       .map((n) => n.toString())
-      .join("\n");
+      .join('\n');
 
     console.log(result);
   })
