@@ -16,7 +16,7 @@ static int defaultSamplingIntervalMicroseconds = 10000;
 
 // Isolate represents an instance of the v8 engine and can be entered at most by 1 thread at a given time
 // https://v8docs.nodesource.com/node-0.8/d5/dda/classv8_1_1_isolate.html
-CpuProfiler* cpuProfiler = NULL;
+CpuProfiler* cpuProfiler = CpuProfiler::New(v8::Isolate::GetCurrent(), v8::kDebugNaming, v8::kEagerLogging);
 
 Local<Object> CreateFrameGraphNode(
     Local<String> name, Local<String> scriptName,
@@ -114,8 +114,6 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
         int sampleTimestamp = profile->GetSampleTimestamp(i);
 
         Nan::Set(samples, i, stack);
-
-        // Timestamps are expressed in microseconds
         Nan::Set(sampleTimes, i, Nan::New<Number>(sampleTimestamp - previousTimestamp));
 
         previousTimestamp = sampleTimestamp;
@@ -147,9 +145,6 @@ Local<Value> CreateFrameGraph(const CpuProfileNode* node) {
 Local<Value> CreateProfile(const CpuProfile* profile, bool includeLineInfo) {
   Local<Object> js_profile = Nan::New<Object>();
 
-  v8::Isolate* isolate = v8::Isolate::GetCurrent();
-
-
   Nan::Set(js_profile, Nan::New<String>("title").ToLocalChecked(), profile->GetTitle());
   Nan::Set(js_profile, Nan::New<String>("startValue").ToLocalChecked(), Nan::New<Number>(profile->GetStartTime()));
   Nan::Set(js_profile, Nan::New<String>("endValue").ToLocalChecked(), Nan::New<Number>(profile->GetEndTime()));
@@ -171,49 +166,36 @@ Local<Value> CreateProfile(const CpuProfile* profile, bool includeLineInfo) {
 // StartProfiling(string title)
 // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#aedf6a5ca49432ab665bc3a1ccf46cca4
 NAN_METHOD(StartProfiling) {
-    if (cpuProfiler) {
-        return Nan::ThrowError("CPU profiler is already started.");
-    };
-
     if(!info[0]->IsString()) {
         return Nan::ThrowError("StartProfiling requires a string as the first argument.");
     }
 
     int customOrDefaultSamplingInterval = defaultSamplingIntervalMicroseconds;
+    bool recordSamples = true;
 
     if(info[1]->IsNumber()) {
         customOrDefaultSamplingInterval = info[1]->ToInteger(v8::Local<v8::Context>()).ToLocalChecked()->Value();
     }
 
-    cpuProfiler = CpuProfiler::New(v8::Isolate::GetCurrent());
     cpuProfiler->SetSamplingInterval(customOrDefaultSamplingInterval);
     cpuProfiler->SetUsePreciseSampling(false);
-    cpuProfiler->StartProfiling(Nan::To<v8::String>(info[0]).ToLocalChecked(), true);
+    cpuProfiler->StartProfiling(Nan::To<v8::String>(info[0]).ToLocalChecked(), recordSamples);
 };
 
 // StopProfiling(string title)
 // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#a40ca4c8a8aa4c9233aa2a2706457cc80
 NAN_METHOD(StopProfiling) {
-    if (!cpuProfiler) {
-        return Nan::ThrowError("CPU profiler is not started.");
-    };
-
     v8::Local<v8::String> title = Nan::To<v8::String>(info[0]).ToLocalChecked();
     v8::CpuProfile *profile = cpuProfiler->StopProfiling(title);
 
     info.GetReturnValue().Set(CreateProfile(profile, false));
-
-    cpuProfiler->Dispose();
-    cpuProfiler = NULL;
+    
+    profile->Delete();
 };
 
 // SetUsePreciseSampling(bool use_precise_sampling)
 // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#aec3784308a2ee6da56954926a90b60af
 NAN_METHOD(SetUsePreciseSampling){
-    if (cpuProfiler) {
-        return Nan::ThrowError("SetUsePreciseSampling is not supported when CPU profiler is already started.");
-    };
-
     if(info[0].IsEmpty()) {
         return Nan::ThrowError("SetUsePreciseSampling expects a boolean as first argument.");
     };
@@ -228,10 +210,6 @@ NAN_METHOD(SetUsePreciseSampling){
 // SetSamplingInterval(int us)
 // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#aa652c07923bf6e1a4962653cf09dceb1
 NAN_METHOD(SetSamplingInterval) {
-    if (cpuProfiler) {
-        return Nan::ThrowError("SetSamplingInterval is not supported when CPU profiler is already started.");
-    };
-
     if(info[0].IsEmpty()) {
         return Nan::ThrowError("SetSamplingInterval expects a number as the first argument.");
     }

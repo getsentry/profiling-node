@@ -1,18 +1,14 @@
-import os from "os";
+import os from 'os';
 
-import { getMainCarrier, Hub } from "@sentry/hub";
-import type {
-  TransactionContext,
-  CustomSamplingContext,
-  Transaction,
-} from "@sentry/types";
+import { getMainCarrier, Hub } from '@sentry/hub';
+import type { TransactionContext, CustomSamplingContext, Transaction } from '@sentry/types';
 
 // @ts-ignore
-import profiler from "./../build/Release/cpu_profiler";
+import profiler from './../build/Release/cpu_profiler';
 
-import type { Envelope, EventEnvelope } from "@sentry/types";
-import { addItemToEnvelope, uuid4 } from "@sentry/utils";
-import { BaseClient } from "@sentry/core";
+import type { Envelope, EventEnvelope } from '@sentry/types';
+import { addItemToEnvelope, uuid4 } from '@sentry/utils';
+import { BaseClient } from '@sentry/core';
 
 function isEventEnvelope(envelope: Envelope): envelope is EventEnvelope {
   return !!(envelope[0] as any).event_id;
@@ -30,30 +26,27 @@ BaseClient.prototype._sendEnvelope = function (envelope: Envelope) {
       const cpuProfile = profiles.pop();
 
       const profile: any = {
-        type: "profile",
-        platform: "node",
+        type: 'profile',
+        platform: 'node',
         profile_id: uuid4(),
         profile: [cpuProfile],
         device_locale:
-          process.env["LC_ALL"] ||
-          process.env["LC_MESSAGES"] ||
-          process.env["LANG"] ||
-          process.env["LANGUAGE"],
-        device_manufacturer: "GitHub",
-        device_model: "GitHub Actions",
+          process.env['LC_ALL'] || process.env['LC_MESSAGES'] || process.env['LANG'] || process.env['LANGUAGE'],
+        device_manufacturer: 'GitHub',
+        device_model: 'GitHub Actions',
         device_os_name: os.platform(),
         device_os_version: os.release(),
         device_is_emulator: false,
-        transaction_name: "typescript.compile",
-        version_code: "1",
-        version_name: "0.1",
+        transaction_name: 'typescript.compile',
+        version_code: '1',
+        version_name: '0.1',
         duration_ns: cpuProfile.endValue - cpuProfile.startValue,
         trace_id: envelope[0].trace?.trace_id,
         transaction_id: envelope[0].event_id,
       };
 
       // @ts-ignore
-      envelope = addItemToEnvelope(envelope, [{ type: "profile" }, profile]);
+      envelope = addItemToEnvelope(envelope, [{ type: 'profile' }, profile]);
     }
   }
 
@@ -82,30 +75,25 @@ type StartTransaction = (
   customSamplingContext?: CustomSamplingContext
 ) => Transaction;
 
-function _wrapStartTransaction(
-  originalTransaction: StartTransaction
-): StartTransaction {
+function _wrapStartTransaction(originalTransaction: StartTransaction): StartTransaction {
   return function wrappedStartTransaction(
     this: Hub,
     transactionContext: TransactionContext,
     customSamplingContext?: CustomSamplingContext
   ): Transaction {
     const boundOriginalTransaction = originalTransaction.bind(this);
-    const transaction = boundOriginalTransaction(
-      transactionContext,
-      customSamplingContext
-    );
+    const transaction = boundOriginalTransaction(transactionContext, customSamplingContext);
 
     profiler.startProfiling(transactionContext.name);
-    const originalFinish = transaction.finish.bind(transaction);
 
-    function onWrappedFinish() {
+    const originalFinish = transaction.finish.bind(transaction);
+    function profilingWrappedTransactionFinish() {
       const profile = profiler.stopProfiling(transactionContext.name);
       profiles.push(profile);
       originalFinish();
     }
 
-    transaction.finish = onWrappedFinish;
+    transaction.finish = profilingWrappedTransactionFinish;
 
     return transaction;
   };
@@ -121,10 +109,10 @@ function _addProfilingExtensionMethods(): void {
   }
   carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};
 
-  if (carrier.__SENTRY__.extensions["startTransaction"]) {
-    carrier.__SENTRY__.extensions["startTransaction"] = _wrapStartTransaction(
+  if (carrier.__SENTRY__.extensions['startTransaction']) {
+    carrier.__SENTRY__.extensions['startTransaction'] = _wrapStartTransaction(
       // @ts-ignore
-      carrier.__SENTRY__.extensions["startTransaction"]
+      carrier.__SENTRY__.extensions['startTransaction']
     );
   }
 }
