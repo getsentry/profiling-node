@@ -5,10 +5,11 @@
   "profiles": [
     {
       "title": "test",
-      "startValue": 355854294501,
-      "endValue": 355854512001,
+      "startValue": 385007911709,
+      "endValue": 385008124542,
       "type": "sampled",
       "threadID": 10,
+      "unit": "nanoseconds",
       "samples": [
         [
           7,
@@ -40,14 +41,6 @@
         ],
         [
           7,
-          8
-        ],
-        [
-          7,
-          8
-        ],
-        [
-          7,
           9
         ],
         [
@@ -56,8 +49,15 @@
         ],
         [
           7,
-          11,
-          10
+          8
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          7,
+          8
         ],
         [
           7,
@@ -93,26 +93,25 @@
         ]
       ],
       "weights": [
-        9333,
-        12833,
+        4167,
+        12583,
+        11708,
         12500,
         12500,
-        12500,
-        10125,
-        10500,
-        12084,
-        10250,
-        12625,
-        11083,
-        11333,
         12542,
-        12708,
-        11417,
+        10625,
+        11667,
+        11375,
+        10875,
+        12375,
+        10875,
+        11583,
+        10083,
+        11542,
+        10000,
         12500,
-        10250,
-        12542
-      ],
-      "unit": "nanoseconds"
+        13583
+      ]
     }
   ],
   "shared": {
@@ -128,7 +127,7 @@
         "name": "iife",
         "scriptName": "/Users/jonasbadalic/code/node-profiler/test.js",
         "scriptId": 120,
-        "lineNumber": 5,
+        "lineNumber": 4,
         "columnNumber": 21
       },
       {
@@ -186,20 +185,6 @@
         "scriptId": 0,
         "lineNumber": 0,
         "columnNumber": 0
-      },
-      {
-        "name": "peek",
-        "scriptName": "node:internal/priority_queue",
-        "scriptId": 19,
-        "lineNumber": 45,
-        "columnNumber": 7
-      },
-      {
-        "name": "processTimers",
-        "scriptName": "node:internal/timers",
-        "scriptId": 12,
-        "lineNumber": 487,
-        "columnNumber": 25
       }
     ]
   }

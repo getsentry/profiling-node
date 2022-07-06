@@ -2,9 +2,12 @@
   "name": "node-profiler",
   "version": "0.0.0",
   "description": "Sampling based nodejs profiler",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "npm run test"
+    "test": "npm run test",
+    "benchmark:methods": "node benchmark/benchmark.methods.js",
+    "benchmark:profiler": "node benchmark/benchmark.profiler.js",
+    "benchmark:server": "node benchmark/benchmark.server.js"
   },
   "keywords": [
     "profiling",
@@ -14,13 +17,19 @@
   "author": "jonas.badalic@sentry.io",
   "license": "ISC",
   "dependencies": {
+    "@sentry/hub": "^7.5.0",
     "nan": "^2.16.0",
     "node-gyp": "^9.0.0"
   },
   "devDependencies": {
+    "@sentry/node": "^7.5.0",
+    "@sentry/tracing": "^7.5.0",
+    "@sentry/types": "^7.5.0",
+    "@types/node": "^18.0.2",
     "autocannon": "^7.9.0",
     "benchmark": "^2.1.4",
     "express": "^4.18.1",
-    "sqlite3": "^5.0.8"
+    "sqlite3": "^5.0.8",
+    "typescript": "^4.7.4"
   }
 }

@@ -11,7 +11,7 @@
 
 using namespace v8;
 
-// 1e5μs aka every 10ms
+// 1e5ns aka every 10ms
 static int defaultSamplingIntervalMicroseconds = 10000;
 
 // Isolate represents an instance of the v8 engine and can be entered at most by 1 thread at a given time
@@ -155,6 +155,7 @@ Local<Value> CreateProfile(const CpuProfile* profile, bool includeLineInfo) {
   Nan::Set(js_profile, Nan::New<String>("endValue").ToLocalChecked(), Nan::New<Number>(profile->GetEndTime()));
   Nan::Set(js_profile, Nan::New<String>("type").ToLocalChecked(), Nan::New<String>("sampled").ToLocalChecked());
   Nan::Set(js_profile, Nan::New<String>("threadID").ToLocalChecked(), Nan::New<Number>(10));
+  Nan::Set(js_profile, Nan::New<String>("unit").ToLocalChecked(), Nan::New<String>("nanoseconds").ToLocalChecked());
 
 #if PROFILER_FORMAT == FORMAT_SAMPLED
   std::tuple<Local<Value>, Local<Value>, Local<Value>> samples = GetSamples(profile);
