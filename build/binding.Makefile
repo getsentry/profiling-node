@@ -3,4 +3,4 @@
 export builddir_name ?= ./build/.
 .PHONY: all
 all:
-	$(MAKE) cpu_profiler
+	$(MAKE) cpu_profiler.graph cpu_profiler

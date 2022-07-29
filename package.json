@@ -7,9 +7,10 @@
     "test": "npm run test",
     "build:bindings": "node-gyp rebuild",
     "benchmark": "npm run benchmark:methods && npm run benchmark:profiler && npm run benchmark:server",
-    "benchmark:methods": "node benchmarks/benchmark.methods.js",
-    "benchmark:profiler": "node benchmarks/benchmark.profiler.js",
-    "benchmark:server": "node benchmarks/benchmark.server.js"
+    "benchmark:methods": "node benchmarks/cpu/benchmark.methods.js",
+    "benchmark:profiler": "node benchmarks/cpu/benchmark.profiler.js",
+    "benchmark:server": "node benchmarks/cpu/benchmark.server.js",
+    "benchmark:format": "node benchmarks/format/benchmark.format.js"
   },
   "keywords": [
     "profiling",

@@ -3,20 +3,24 @@
 
 #include "nan.h"
 #include "v8-profiler.h"
+#include "iostream"
 
-#define FORMAT_RAW 1
 #define FORMAT_SAMPLED 2
+#define FORMAT_RAW 1
 
-#define PROFILER_FORMAT FORMAT_SAMPLED
+#ifndef PROFILER_FORMAT 
+#define PROFILER_FORMAT FORMAT_RAW
+#endif
 
 using namespace v8;
+using namespace std;
 
-// 1e5ns aka every 10ms
-static int defaultSamplingIntervalMicroseconds = 10000;
+// 1e5 us aka every 10ms
+static int defaultSamplingIntervalMicroseconds = 1e5;
 
 // Isolate represents an instance of the v8 engine and can be entered at most by 1 thread at a given time
 // https://v8docs.nodesource.com/node-0.8/d5/dda/classv8_1_1_isolate.html
-CpuProfiler* cpuProfiler = CpuProfiler::New(v8::Isolate::GetCurrent(), v8::kDebugNaming, v8::kEagerLogging);
+CpuProfiler* cpuProfiler = CpuProfiler::New(v8::Isolate::GetCurrent(), v8::kDebugNaming, v8::kLazyLogging);
 
 Local<Object> CreateFrameGraphNode(
     Local<String> name, Local<String> scriptName,
@@ -54,17 +58,17 @@ Local<Object> CreateFrameNode(
 };
 
 std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfile* profile){
-    unsigned int sampleCount = profile->GetSamplesCount();
+    uint sampleCount = profile->GetSamplesCount();
 
     Local<v8::Array> samples = Nan::New<Array>(sampleCount);
     Local<v8::Array> sampleTimes = Nan::New<Array>(sampleCount);
     Local<v8::Array> frameIndex = Nan::New<Array>();
 
-    unsigned int idx = 0;
-    unsigned int previousTimestamp = profile->GetStartTime();
-    std::unordered_map<std::string, int> frameLookup;
+    int64_t previousTimestamp = profile->GetStartTime();
+    std::unordered_map<std::string, int> frameLookupTable;
 
-    for(unsigned int i = 0; i < sampleCount; i++) {
+    uint idx = 0;
+    for(uint i = 0; i < sampleCount; i++) {
         const CpuProfileNode* node = profile->GetSample(i);
              v8::Isolate* isolate = Isolate::GetCurrent();
 
@@ -81,27 +85,24 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
 
         int tailOffset = 0;
         while(node != NULL) {
-            auto functionName = node->GetFunctionName();
-            int scriptId = node->GetScriptId();
-            int line = node->GetLineNumber();
-            int column = node->GetColumnNumber();
-
+            Local<v8::String> functionName = node->GetFunctionName();
             v8::String::Utf8Value str(isolate, functionName);
             std::string cppStr(*str);
 
-            auto index = frameLookup.find(cppStr);
+            int scriptId = node->GetScriptId();
+            auto index = frameLookupTable.find(cppStr);
 
-            if(index == frameLookup.end()) {
-                frameLookup.insert({cppStr, idx});
+            if(index == frameLookupTable.end()) {
+                frameLookupTable.insert({cppStr, idx});
 
                 Nan::Set(stack, stackDepth - tailOffset, Nan::New<Number>(idx));
                 Nan::Set(frameIndex, idx, CreateFrameNode(
                     functionName,
                     node->GetScriptResourceName(),
                     Nan::New<Integer>(scriptId),
-                    Nan::New<Integer>(line),
-                    Nan::New<Integer>(column))
-                );
+                    Nan::New<Integer>(node->GetLineNumber()),
+                    Nan::New<Integer>(node->GetColumnNumber())
+                ));
                 idx++;
             } else {
                 Nan::Set(stack, stackDepth - tailOffset, Nan::New<Number>(index->second));
