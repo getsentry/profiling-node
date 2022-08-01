@@ -12,6 +12,10 @@
 #define PROFILER_FORMAT FORMAT_RAW
 #endif
 
+#ifndef FORMAT_BENCHMARK
+#define FORMAT_BENCHMARK 0
+#endif
+
 using namespace v8;
 using namespace std;
 
@@ -153,12 +157,13 @@ Local<Value> CreateProfile(const CpuProfile* profile, bool includeLineInfo) {
   Nan::Set(js_profile, Nan::New<String>("threadID").ToLocalChecked(), Nan::New<Number>(10));
   Nan::Set(js_profile, Nan::New<String>("unit").ToLocalChecked(), Nan::New<String>("nanoseconds").ToLocalChecked());
 
-#if PROFILER_FORMAT == FORMAT_SAMPLED
+#if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
   std::tuple<Local<Value>, Local<Value>, Local<Value>> samples = GetSamples(profile);
   Nan::Set(js_profile, Nan::New<String>("samples").ToLocalChecked(), std::get<0>(samples));
   Nan::Set(js_profile, Nan::New<String>("weights").ToLocalChecked(), std::get<1>(samples));
   Nan::Set(js_profile, Nan::New<String>("frames").ToLocalChecked(), std::get<2>(samples));
-#elif PROFILER_FORMAT == FORMAT_RAW
+#endif
+#if PROFILER_FORMAT == FORMAT_RAW || FORMAT_BENCHMARK == 1
   Nan::Set(js_profile, Nan::New<String>("topDownRoot").ToLocalChecked(), CreateFrameGraph(profile->GetTopDownRoot()));
 #endif
   return js_profile;
