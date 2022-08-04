@@ -2,9 +2,9 @@
 // For example, if the profiler is started and stopped frequently, it is likely that the overhead is
 // going to be large due to frequent initialization. It also serves to give us a finer grained understanding
 // of where the profiler is spending time and where we may have regressed.
-const cpu_profiler = require('./../build/Release/cpu_profiler');
+const cpu_profiler = require('./../../build/Release/cpu_profiler');
 
-console.log('\nBenchmarking individual CPU profiler methods...');
+console.log('\nBenchmarking CPU profiler methods');
 
 const quantile = (arr, q) => {
   arr.sort();

@@ -7,7 +7,7 @@
     "test": "npm run test",
     "build:bindings": "node-gyp rebuild",
     "build:benchmark:format": "node-gyp -DFORMAT_BENCHMARK=1 rebuild",
-    "benchmark": "npm run benchmark:methods && npm run benchmark:profiler && npm run benchmark:server",
+    "benchmark": "npm run benchmark:methods && npm run benchmark:profiler && npm run benchmark:server && npm run benchmark:format",
     "benchmark:methods": "node benchmarks/cpu/benchmark.methods.js",
     "benchmark:profiler": "node benchmarks/cpu/benchmark.profiler.js",
     "benchmark:server": "node benchmarks/cpu/benchmark.server.js",
@@ -36,6 +36,7 @@
     "prettier": "2.7.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "simple-zstd": "^1.4.0",
     "sqlite3": "^5.0.8",
     "typescript": "^4.7.4"
   }

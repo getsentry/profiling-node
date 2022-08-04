@@ -3,6 +3,7 @@ const ReactDOMServer = require('react-dom/server');
 const fs = require('fs');
 const path = require('path');
 const gzip = require('zlib');
+const { ZSTDCompress, ZSTDDecompress } = require('simple-zstd');
 
 const cpu_profiler = require('./../../build/Release/cpu_profiler.format.benchmark');
 
@@ -52,7 +53,6 @@ function compressGzip(source, target) {
       .pipe(gzip.createGzip({ level: 6 }))
       .pipe(fs.createWriteStream(target))
       .on('finish', () => {
-        console.log('Compressed file:', target);
         resolve();
       })
       .on('error', () => {
@@ -67,6 +67,22 @@ function compressBrotli(source, target) {
     const stream = fs.createReadStream(source);
     stream
       .pipe(gzip.createBrotliCompress())
+      .pipe(fs.createWriteStream(target))
+      .on('finish', () => {
+        console.log('Compressed file:', target);
+        resolve();
+      })
+      .on('error', () => {
+        reject(new Error('Error while compressing file', target));
+        reject();
+      });
+  });
+}
+
+function compressZstd(source, target) {
+  return new Promise((resolve, reject) => {
+    fs.createReadStream(source)
+      .pipe(ZSTDCompress(3))
       .pipe(fs.createWriteStream(target))
       .on('finish', () => {
         console.log('Compressed file:', target);
@@ -102,25 +118,19 @@ const cleanSampledFormat = (format) => {
   await compressGzip(
     path.resolve(outpath, 'cpu_profiler.graph.json'),
     path.resolve(outpath, 'cpu_profiler.graph.json.gz')
-  )
-    .catch((e) => console.log(e))
-    .then(() => console.log('Done'));
+  );
 
   // Compress sampled format to gzip
   await compressGzip(
     path.resolve(outpath, 'cpu_profiler.sampled.json'),
     path.resolve(outpath, 'cpu_profiler.sampled.json.gz')
-  )
-    .catch((e) => console.log(e))
-    .then(() => console.log('Done'));
+  );
 
   // Compress graph format to Brotli
   await compressBrotli(
     path.resolve(outpath, 'cpu_profiler.graph.json'),
     path.resolve(outpath, 'cpu_profiler.graph.json.br')
-  )
-    .catch((e) => console.log(e))
-    .then(() => console.log('Done'));
+  );
 
   // Compress sampled format to Brotli
   await compressBrotli(
@@ -130,11 +140,29 @@ const cleanSampledFormat = (format) => {
     .catch((e) => console.log(e))
     .then(() => console.log('Done'));
 
+  // Compress graph format to Brotli
+  await compressZstd(
+    path.resolve(outpath, 'cpu_profiler.graph.json'),
+    path.resolve(outpath, 'cpu_profiler.graph.json.zst')
+  )
+    .catch((e) => console.log(e))
+    .then(() => console.log('Done'));
+
+  // Compress sampled format to Brotli
+  await compressZstd(
+    path.resolve(outpath, 'cpu_profiler.sampled.json'),
+    path.resolve(outpath, 'cpu_profiler.sampled.json.zst')
+  )
+    .catch((e) => console.log(e))
+    .then(() => console.log('Done'));
+
   console.log('graph profile size:', getSize(path.resolve(outpath, 'cpu_profiler.graph.json')));
   console.log('sampled profile size:', getSize(path.resolve(outpath, 'cpu_profiler.sampled.json')));
 
   console.log('graph profile size (gzipped):', getSize(path.resolve(outpath, 'cpu_profiler.graph.json.gz')));
-  console.log('sampled profile size (gzipped):', getSize(path.resolve(outpath, 'cpu_profiler.sampled.json.gz')));
   console.log('graph profile size (brotli):', getSize(path.resolve(outpath, 'cpu_profiler.graph.json.br')));
+  console.log('graph profile size (zstd):', getSize(path.resolve(outpath, 'cpu_profiler.graph.json.zst')));
+  console.log('sampled profile size (gzipped):', getSize(path.resolve(outpath, 'cpu_profiler.sampled.json.gz')));
   console.log('sampled profile size (brotli):', getSize(path.resolve(outpath, 'cpu_profiler.sampled.json.br')));
+  console.log('sampled profile size (zstd):', getSize(path.resolve(outpath, 'cpu_profiler.sampled.json.zst')));
 })();

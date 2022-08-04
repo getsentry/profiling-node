@@ -5,11 +5,11 @@ const express = require('express');
 const React = require('react');
 const ReactDOMServer = require('react-dom/server');
 
-const cpu_profiler = require('./../build/Release/cpu_profiler');
+const cpu_profiler = require('./../../build/Release/cpu_profiler');
 
 const db = new sqlite3.Database('memory_db');
 
-console.log('\nBenchmarking API instrumented with Cpu profiler');
+console.log('\nBenchmarking CPU profiler server use case');
 
 db.serialize(() => {
   db.run('DROP TABLE IF EXISTS benchmarks;', (db, err) => {

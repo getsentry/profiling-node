@@ -1,6 +1,6 @@
 const fs = require('fs');
 const suite = require('benchmark');
-const cpu_profiler = require('./../build/Release/cpu_profiler');
+const cpu_profiler = require('./../../build/Release/cpu_profiler');
 
 console.log('\nBenchmarking CPU profiler use cases');
 
