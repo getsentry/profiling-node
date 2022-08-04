@@ -4,3 +4,5 @@
 
 node_modules/
 memory_db
+build/
+benchmarks/format/output/

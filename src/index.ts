@@ -1,6 +1,6 @@
 import { addExtensionMethods } from './hubextensions';
 
-// Treeshakable guard to remove all code related to tracing
+// Treeshakable guard to remove all code related to profiling
 declare const __SENTRY_PROFILING: boolean;
 
 // Guard for tree

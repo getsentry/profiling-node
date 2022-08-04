@@ -1,29 +1,36 @@
 {
-  "name": "node-profiler",
+  "name": "@sentry/profiler-node",
   "version": "0.0.0",
   "description": "Sampling based nodejs profiler",
-  "main": "dist/index.js",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "engines": {
+    "node": ">=14.0.0"
+  },
   "scripts": {
-    "test": "npm run test",
+    "postinstall": "npm run build:bindings",
+    "clean": "rm -rf ./lib && rm -rf build",
+    "build": "npm run build:bindings && npm run build:lib",
+    "build:lib": "tsc",
     "build:bindings": "node-gyp rebuild",
     "build:benchmark:format": "node-gyp -DFORMAT_BENCHMARK=1 rebuild",
     "benchmark": "npm run benchmark:methods && npm run benchmark:profiler && npm run benchmark:server && npm run benchmark:format",
     "benchmark:methods": "node benchmarks/cpu/benchmark.methods.js",
     "benchmark:profiler": "node benchmarks/cpu/benchmark.profiler.js",
     "benchmark:server": "node benchmarks/cpu/benchmark.server.js",
-    "benchmark:format": "yarn build:benchmark:format && node benchmarks/format/benchmark.format.js"
+    "benchmark:format": "yarn build:benchmark:format && node benchmarks/format/benchmark.format.js",
+    "test": "npm run test"
   },
   "keywords": [
     "profiling",
+    "monitoring",
     "cpu",
     "node"
   ],
   "author": "jonas.badalic@sentry.io",
   "license": "ISC",
   "dependencies": {
-    "@sentry/hub": "^7.5.0",
-    "nan": "^2.16.0",
-    "node-gyp": "^9.0.0"
+    "@sentry/hub": "^7.5.0"
   },
   "devDependencies": {
     "@sentry/node": "^7.5.0",
@@ -34,6 +41,8 @@
     "benchmark": "^2.1.4",
     "express": "^4.18.1",
     "prettier": "2.7.1",
+    "nan": "^2.16.0",
+    "node-gyp": "^9.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "simple-zstd": "^1.4.0",

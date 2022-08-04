@@ -230,20 +230,11 @@ NAN_METHOD(SetSamplingInterval) {
 
 void Init(v8::Local<v8::Object> exports) {
   v8::Local<v8::Context> context = exports->GetCreationContext().ToLocalChecked();
-  
-  exports->Set(context, Nan::New("startProfiling").ToLocalChecked(),
-               Nan::GetFunction(Nan::New<v8::FunctionTemplate>(StartProfiling)).ToLocalChecked());
-
-  exports->Set(context, Nan::New("setSamplingInterval").ToLocalChecked(),
-               Nan::GetFunction(Nan::New<v8::FunctionTemplate>(SetSamplingInterval)).ToLocalChecked());
-               
-  exports->Set(context, Nan::New("setUsePreciseSampling").ToLocalChecked(),
-               Nan::GetFunction(Nan::New<v8::FunctionTemplate>(SetUsePreciseSampling)).ToLocalChecked());
-
-  exports->Set(context, Nan::New("stopProfiling").ToLocalChecked(),
-               Nan::GetFunction(Nan::New<v8::FunctionTemplate>(StopProfiling)).ToLocalChecked());
-
-  exports->Set(context, Nan::New("format").ToLocalChecked(), Nan::New<Integer>(PROFILER_FORMAT));
+  (void) exports->Set(context, Nan::New("startProfiling").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(StartProfiling)).ToLocalChecked());
+  (void) exports->Set(context, Nan::New("setSamplingInterval").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(SetSamplingInterval)).ToLocalChecked());             
+  (void) exports->Set(context, Nan::New("setUsePreciseSampling").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(SetUsePreciseSampling)).ToLocalChecked());
+  (void) exports->Set(context, Nan::New("stopProfiling").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(StopProfiling)).ToLocalChecked());
+  (void) exports->Set(context, Nan::New("format").ToLocalChecked(), Nan::New<Integer>(PROFILER_FORMAT));
 }
 
 NODE_MODULE(cpu_profiler, Init);

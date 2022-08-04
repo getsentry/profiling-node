@@ -22,6 +22,11 @@ let profiles: any[] = [];
 // @ts-ignore
 BaseClient.prototype._sendEnvelope = function (envelope: Envelope) {
   if (isEventEnvelope(envelope)) {
+    const platform = os.platform();
+    const release = os.release();
+    const locale =
+      process.env['LC_ALL'] || process.env['LC_MESSAGES'] || process.env['LANG'] || process.env['LANGUAGE'];
+
     while (profiles.length > 0) {
       const cpuProfile = profiles.pop();
 
@@ -30,12 +35,11 @@ BaseClient.prototype._sendEnvelope = function (envelope: Envelope) {
         platform: 'node',
         profile_id: uuid4(),
         profile: [cpuProfile],
-        device_locale:
-          process.env['LC_ALL'] || process.env['LC_MESSAGES'] || process.env['LANG'] || process.env['LANGUAGE'],
+        device_locale: locale,
         device_manufacturer: 'GitHub',
         device_model: 'GitHub Actions',
-        device_os_name: os.platform(),
-        device_os_version: os.release(),
+        device_os_name: platform,
+        device_os_version: release,
         device_is_emulator: false,
         transaction_name: 'typescript.compile',
         version_code: '1',

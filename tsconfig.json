@@ -19,7 +19,9 @@
     "noUnusedParameters": true,
     "importsNotUsedAsValues": "error",
     "checkJs": true,
-    "typeRoots": ["node_modules/@types"]
+    "declaration": true,
+    "outDir": "lib",
+    "typeRoots": ["node_modules/@types", "src/types.d.ts"]
   },
   "include": ["src/**/*.ts"]
 }
