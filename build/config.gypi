@@ -354,14 +354,14 @@
     "nodedir": "/Users/jonasbadalic/Library/Caches/node-gyp/16.14.0",
     "standalone_static_library": 1,
     "metrics_registry": "https://registry.npmjs.org/",
-    "global_prefix": "/Users/jonasbadalic/.volta/tools/image/node/16.14.0",
+    "global_prefix": "/Users/jonasbadalic/.volta/tools/image/packages/@sentry/profiler-node",
     "local_prefix": "/Users/jonasbadalic/code/node-profiler",
-    "globalconfig": "/Users/jonasbadalic/.volta/tools/image/node/16.14.0/etc/npmrc",
-    "userconfig": "/Users/jonasbadalic/.npmrc",
+    "globalconfig": "/Users/jonasbadalic/.volta/tools/image/packages/@sentry/profiler-node/etc/npmrc",
     "init_module": "/Users/jonasbadalic/.npm-init.js",
+    "userconfig": "/Users/jonasbadalic/.npmrc",
     "node_gyp": "/Users/jonasbadalic/.volta/tools/image/node/16.14.0/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js",
     "cache": "/Users/jonasbadalic/.npm",
     "user_agent": "npm/8.3.1 node/v16.14.0 darwin arm64 workspaces/false",
-    "prefix": "/Users/jonasbadalic/.volta/tools/image/node/16.14.0"
+    "prefix": "/Users/jonasbadalic/.volta/tools/image/packages/@sentry/profiler-node"
   }
 }

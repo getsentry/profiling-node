@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "description": "Sampling based nodejs profiler",
   "main": "./lib/index.js",
-  "types": "./lib/index.d.ts",
+  "types": "./lib/types.d.ts",
   "engines": {
     "node": ">=14.0.0"
   },

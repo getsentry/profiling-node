@@ -19,6 +19,8 @@
     "noUnusedParameters": true,
     "importsNotUsedAsValues": "error",
     "checkJs": true,
+    "allowJs": true,
+    "emitDeclarationOnly": false,
     "declaration": true,
     "outDir": "lib",
     "typeRoots": ["node_modules/@types", "src/types.d.ts"]
