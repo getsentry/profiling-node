@@ -17,14 +17,13 @@
 #endif
 
 using namespace v8;
-using namespace std;
 
 // 1e5 us aka every 10ms
 static int defaultSamplingIntervalMicroseconds = 1e5;
 
 // Isolate represents an instance of the v8 engine and can be entered at most by 1 thread at a given time
 // https://v8docs.nodesource.com/node-0.8/d5/dda/classv8_1_1_isolate.html
-CpuProfiler* cpuProfiler = CpuProfiler::New(v8::Isolate::GetCurrent(), v8::kDebugNaming, v8::kLazyLogging);
+CpuProfiler* cpuProfiler = CpuProfiler::New(Isolate::GetCurrent(), kDebugNaming, kLazyLogging);
 
 Local<Object> CreateFrameGraphNode(
     Local<String> name, Local<String> scriptName,
@@ -64,9 +63,9 @@ Local<Object> CreateFrameNode(
 std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfile* profile){
     uint sampleCount = profile->GetSamplesCount();
 
-    Local<v8::Array> samples = Nan::New<Array>(sampleCount);
-    Local<v8::Array> sampleTimes = Nan::New<Array>(sampleCount);
-    Local<v8::Array> frameIndex = Nan::New<Array>();
+    Local<Array> samples = Nan::New<Array>(sampleCount);
+    Local<Array> sampleTimes = Nan::New<Array>(sampleCount);
+    Local<Array> frameIndex = Nan::New<Array>();
 
     int64_t previousTimestamp = profile->GetStartTime();
     std::unordered_map<std::string, int> frameLookupTable;
@@ -74,7 +73,7 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
     uint idx = 0;
     for(uint i = 0; i < sampleCount; i++) {
         const CpuProfileNode* node = profile->GetSample(i);
-             v8::Isolate* isolate = Isolate::GetCurrent();
+             Isolate* isolate = Isolate::GetCurrent();
 
         int stackDepth = -1;
         auto startNode = node;
@@ -89,8 +88,8 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
 
         int tailOffset = 0;
         while(node != NULL) {
-            Local<v8::String> functionName = node->GetFunctionName();
-            v8::String::Utf8Value str(isolate, functionName);
+            Local<String> functionName = node->GetFunctionName();
+            String::Utf8Value str(isolate, functionName);
             std::string cppStr(*str);
 
             int scriptId = node->GetScriptId();
@@ -180,19 +179,19 @@ NAN_METHOD(StartProfiling) {
     bool recordSamples = true;
 
     if(info[1]->IsNumber()) {
-        customOrDefaultSamplingInterval = info[1]->ToInteger(v8::Local<v8::Context>()).ToLocalChecked()->Value();
+        customOrDefaultSamplingInterval = info[1]->ToInteger(Local<Context>()).ToLocalChecked()->Value();
     }
 
     cpuProfiler->SetSamplingInterval(customOrDefaultSamplingInterval);
     cpuProfiler->SetUsePreciseSampling(false);
-    cpuProfiler->StartProfiling(Nan::To<v8::String>(info[0]).ToLocalChecked(), recordSamples);
+    cpuProfiler->StartProfiling(Nan::To<String>(info[0]).ToLocalChecked(), recordSamples);
 };
 
 // StopProfiling(string title)
 // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#a40ca4c8a8aa4c9233aa2a2706457cc80
 NAN_METHOD(StopProfiling) {
-    v8::Local<v8::String> title = Nan::To<v8::String>(info[0]).ToLocalChecked();
-    v8::CpuProfile *profile = cpuProfiler->StopProfiling(title);
+    Local<String> title = Nan::To<String>(info[0]).ToLocalChecked();
+    CpuProfile *profile = cpuProfiler->StopProfiling(title);
 
     info.GetReturnValue().Set(CreateProfile(profile, false));
     
@@ -228,12 +227,12 @@ NAN_METHOD(SetSamplingInterval) {
     cpuProfiler->SetSamplingInterval(us);
 }
 
-void Init(v8::Local<v8::Object> exports) {
-  v8::Local<v8::Context> context = exports->GetCreationContext().ToLocalChecked();
-  (void) exports->Set(context, Nan::New("startProfiling").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(StartProfiling)).ToLocalChecked());
-  (void) exports->Set(context, Nan::New("setSamplingInterval").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(SetSamplingInterval)).ToLocalChecked());             
-  (void) exports->Set(context, Nan::New("setUsePreciseSampling").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(SetUsePreciseSampling)).ToLocalChecked());
-  (void) exports->Set(context, Nan::New("stopProfiling").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(StopProfiling)).ToLocalChecked());
+void Init(Local<Object> exports) {
+  Local<Context> context = exports->GetCreationContext().ToLocalChecked();
+  (void) exports->Set(context, Nan::New("startProfiling").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(StartProfiling)).ToLocalChecked());
+  (void) exports->Set(context, Nan::New("setSamplingInterval").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(SetSamplingInterval)).ToLocalChecked());             
+  (void) exports->Set(context, Nan::New("setUsePreciseSampling").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(SetUsePreciseSampling)).ToLocalChecked());
+  (void) exports->Set(context, Nan::New("stopProfiling").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(StopProfiling)).ToLocalChecked());
   (void) exports->Set(context, Nan::New("format").ToLocalChecked(), Nan::New<Integer>(PROFILER_FORMAT));
 }
 
