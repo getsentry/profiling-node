@@ -9,6 +9,7 @@ import profiler from './../build/Release/cpu_profiler';
 import type { Envelope, EventEnvelope } from '@sentry/types';
 import { addItemToEnvelope, uuid4 } from '@sentry/utils';
 import { BaseClient } from '@sentry/core';
+import { writeFileSync } from 'fs';
 
 function isEventEnvelope(envelope: Envelope): envelope is EventEnvelope {
   return !!(envelope[0] as any).event_id;
@@ -29,6 +30,8 @@ BaseClient.prototype._sendEnvelope = function (envelope: Envelope) {
 
     while (profiles.length > 0) {
       const cpuProfile = profiles.pop();
+
+      console.log(envelope);
 
       const profile: any = {
         type: 'profile',
@@ -52,9 +55,11 @@ BaseClient.prototype._sendEnvelope = function (envelope: Envelope) {
       // @ts-ignore
       envelope = addItemToEnvelope(envelope, [{ type: 'profile' }, profile]);
     }
+
+    writeFileSync(`profile-${profiles.length}.json`, JSON.stringify(envelope));
   }
 
-  orgSendEnvelope.call(this, envelope);
+  // orgSendEnvelope.call(this, envelope);
 };
 
 /**
@@ -92,9 +97,8 @@ function _wrapStartTransaction(originalTransaction: StartTransaction): StartTran
 
     const originalFinish = transaction.finish.bind(transaction);
     function profilingWrappedTransactionFinish() {
-      const profile = profiler.stopProfiling(transactionContext.name);
-      profiles.push(profile);
-      originalFinish();
+      profiles.push(profiler.stopProfiling(transactionContext.name));
+      return originalFinish();
     }
 
     transaction.finish = profilingWrappedTransactionFinish;

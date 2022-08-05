@@ -1,10 +1,15 @@
-import type types from '@sentry/types';
-
+import type { TransactionContext } from '@sentry/types';
+interface ProfilingTransactionContext extends TransactionContext {
+  profiling?: {
+    mode?: 'eager' | 'lazy';
+    samplingFrequest?: number;
+  };
+}
 declare module '@sentry/types' {
-  export interface TransactionContextWithProfiling extends types.TransactionContext {
-    profiling: {
+  interface TransactionContext {
+    profiling?: {
       mode?: 'eager' | 'lazy';
-      samplingFrequest?: number;
+      samplingInterval?: number;
     };
   }
 }

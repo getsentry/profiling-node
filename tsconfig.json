@@ -5,7 +5,7 @@
     "strict": true,
     "moduleResolution": "node",
     "esModuleInterop": true,
-    "skipLibCheck": true,
+    "skipLibCheck": false,
     "forceConsistentCasingInFileNames": true,
     "allowUnusedLabels": false,
     "allowUnreachableCode": false,
@@ -20,10 +20,9 @@
     "importsNotUsedAsValues": "error",
     "checkJs": true,
     "allowJs": true,
-    "emitDeclarationOnly": false,
     "declaration": true,
     "outDir": "lib",
-    "typeRoots": ["node_modules/@types", "src/types.d.ts"]
+    "typeRoots": ["node_modules/@types"]
   },
   "include": ["src/**/*.ts"]
 }
