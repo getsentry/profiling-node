@@ -3,10 +3,13 @@
   "version": "0.0.0",
   "description": "Sampling based nodejs profiler",
   "main": "./lib/index.js",
-  "types": "./src/types.d.ts",
   "engines": {
     "node": ">=14.0.0"
   },
+  "files": [
+    "lib/*",
+    "build/release/cpu_profiler.node"
+  ],
   "scripts": {
     "postinstall": "npm run build:bindings",
     "clean": "rm -rf ./lib && rm -rf build",
@@ -29,12 +32,13 @@
   ],
   "author": "jonas.badalic@sentry.io",
   "license": "ISC",
-  "dependencies": {
-    "@sentry/hub": "^7.5.0"
+  "peerDependencies": {
+    "@sentry/hub": "^7.10.0",
+    "@sentry/node": "^7.10.0",
+    "@sentry/types": "^7.8.1",
+    "@sentry/utils": "^7.10.0"
   },
   "devDependencies": {
-    "@sentry/node": "^7.8.1",
-    "@sentry/types": "^7.8.1",
     "@types/node": "^18.0.2",
     "autocannon": "^7.9.0",
     "benchmark": "^2.1.4",

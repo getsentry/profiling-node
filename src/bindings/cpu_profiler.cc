@@ -19,11 +19,12 @@
 using namespace v8;
 
 // 1e5 us aka every 10ms
-static int defaultSamplingIntervalMicroseconds = 1e5;
+// static int defaultSamplingIntervalMicroseconds = 1e5;
 
 // Isolate represents an instance of the v8 engine and can be entered at most by 1 thread at a given time
 // https://v8docs.nodesource.com/node-0.8/d5/dda/classv8_1_1_isolate.html
 CpuProfiler* cpuProfiler = CpuProfiler::New(Isolate::GetCurrent(), kDebugNaming, kLazyLogging);
+
 
 Local<Object> CreateFrameGraphNode(
     Local<String> name, Local<String> scriptName,
@@ -64,7 +65,7 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
     uint sampleCount = profile->GetSamplesCount();
 
     Local<Array> samples = Nan::New<Array>(sampleCount);
-    Local<Array> sampleTimes = Nan::New<Array>(sampleCount);
+    Local<Array> weights = Nan::New<Array>(sampleCount);
     Local<Array> frameIndex = Nan::New<Array>();
 
     int64_t previousTimestamp = profile->GetStartTime();
@@ -98,6 +99,8 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
             if(index == frameLookupTable.end()) {
                 frameLookupTable.insert({cppStr, idx});
 
+                node->GetDeoptInfos();
+
                 Nan::Set(stack, stackDepth - tailOffset, Nan::New<Number>(idx));
                 Nan::Set(frameIndex, idx, CreateFrameNode(
                     functionName,
@@ -115,16 +118,16 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
             tailOffset++;
         }
 
-        int sampleTimestamp = profile->GetSampleTimestamp(i);
+        int64_t sampleTimestamp = profile->GetSampleTimestamp(i);
 
         Nan::Set(samples, i, stack);
-        Nan::Set(sampleTimes, i, Nan::New<Number>(sampleTimestamp - previousTimestamp));
+        Nan::Set(weights, i, Nan::New<Number>(sampleTimestamp - previousTimestamp));
 
         previousTimestamp = sampleTimestamp;
 
     }
 
-    return std::make_tuple(samples, sampleTimes, frameIndex);
+    return std::make_tuple(samples, weights, frameIndex);
 }
 
 
@@ -154,7 +157,8 @@ Local<Value> CreateProfile(const CpuProfile* profile, bool includeLineInfo) {
   Nan::Set(js_profile, Nan::New<String>("endValue").ToLocalChecked(), Nan::New<Number>(profile->GetEndTime()));
   Nan::Set(js_profile, Nan::New<String>("type").ToLocalChecked(), Nan::New<String>("sampled").ToLocalChecked());
   Nan::Set(js_profile, Nan::New<String>("threadID").ToLocalChecked(), Nan::New<Number>(10));
-  Nan::Set(js_profile, Nan::New<String>("unit").ToLocalChecked(), Nan::New<String>("nanoseconds").ToLocalChecked());
+  Nan::Set(js_profile, Nan::New<String>("unit").ToLocalChecked(), Nan::New<String>("microseconds").ToLocalChecked());
+  Nan::Set(js_profile, Nan::New<String>("duration_ns").ToLocalChecked(), Nan::New<Number>((profile->GetEndTime() - profile->GetStartTime()) * 1e3));
 
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
   std::tuple<Local<Value>, Local<Value>, Local<Value>> samples = GetSamples(profile);
@@ -175,15 +179,15 @@ NAN_METHOD(StartProfiling) {
         return Nan::ThrowError("StartProfiling requires a string as the first argument.");
     }
 
-    int customOrDefaultSamplingInterval = defaultSamplingIntervalMicroseconds;
+    // int customOrDefaultSamplingInterval = defaultSamplingIntervalMicroseconds;
     bool recordSamples = true;
 
-    if(info[1]->IsNumber()) {
-        customOrDefaultSamplingInterval = info[1]->ToInteger(Local<Context>()).ToLocalChecked()->Value();
-    }
+    // if(info[1]->IsNumber()) {
+    //     customOrDefaultSamplingInterval = info[1]->ToInteger(Local<Context>()).ToLocalChecked()->Value();
+    // }
 
-    cpuProfiler->SetSamplingInterval(customOrDefaultSamplingInterval);
-    cpuProfiler->SetUsePreciseSampling(false);
+    // cpuProfiler->SetSamplingInterval(customOrDefaultSamplingInterval);
+    cpuProfiler->SetUsePreciseSampling(true);
     cpuProfiler->StartProfiling(Nan::To<String>(info[0]).ToLocalChecked(), recordSamples);
 };
 
