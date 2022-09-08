@@ -9,7 +9,7 @@
 #define FORMAT_RAW 1
 
 #ifndef PROFILER_FORMAT 
-#define PROFILER_FORMAT FORMAT_RAW
+#define PROFILER_FORMAT FORMAT_SAMPLED
 #endif
 
 #ifndef FORMAT_BENCHMARK
@@ -25,7 +25,7 @@ using namespace v8;
 // https://v8docs.nodesource.com/node-0.8/d5/dda/classv8_1_1_isolate.html
 CpuProfiler* cpuProfiler = CpuProfiler::New(Isolate::GetCurrent(), kDebugNaming, kLazyLogging);
 
-
+#if PROFILER_FORMAT == FORMAT_RAW || FORMAT_BENCHMARK == 1
 Local<Object> CreateFrameGraphNode(
     Local<String> name, Local<String> scriptName,
     Local<Integer> scriptId, Local<Integer> lineNumber,
@@ -45,18 +45,44 @@ Local<Object> CreateFrameGraphNode(
   return js_node;
 }
 
-Local<Object> CreateFrameNode(
+Local<Value> CreateFrameGraph(const CpuProfileNode* node) {
+  int32_t count = node->GetChildrenCount();
+  Local<Array> children = Nan::New<Array>(count);
+  for (int32_t i = 0; i < count; i++) {
+    Nan::Set(children, i, CreateFrameGraph(node->GetChild(i)));
+  }
+
+  return CreateFrameGraphNode(
+        node->GetFunctionName(),
+        node->GetScriptResourceName(), 
+        Nan::New<Integer>(node->GetScriptId()),
+        Nan::New<Integer>(node->GetLineNumber()),
+        Nan::New<Integer>(node->GetColumnNumber()),
+        Nan::New<Integer>(node->GetHitCount()),
+        children
+    );
+}
+#endif
+
+#if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
+Local<Object> CreateSampleFrameNode(
     Local<String> name, Local<String> scriptName,
     Local<Integer> scriptId, Local<Integer> lineNumber,
-    Local<Integer> columnNumber) {
+    Local<Integer> columnNumber, std::vector<CpuProfileDeoptInfo> deoptInfos) {
 
   Local<Object> js_node = Nan::New<Object>();
+  Local<Array> deoptReasons = Nan::New<Array>(deoptInfos.size());
+
+  for(uint i = 0; i < deoptInfos.size(); i++) {
+    Nan::Set(deoptReasons, i, Nan::New<String>(deoptInfos[i].deopt_reason).ToLocalChecked());
+  }
   
   Nan::Set(js_node, Nan::New<String>("name").ToLocalChecked(), name);
   Nan::Set(js_node, Nan::New<String>("scriptName").ToLocalChecked(), scriptName);
   Nan::Set(js_node, Nan::New<String>("scriptId").ToLocalChecked(), scriptId);
   Nan::Set(js_node, Nan::New<String>("lineNumber").ToLocalChecked(), lineNumber);
   Nan::Set(js_node, Nan::New<String>("columnNumber").ToLocalChecked(), columnNumber);
+  Nan::Set(js_node, Nan::New<String>("deoptReasons").ToLocalChecked(), deoptReasons);
 
   return js_node;
 };
@@ -95,17 +121,19 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
 
             int scriptId = node->GetScriptId();
             auto index = frameLookupTable.find(cppStr);
+            auto deoptReason = node->GetDeoptInfos();
 
             if(index == frameLookupTable.end()) {
                 frameLookupTable.insert({cppStr, idx});
 
                 Nan::Set(stack, stackDepth - tailOffset, Nan::New<Number>(idx));
-                Nan::Set(frameIndex, idx, CreateFrameNode(
+                Nan::Set(frameIndex, idx, CreateSampleFrameNode(
                     functionName,
                     node->GetScriptResourceName(),
                     Nan::New<Integer>(scriptId),
                     Nan::New<Integer>(node->GetLineNumber()),
-                    Nan::New<Integer>(node->GetColumnNumber())
+                    Nan::New<Integer>(node->GetColumnNumber()),
+                    node->GetDeoptInfos()
                 ));
                 idx++;
             } else {
@@ -127,27 +155,9 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
 
     return std::make_tuple(samples, weights, frameIndex);
 }
+#endif
 
-
-Local<Value> CreateFrameGraph(const CpuProfileNode* node) {
-  int32_t count = node->GetChildrenCount();
-  Local<Array> children = Nan::New<Array>(count);
-  for (int32_t i = 0; i < count; i++) {
-    Nan::Set(children, i, CreateFrameGraph(node->GetChild(i)));
-  }
-
-  return CreateFrameGraphNode(
-        node->GetFunctionName(),
-        node->GetScriptResourceName(), 
-        Nan::New<Integer>(node->GetScriptId()),
-        Nan::New<Integer>(node->GetLineNumber()),
-        Nan::New<Integer>(node->GetColumnNumber()),
-        Nan::New<Integer>(node->GetHitCount()),
-        children
-    );
-}
-
-Local<Value> CreateProfile(const CpuProfile* profile, bool includeLineInfo) {
+Local<Value> CreateProfile(const CpuProfile* profile) {
   Local<Object> js_profile = Nan::New<Object>();
 
   Nan::Set(js_profile, Nan::New<String>("title").ToLocalChecked(), profile->GetTitle());
@@ -195,7 +205,7 @@ NAN_METHOD(StopProfiling) {
     Local<String> title = Nan::To<String>(info[0]).ToLocalChecked();
     CpuProfile *profile = cpuProfiler->StopProfiling(title);
 
-    info.GetReturnValue().Set(CreateProfile(profile, false));
+    info.GetReturnValue().Set(CreateProfile(profile));
     
     profile->Delete();
 };
