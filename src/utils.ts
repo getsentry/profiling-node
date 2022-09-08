@@ -9,7 +9,7 @@ import type {
   EventItem,
   EventEnvelope,
   EventEnvelopeHeaders,
-  Baggage,
+  Baggage
 } from '@sentry/types';
 
 import { createEnvelope, dropUndefinedKeys, dsnToString, getSentryBaggageItems, uuid4 } from '@sentry/utils';
@@ -17,7 +17,7 @@ import { createEnvelope, dropUndefinedKeys, dsnToString, getSentryBaggageItems, 
 interface Profile {
   platform: string;
   profile_id: string;
-  profile: [any, {}];
+  profile: [unknown, unknown];
   device_locale: string;
   device_manufacturer: string;
   device_model: string;
@@ -59,10 +59,8 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
     return event;
   }
   event.sdk = event.sdk || {};
-  // @ts-ignore
-  event.sdk.name = event.sdk.name || sdkInfo.name;
-  // @ts-ignore
-  event.sdk.version = event.sdk.version || sdkInfo.version;
+  event.sdk.name = (event.sdk.name || sdkInfo.name) ?? 'unknown sdk';
+  event.sdk.version = (event.sdk.version || sdkInfo.version) ?? 'unknown sdk version';
   event.sdk.integrations = [...(event.sdk.integrations || []), ...(sdkInfo.integrations || [])];
   event.sdk.packages = [...(event.sdk.packages || []), ...(sdkInfo.packages || [])];
   return event;
@@ -84,8 +82,8 @@ function createEventEnvelopeHeaders(
     ...(!!tunnel && { dsn: dsnToString(dsn) }),
     ...(event.type === 'transaction' &&
       dynamicSamplingContext && {
-        trace: dropUndefinedKeys({ ...dynamicSamplingContext }) as DynamicSamplingContext,
-      }),
+        trace: dropUndefinedKeys({ ...dynamicSamplingContext }) as DynamicSamplingContext
+      })
   };
 }
 
@@ -128,15 +126,15 @@ export function createProfilingEventEnvelope(
     version_code: sdkInfo?.version ?? 'unknown version',
     version_name: sdkInfo?.name ?? 'unknown name',
     trace_id: envelopeHeaders.trace?.trace_id ?? 'unknown trace id',
-    transaction_id: envelopeHeaders.event_id,
+    transaction_id: envelopeHeaders.event_id
   };
 
   const envelopeItem: EventItem = [
     {
       // @ts-expect-error profile is not yet a type in @sentry/types
-      type: 'profile',
+      type: 'profile'
     },
-    profile,
+    profile
   ];
 
   return createEnvelope<EventEnvelope>(envelopeHeaders, [envelopeItem]);
