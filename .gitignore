@@ -2,6 +2,8 @@
 .git/
 .DS_STORE
 
+coverage/
+
 node_modules/
 memory_db
 build/
