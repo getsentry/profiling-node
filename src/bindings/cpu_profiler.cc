@@ -99,8 +99,6 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
             if(index == frameLookupTable.end()) {
                 frameLookupTable.insert({cppStr, idx});
 
-                node->GetDeoptInfos();
-
                 Nan::Set(stack, stackDepth - tailOffset, Nan::New<Number>(idx));
                 Nan::Set(frameIndex, idx, CreateFrameNode(
                     functionName,

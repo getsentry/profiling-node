@@ -5,28 +5,17 @@ import { logger } from '@sentry/utils';
 // @ts-ignore
 import profiler from './../build/Release/cpu_profiler';
 
-/**
- * Creates a new transaction and adds a sampling decision if it doesn't yet have one.
- *
- * The Hub.startTransaction method delegates to this method to do its work, passing the Hub instance in as `this`, as if
- * it had been called on the hub directly. Exists as a separate function so that it can be injected into the class as an
- * "extension method."
- *
- * @param this: The Hub starting the transaction
- * @param transactionContext: Data used to configure the transaction
- * @param CustomSamplingContext: Optional data to be provided to the `tracesSampler` function (if any)
- *
- * @returns The new transaction
- *
- * @see {@link Hub.startTransaction}
- */
-
 type StartTransaction = (
   this: Hub,
   transactionContext: TransactionContext,
   customSamplingContext?: CustomSamplingContext
 ) => Transaction;
 
+// Wraps startTransaction and stopTransaction with profiling related logic.
+// startProfiling is called after the call to startTransaction in order to avoid our own code from
+// being profiled. Because of that same reason, stopProfiling is called before the call to stopTransaction.
+//
+// Once a transaction is stopped
 function _wrapStartTransaction(startTransaction: StartTransaction): StartTransaction {
   return function wrappedStartTransaction(
     this: Hub,
@@ -42,8 +31,7 @@ function _wrapStartTransaction(startTransaction: StartTransaction): StartTransac
     function profilingWrappedTransactionFinish() {
       const profile = profiler.stopProfiling(transactionContext.name);
       logger.log('[Profiling] stopped profiling of transaction: ' + transactionContext.name);
-      // Metadata is strictly typed and profile is not a part of it.
-      // Expect error for now and update the SDK later.
+      // Metadata profile is not a part of sdk metadata so we expect error until it becomes part of the official SDK.
       // @ts-expect-error
       transaction.setMetadata({ profile });
       return originalFinish();
@@ -55,6 +43,7 @@ function _wrapStartTransaction(startTransaction: StartTransaction): StartTransac
 }
 
 /**
+ * Patches startTransaction and stopTransaction with profiling logic.
  * @private
  */
 function _addProfilingExtensionMethods(): void {
@@ -66,7 +55,7 @@ function _addProfilingExtensionMethods(): void {
 
   if (carrier.__SENTRY__.extensions['startTransaction']) {
     carrier.__SENTRY__.extensions['startTransaction'] = _wrapStartTransaction(
-      // This is patched by sentry/tracing, we are going to re-patch it...
+      // This is already patched by sentry/tracing, we are going to re-patch it...
       carrier.__SENTRY__.extensions['startTransaction'] as StartTransaction
     );
   }
