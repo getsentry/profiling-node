@@ -3,12 +3,11 @@ import type { Integration, EventProcessor, Hub, Event } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { maybeRemoveProfileFromSdkMetadata, createProfilingEventEnvelope, isProfiledTransactionEvent } from './utils';
 
-const INTEGRATION_NAME = 'ProfilingNode';
-const DEFAULT_HUB_GETTER = (): Hub | undefined => undefined;
+const INTEGRATION_NAME = 'ProfilingIntegration';
 
 export class ProfilingIntegration implements Integration {
   name = INTEGRATION_NAME;
-  getCurrentHub: () => Hub | undefined = DEFAULT_HUB_GETTER;
+  getCurrentHub?: () => Hub = undefined;
 
   setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this.getCurrentHub = getCurrentHub;
@@ -16,17 +15,11 @@ export class ProfilingIntegration implements Integration {
   }
 
   handleGlobalEvent(event: Event): Event {
-    if (isProfiledTransactionEvent(event)) {
-      // Hub, Client and Dsn are all required to be able to send the profiling event to Sentry.
+    if (isProfiledTransactionEvent(event) && this.getCurrentHub !== undefined) {
+      // Client, Dsn and Transport are all required to be able to send the profiling event to Sentry.
       // If either of them is not available, we remove the profile from the transaction event.
       // and forward it to the next event processor.
       const hub = this.getCurrentHub();
-      if (!hub) {
-        logger.log(
-          '[Profiling] getCurrentHub did not return a Hub, removing profile from event and forwarding to next event processors.'
-        );
-        return maybeRemoveProfileFromSdkMetadata(event);
-      }
 
       const client = hub.getClient();
       if (!client) {
@@ -53,7 +46,7 @@ export class ProfilingIntegration implements Integration {
       }
 
       // If all required components are available, we construct a profiling event envelope and send it to Sentry.
-      logger.log('[Profiling] Sending profiling event to Sentry');
+      logger.log('[Profiling] Preparing envelope and sending a profiling event.');
       transport.send(createProfilingEventEnvelope(event, dsn, client.getOptions()._metadata));
     }
 
