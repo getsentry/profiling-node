@@ -5,8 +5,6 @@ const path = require('path');
 const gzip = require('zlib');
 const { ZSTDCompress, ZSTDDecompress } = require('simple-zstd');
 
-const cpu_profiler = require('./../../build/Release/cpu_profiler.format.benchmark');
-
 function App() {
   const [times, setTimes] = (function () {
     let start = 0;
@@ -22,9 +20,9 @@ function App() {
       React.createElement('section', { key: 2 }, [
         React.createElement('h3', { key: 0 }, 'Subtitle'),
         React.createElement('p', { key: 1 }, 'Paragraph'),
-        React.createElement('div', { key: 2 }, [React.createElement('small', { key: 0 }, 'Tiny text')]),
-      ]),
-    ]),
+        React.createElement('div', { key: 2 }, [React.createElement('small', { key: 0 }, 'Tiny text')])
+      ])
+    ])
   ]);
 }
 

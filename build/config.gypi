@@ -359,7 +359,6 @@
     "standalone_static_library": 1,
     "metrics_registry": "https://registry.npmjs.org/",
     "global_prefix": "/Users/jonasbadalic/.volta/tools/image/node/16.16.0",
-    "strict_peer_deps": "true",
     "local_prefix": "/Users/jonasbadalic/code/node-profiler",
     "globalconfig": "/Users/jonasbadalic/.volta/tools/image/node/16.16.0/etc/npmrc",
     "init_module": "/Users/jonasbadalic/.npm-init.js",

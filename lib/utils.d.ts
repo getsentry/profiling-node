@@ -17,7 +17,7 @@ interface Profile {
     trace_id: string;
     transaction_id: string;
 }
-interface ProfiledEvent extends Event {
+export interface ProfiledEvent extends Event {
     sdkProcessingMetadata: {
         profile?: Profile;
     };
