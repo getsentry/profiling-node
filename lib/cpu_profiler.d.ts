@@ -1,12 +1,12 @@
 interface Frame {
     columnNumber: number;
-    deoptReasons: string[];
+    deoptReasons?: string[];
     lineNumber: number;
     name: string;
     scriptId: number;
     scriptName: string;
 }
-interface CpuProfile {
+export interface CpuProfile {
     weights: number[];
     duration_ns: number[];
     startValue: number;

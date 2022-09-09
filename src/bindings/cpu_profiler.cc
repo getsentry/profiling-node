@@ -88,9 +88,6 @@ Local<Object> CreateSampleFrameNode(
     Nan::Set(js_node, Nan::New<String>("deoptReasons").ToLocalChecked(), deoptReasons);
   }
 
-
-  std::cout << "deoptReasons: " << deoptInfos.size() << std::endl;
-
   return js_node;
 };
 

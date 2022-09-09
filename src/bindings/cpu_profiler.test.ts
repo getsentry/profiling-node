@@ -51,35 +51,22 @@ describe('Profiler bindings', () => {
   });
 
   it('includes deopt reason', async () => {
-    const resultStore: { result?: number } = {
-      result: 0
-    };
-
-    function addPolymorphic(arr: any[], i: number) {
-        %GetOptimizationStatus(addPolymorphic);
-      try {
-        // @ts-expect-error abc
-        if (result[i - 1]) {
-          // @ts-expect-error abc
-          delete resultStore[i - 1];
-        }
-        // @ts-expect-error abc
-        resultStore[i] = arr[i] + 1;
-        return arr[0] + arr[1];
-      } catch (e) {
-        return 0;
+    // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#52-the-object-being-iterated-is-not-a-simple-enumerable
+    function iterateOverLargeHashTable() {
+      const table: Record<string, number> = {};
+      for (let i = 0; i < 1e5; i++) {
+        table[i] = i;
+      }
+      // eslint-disable-next-line
+      for (const _ in table) {
       }
     }
 
     const profile = profiled('profiled-program', async () => {
-      let i = 0;
-      while (i < 1e4) {
-        addPolymorphic(i % 2 ? [i, i] : [String(i), String(i)], i);
-        i++;
-      }
+      iterateOverLargeHashTable();
     });
 
-    console.log(profile.frames.find((f) => f.deoptReasons));
+    console.log(profile.frames);
     assertDeoptReasons(profile.frames);
   });
 });
