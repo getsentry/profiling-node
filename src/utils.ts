@@ -1,5 +1,4 @@
 import os from 'os';
-
 import type {
   SdkInfo,
   SdkMetadata,
@@ -35,7 +34,7 @@ interface Profile {
 
 // Profile is marked as optional because it is deleted from the metadata
 // by the integration before the event is processed by other integrations.
-interface ProfiledEvent extends Event {
+export interface ProfiledEvent extends Event {
   sdkProcessingMetadata: {
     profile?: Profile;
   };
@@ -96,12 +95,9 @@ export function createProfilingEventEnvelope(
   const sdkInfo = getSdkMetadataForEnvelopeHeader(metadata);
   const rawProfile = event.sdkProcessingMetadata['profile'];
 
-  if (!rawProfile) {
+  if (rawProfile === undefined || rawProfile === null) {
     throw new TypeError(
-      `Cannot construct profiling event envelope without a valid profile. Got ${JSON.stringify(rawProfile).slice(
-        0,
-        50
-      )}`
+      `Cannot construct profiling event envelope without a valid profile. Got ${rawProfile} instead.`
     );
   }
 
@@ -120,9 +116,9 @@ export function createProfilingEventEnvelope(
     device_os_name: os.platform(),
     device_os_version: os.release(),
     device_is_emulator: false,
+    environment: process.env['NODE_ENV'] ?? 'unknown environment',
     transaction_name: event.transaction ?? 'unknown transaction',
     duration_ns: `${rawProfile.duration_ns}`,
-    environment: '',
     version_code: sdkInfo?.version ?? 'unknown version',
     version_name: sdkInfo?.name ?? 'unknown name',
     trace_id: envelopeHeaders.trace?.trace_id ?? 'unknown trace id',

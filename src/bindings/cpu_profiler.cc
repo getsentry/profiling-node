@@ -71,18 +71,22 @@ Local<Object> CreateSampleFrameNode(
     Local<Integer> columnNumber, std::vector<CpuProfileDeoptInfo> deoptInfos) {
 
   Local<Object> js_node = Nan::New<Object>();
-  Local<Array> deoptReasons = Nan::New<Array>(deoptInfos.size());
-
-  for(uint i = 0; i < deoptInfos.size(); i++) {
-    Nan::Set(deoptReasons, i, Nan::New<String>(deoptInfos[i].deopt_reason).ToLocalChecked());
-  }
   
   Nan::Set(js_node, Nan::New<String>("name").ToLocalChecked(), name);
   Nan::Set(js_node, Nan::New<String>("scriptName").ToLocalChecked(), scriptName);
   Nan::Set(js_node, Nan::New<String>("scriptId").ToLocalChecked(), scriptId);
   Nan::Set(js_node, Nan::New<String>("lineNumber").ToLocalChecked(), lineNumber);
   Nan::Set(js_node, Nan::New<String>("columnNumber").ToLocalChecked(), columnNumber);
-  Nan::Set(js_node, Nan::New<String>("deoptReasons").ToLocalChecked(), deoptReasons);
+
+  if(deoptInfos.size() > 0) {
+    Local<Array> deoptReasons = Nan::New<Array>(deoptInfos.size());
+    
+    for(uint i = 0; i < deoptInfos.size(); i++) {
+      Nan::Set(deoptReasons, i, Nan::New<String>(deoptInfos[i].deopt_reason).ToLocalChecked());
+    }
+
+    Nan::Set(js_node, Nan::New<String>("deoptReasons").ToLocalChecked(), deoptReasons);
+  }
 
   return js_node;
 };
@@ -133,7 +137,7 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
                     Nan::New<Integer>(scriptId),
                     Nan::New<Integer>(node->GetLineNumber()),
                     Nan::New<Integer>(node->GetColumnNumber()),
-                    node->GetDeoptInfos()
+                    deoptReason
                 ));
                 idx++;
             } else {
@@ -206,7 +210,6 @@ NAN_METHOD(StopProfiling) {
     CpuProfile *profile = cpuProfiler->StopProfiling(title);
 
     info.GetReturnValue().Set(CreateProfile(profile));
-    
     profile->Delete();
 };
 
@@ -244,7 +247,6 @@ void Initialize(Local<Object> exports) {
   Nan::SetMethod(exports, "setSamplingInterval", SetSamplingInterval);
   Nan::SetMethod(exports, "setUsePreciseSampling", SetUsePreciseSampling);
   Nan::SetMethod(exports, "stopProfiling", StopProfiling);
-  // Nan::SetTemplate(exports, "format", PROFILER_FORMAT.asString());
 }
 
 NODE_MODULE(cpu_profiler, Initialize);

@@ -23,6 +23,7 @@
     "benchmark:profiler": "node benchmarks/cpu/benchmark.profiler.js",
     "benchmark:server": "node benchmarks/cpu/benchmark.server.js",
     "benchmark:format": "yarn build:benchmark:format && node benchmarks/format/benchmark.format.js",
+    "test:watch": "jest --watch",
     "test": "jest"
   },
   "keywords": [
