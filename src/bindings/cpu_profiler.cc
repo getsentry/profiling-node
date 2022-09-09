@@ -239,13 +239,12 @@ NAN_METHOD(SetSamplingInterval) {
     cpuProfiler->SetSamplingInterval(us);
 }
 
-void Init(Local<Object> exports) {
-  Local<Context> context = exports->GetCreationContext().ToLocalChecked();
-  (void) exports->Set(context, Nan::New("startProfiling").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(StartProfiling)).ToLocalChecked());
-  (void) exports->Set(context, Nan::New("setSamplingInterval").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(SetSamplingInterval)).ToLocalChecked());             
-  (void) exports->Set(context, Nan::New("setUsePreciseSampling").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(SetUsePreciseSampling)).ToLocalChecked());
-  (void) exports->Set(context, Nan::New("stopProfiling").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(StopProfiling)).ToLocalChecked());
-  (void) exports->Set(context, Nan::New("format").ToLocalChecked(), Nan::New<Integer>(PROFILER_FORMAT));
+void Initialize(Local<Object> exports) {
+  Nan::SetMethod(exports, "startProfiling", StartProfiling);
+  Nan::SetMethod(exports, "setSamplingInterval", SetSamplingInterval);
+  Nan::SetMethod(exports, "setUsePreciseSampling", SetUsePreciseSampling);
+  Nan::SetMethod(exports, "stopProfiling", StopProfiling);
+  // Nan::SetTemplate(exports, "format", PROFILER_FORMAT.asString());
 }
 
-NODE_MODULE(cpu_profiler, Init);
+NODE_MODULE(cpu_profiler, Initialize);
