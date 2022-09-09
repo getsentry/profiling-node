@@ -33,7 +33,7 @@
   ],
   "author": "jonas.badalic@sentry.io",
   "license": "ISC",
-  "peerDependencies": {
+  "dependencies": {
     "@sentry/hub": "^7.10.0",
     "@sentry/node": "^7.10.0",
     "@sentry/types": "^7.8.1",

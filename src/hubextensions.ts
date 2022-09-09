@@ -2,7 +2,7 @@ import type { TransactionContext, CustomSamplingContext, Transaction } from '@se
 import { getMainCarrier, Hub } from '@sentry/hub';
 import { logger } from '@sentry/utils';
 
-// @ts-ignore
+// @ts-expect-error file extension errors
 import profiler from './../build/Release/cpu_profiler';
 
 type StartTransaction = (
@@ -31,8 +31,7 @@ function _wrapStartTransaction(startTransaction: StartTransaction): StartTransac
     function profilingWrappedTransactionFinish() {
       const profile = profiler.stopProfiling(transactionContext.name);
       logger.log('[Profiling] stopped profiling of transaction: ' + transactionContext.name);
-      // Metadata profile is not a part of sdk metadata so we expect error until it becomes part of the official SDK.
-      // @ts-expect-error
+      // @ts-expect-error profile is not a part of sdk metadata so we expect error until it becomes part of the official SDK.
       transaction.setMetadata({ profile });
       return originalFinish();
     }
