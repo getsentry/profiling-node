@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
-        node-version: [12.x, 14.x, 16.x, 18.x]
+        node-version: [14.x, 16.x, 18.x]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -20,7 +20,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: npm i -g npm
       - run: npm run clean
-      - run: npm install
+      - run: npm install --ingor
       - run: npm run lint
       - run: npm run build
       - run: npm run test
