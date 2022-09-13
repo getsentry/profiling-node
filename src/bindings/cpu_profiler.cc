@@ -93,7 +93,7 @@ Local<Object> CreateSampleFrameNode(
   return js_node;
 };
 
-std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfile* profile){
+std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfile* profile) {
     int sampleCount = profile->GetSamplesCount();
     std::unordered_map<std::string, int> frameLookupTable;
 
