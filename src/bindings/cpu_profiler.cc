@@ -78,10 +78,12 @@ Local<Object> CreateSampleFrameNode(
   Nan::Set(js_node, Nan::New<String>("lineNumber").ToLocalChecked(), lineNumber);
   Nan::Set(js_node, Nan::New<String>("columnNumber").ToLocalChecked(), columnNumber);
 
-  if(deoptInfos.size() > 0) {
-    Local<Array> deoptReasons = Nan::New<Array>(deoptInfos.size());
+  size_t size = deoptInfos.size();
+
+  if(size > 0) {
+    Local<Array> deoptReasons = Nan::New<Array>(size);
     
-    for(uint i = 0; i < deoptInfos.size(); i++) {
+    for(size_t i = 0; i < size; i++) {
       Nan::Set(deoptReasons, i, Nan::New<String>(deoptInfos[i].deopt_reason).ToLocalChecked());
     }
 
@@ -93,21 +95,21 @@ Local<Object> CreateSampleFrameNode(
 
 std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfile* profile){
     uint sampleCount = profile->GetSamplesCount();
+    std::unordered_map<std::string, int> frameLookupTable;
 
     Local<Array> samples = Nan::New<Array>(sampleCount);
     Local<Array> weights = Nan::New<Array>(sampleCount);
     Local<Array> frameIndex = Nan::New<Array>();
 
     int64_t previousTimestamp = profile->GetStartTime();
-    std::unordered_map<std::string, int> frameLookupTable;
 
-    uint idx = 0;
-    for(uint i = 0; i < sampleCount; i++) {
+    uint32_t idx = 0;
+    for(uint32_t i = 0; i < sampleCount; i++) {
         const CpuProfileNode* node = profile->GetSample(i);
              Isolate* isolate = Isolate::GetCurrent();
+        const v8::CpuProfileNode * startNode = node;
 
-        int stackDepth = -1;
-        auto startNode = node;
+        uint32_t stackDepth = -1;
         // Count the number of frames in the stack so that we can insert them in reverse order.
         while(startNode != NULL) {
             stackDepth++;
@@ -116,8 +118,8 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
 
         // A stack is a list of frames ordered from outermost to innermost frame
         Local<Array> stack = Nan::New<Array>(stackDepth-1);
+        uint32_t tailOffset = 0;
 
-        int tailOffset = 0;
         while(node != NULL) {
             Local<String> functionName = node->GetFunctionName();
             String::Utf8Value str(isolate, functionName);
