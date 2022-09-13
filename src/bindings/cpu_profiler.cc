@@ -43,7 +43,7 @@ Local<Object> CreateFrameGraphNode(
   Nan::Set(js_node, Nan::New<String>("children").ToLocalChecked(), children);
 
   return js_node;
-}
+};
 
 Local<Value> CreateFrameGraph(const CpuProfileNode* node) {
   int32_t count = node->GetChildrenCount();
@@ -61,7 +61,7 @@ Local<Value> CreateFrameGraph(const CpuProfileNode* node) {
         Nan::New<Integer>(node->GetHitCount()),
         children
     );
-}
+};
 #endif
 
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
@@ -88,13 +88,13 @@ Local<Object> CreateSampleFrameNode(
     }
 
     Nan::Set(js_node, Nan::New<String>("deoptReasons").ToLocalChecked(), deoptReasons);
-  }
+  };
 
   return js_node;
 };
 
 std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfile* profile){
-    uint sampleCount = profile->GetSamplesCount();
+    int sampleCount = profile->GetSamplesCount();
     std::unordered_map<std::string, int> frameLookupTable;
 
     Local<Array> samples = Nan::New<Array>(sampleCount);
@@ -114,7 +114,7 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
         while(startNode != NULL) {
             stackDepth++;
             startNode = startNode->GetParent();
-        }
+        };
 
         // A stack is a list of frames ordered from outermost to innermost frame
         Local<Array> stack = Nan::New<Array>(stackDepth-1);
@@ -144,7 +144,7 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
                 idx++;
             } else {
                 Nan::Set(stack, stackDepth - tailOffset, Nan::New<Number>(index->second));
-            }
+            };
 
             node = node->GetParent();
             tailOffset++;
@@ -157,10 +157,10 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
 
         previousTimestamp = sampleTimestamp;
 
-    }
+    };
 
     return std::make_tuple(samples, weights, frameIndex);
-}
+};
 #endif
 
 Local<Value> CreateProfile(const CpuProfile* profile) {
@@ -184,14 +184,14 @@ Local<Value> CreateProfile(const CpuProfile* profile) {
   Nan::Set(js_profile, Nan::New<String>("topDownRoot").ToLocalChecked(), CreateFrameGraph(profile->GetTopDownRoot()));
 #endif
   return js_profile;
-}
+};
 
 // StartProfiling(string title)
 // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#aedf6a5ca49432ab665bc3a1ccf46cca4
 NAN_METHOD(StartProfiling) {
     if(!info[0]->IsString()) {
         return Nan::ThrowError("StartProfiling requires a string as the first argument.");
-    }
+    };
 
     // int customOrDefaultSamplingInterval = defaultSamplingIntervalMicroseconds;
     bool recordSamples = true;
@@ -234,11 +234,11 @@ NAN_METHOD(SetUsePreciseSampling){
 NAN_METHOD(SetSamplingInterval) {
     if(info[0].IsEmpty()) {
         return Nan::ThrowError("SetSamplingInterval expects a number as the first argument.");
-    }
+    };
 
     if(!info[0]->IsNumber()) {
         return Nan::ThrowError("SetSamplingInterval expects a number as the first argument.");
-    }
+    };
 
     int us = info[0].As<Integer>()->Value();
     cpuProfiler->SetSamplingInterval(us);
@@ -249,6 +249,6 @@ void Initialize(Local<Object> exports) {
   Nan::SetMethod(exports, "setSamplingInterval", SetSamplingInterval);
   Nan::SetMethod(exports, "setUsePreciseSampling", SetUsePreciseSampling);
   Nan::SetMethod(exports, "stopProfiling", StopProfiling);
-}
+};
 
 NODE_MODULE(cpu_profiler, Initialize);
