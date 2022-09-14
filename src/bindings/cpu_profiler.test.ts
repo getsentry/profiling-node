@@ -1,11 +1,11 @@
-import { CpuProfiler } from '../cpu_profiler';
+import { CpuProfilerBindings } from '../cpu_profiler';
 import type { CpuProfile } from '../cpu_profiler';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const profiled = (name: string, fn: () => void) => {
-  CpuProfiler.startProfiling(name);
+  CpuProfilerBindings.startProfiling(name);
   fn();
-  return CpuProfiler.stopProfiling(name);
+  return CpuProfilerBindings.stopProfiling(name);
 };
 
 const assertDeoptReasons = (frames: CpuProfile['frames']) => {
@@ -32,10 +32,10 @@ const assertWeightsToSamples = (weights: number[], samples: number[][]) => {
 
 describe('Profiler bindings', () => {
   it('exports profiler binding methods', () => {
-    expect(typeof CpuProfiler['startProfiling']).toBe('function');
-    expect(typeof CpuProfiler['stopProfiling']).toBe('function');
-    expect(typeof CpuProfiler['setSamplingInterval']).toBe('function');
-    expect(typeof CpuProfiler['setUsePreciseSampling']).toBe('function');
+    expect(typeof CpuProfilerBindings['startProfiling']).toBe('function');
+    expect(typeof CpuProfilerBindings['stopProfiling']).toBe('function');
+    expect(typeof CpuProfilerBindings['setSamplingInterval']).toBe('function');
+    expect(typeof CpuProfilerBindings['setUsePreciseSampling']).toBe('function');
   });
 
   it('profiles a program', async () => {
@@ -66,7 +66,6 @@ describe('Profiler bindings', () => {
       iterateOverLargeHashTable();
     });
 
-    console.log(profile.frames);
     assertDeoptReasons(profile.frames);
   });
 });

@@ -36,10 +36,10 @@ const cpu_profiler = require('./build/Release/cpu_profiler');
       profileID: 'ee6851adf6014de8af8ca517217ac481',
       profiles: [
         {
-          ...rest,
-        },
+          ...rest
+        }
       ],
-      shared: { frames },
+      shared: { frames }
     };
 
     console.log('Sampled profile');

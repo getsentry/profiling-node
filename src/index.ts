@@ -10,4 +10,3 @@ if (typeof __SENTRY_PROFILING === 'undefined' || __SENTRY_PROFILING) {
 }
 
 export { ProfilingIntegration };
-export { addExtensionMethods };

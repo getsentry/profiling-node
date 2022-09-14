@@ -23,12 +23,12 @@ export interface CpuProfile {
   samples: number[][];
 }
 
-interface Profiler {
+export interface V8CpuProfilerBindings {
   startProfiling(name: string): void;
   stopProfiling(name: string): CpuProfile;
   setUsePreciseSampling(usePreciseSampling: boolean): void;
   setSamplingInterval(samplingIntervalInMicroseconds: number): void;
 }
 
-const CpuProfiler: Profiler = profiler;
-export { CpuProfiler };
+const CpuProfilerBindings: V8CpuProfilerBindings = profiler;
+export { CpuProfilerBindings };

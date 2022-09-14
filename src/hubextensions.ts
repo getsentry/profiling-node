@@ -1,5 +1,5 @@
-import type { TransactionContext, CustomSamplingContext, Transaction } from '@sentry/types';
-import { getMainCarrier, Hub } from '@sentry/hub';
+import type { Hub, TransactionContext, CustomSamplingContext, Transaction } from '@sentry/types';
+import { getMainCarrier } from '@sentry/hub';
 import { logger } from '@sentry/utils';
 
 // @ts-expect-error file extension errors
@@ -14,15 +14,25 @@ type StartTransaction = (
 // Wraps startTransaction and stopTransaction with profiling related logic.
 // startProfiling is called after the call to startTransaction in order to avoid our own code from
 // being profiled. Because of that same reason, stopProfiling is called before the call to stopTransaction.
-//
-// Once a transaction is stopped
-function _wrapStartTransaction(startTransaction: StartTransaction): StartTransaction {
+export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: StartTransaction): StartTransaction {
   return function wrappedStartTransaction(
     this: Hub,
     transactionContext: TransactionContext,
     customSamplingContext?: CustomSamplingContext
   ): Transaction {
+    // @ts-expect-error profileSampleRate is not part of the options type yet
+    const profileSampleRate = this.getClient()?.getOptions().profileSampleRate ?? undefined;
     const transaction = startTransaction.call(this, transactionContext, customSamplingContext);
+
+    if (profileSampleRate === undefined) {
+      return transaction;
+    }
+
+    const shouldProfileTransaction = Math.random() < profileSampleRate;
+    if (!shouldProfileTransaction) {
+      return transaction;
+    }
+
     const originalFinish = transaction.finish.bind(transaction);
 
     profiler.startProfiling(transactionContext.name);
@@ -53,7 +63,7 @@ function _addProfilingExtensionMethods(): void {
   carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};
 
   if (carrier.__SENTRY__.extensions['startTransaction']) {
-    carrier.__SENTRY__.extensions['startTransaction'] = _wrapStartTransaction(
+    carrier.__SENTRY__.extensions['startTransaction'] = __PRIVATE__wrapStartTransactionWithProfiling(
       // This is already patched by sentry/tracing, we are going to re-patch it...
       carrier.__SENTRY__.extensions['startTransaction'] as StartTransaction
     );
