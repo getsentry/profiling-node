@@ -66,7 +66,6 @@ describe('Profiler bindings', () => {
       iterateOverLargeHashTable();
     });
 
-    console.log(profile.frames);
     assertDeoptReasons(profile.frames);
   });
 });
