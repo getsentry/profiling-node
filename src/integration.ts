@@ -1,6 +1,7 @@
 import type { Integration, EventProcessor, Hub, Event } from '@sentry/types';
 
 import { logger } from '@sentry/utils';
+import { isDebugBuild } from './env';
 import { maybeRemoveProfileFromSdkMetadata, createProfilingEventEnvelope, isProfiledTransactionEvent } from './utils';
 
 const INTEGRATION_NAME = 'ProfilingIntegration';
@@ -23,30 +24,38 @@ export class ProfilingIntegration implements Integration {
 
       const client = hub.getClient();
       if (!client) {
-        logger.log(
-          '[Profiling] getClient did not return a Client, removing profile from event and forwarding to next event processors.'
-        );
+        if (isDebugBuild()) {
+          logger.log(
+            '[Profiling] getClient did not return a Client, removing profile from event and forwarding to next event processors.'
+          );
+        }
         return maybeRemoveProfileFromSdkMetadata(event);
       }
 
       const dsn = client.getDsn();
       if (!dsn) {
-        logger.log(
-          '[Profiling] getDsn did not return a Dsn, removing profile from event and forwarding to next event processors.'
-        );
+        if (isDebugBuild()) {
+          logger.log(
+            '[Profiling] getDsn did not return a Dsn, removing profile from event and forwarding to next event processors.'
+          );
+        }
         return maybeRemoveProfileFromSdkMetadata(event);
       }
 
       const transport = client.getTransport();
       if (!transport) {
-        logger.log(
-          '[Profiling] getTransport did not return a Transport, removing profile from event and forwarding to next event processors.'
-        );
+        if (isDebugBuild()) {
+          logger.log(
+            '[Profiling] getTransport did not return a Transport, removing profile from event and forwarding to next event processors.'
+          );
+        }
         return maybeRemoveProfileFromSdkMetadata(event);
       }
 
       // If all required components are available, we construct a profiling event envelope and send it to Sentry.
-      logger.log('[Profiling] Preparing envelope and sending a profiling event.');
+      if (isDebugBuild()) {
+        logger.log('[Profiling] Preparing envelope and sending a profiling event.');
+      }
       transport.send(createProfilingEventEnvelope(event, dsn, client.getOptions()._metadata));
     }
 
