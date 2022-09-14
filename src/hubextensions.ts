@@ -2,6 +2,8 @@ import type { Hub, TransactionContext, CustomSamplingContext, Transaction } from
 import { getMainCarrier } from '@sentry/hub';
 import { logger } from '@sentry/utils';
 
+import { isDebugBuild } from './env';
+
 // @ts-expect-error file extension errors
 import profiler from './../build/Release/cpu_profiler';
 
@@ -36,11 +38,15 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     const originalFinish = transaction.finish.bind(transaction);
 
     profiler.startProfiling(transactionContext.name);
-    logger.log('[Profiling] started profiling transaction: ' + transactionContext.name);
+    if (isDebugBuild()) {
+      logger.log('[Profiling] started profiling transaction: ' + transactionContext.name);
+    }
 
     function profilingWrappedTransactionFinish() {
       const profile = profiler.stopProfiling(transactionContext.name);
-      logger.log('[Profiling] stopped profiling of transaction: ' + transactionContext.name);
+      if (isDebugBuild()) {
+        logger.log('[Profiling] stopped profiling of transaction: ' + transactionContext.name);
+      }
       // @ts-expect-error profile is not a part of sdk metadata so we expect error until it becomes part of the official SDK.
       transaction.setMetadata({ profile });
       return originalFinish();
