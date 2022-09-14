@@ -4,7 +4,7 @@
   "description": "Sampling based nodejs profiler",
   "main": "./lib/index.js",
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=10.0.0"
   },
   "files": [
     "lib/*",
@@ -16,7 +16,7 @@
     "lint": "eslint ./src --ext .ts",
     "build": "npm run build:bindings && npm run build:lib",
     "build:lib": "tsc",
-    "build:bindings": "node-gyp rebuild",
+    "build:bindings": "node-gyp build",
     "build:benchmark:format": "node-gyp -DFORMAT_BENCHMARK=1 rebuild",
     "benchmark": "npm run benchmark:methods && npm run benchmark:profiler && npm run benchmark:server && npm run benchmark:format",
     "benchmark:methods": "node benchmarks/cpu/benchmark.methods.js",
@@ -24,7 +24,8 @@
     "benchmark:server": "node benchmarks/cpu/benchmark.server.js",
     "benchmark:format": "yarn build:benchmark:format && node benchmarks/format/benchmark.format.js",
     "test:watch": "jest --watch",
-    "test": "jest"
+    "test": "jest",
+    "prettier": "prettier --config ./.prettierrc --write"
   },
   "keywords": [
     "profiling",
