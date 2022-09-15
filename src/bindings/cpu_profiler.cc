@@ -17,6 +17,7 @@
 #endif
 
 using namespace v8;
+using namespace std;
 
 // 1e5 us aka every 10ms
 // static int defaultSamplingIntervalMicroseconds = 1e5;
@@ -101,17 +102,17 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
     Local<Array> weights = Nan::New<Array>(sampleCount);
     Local<Array> frameIndex = Nan::New<Array>();
 
+    Isolate* isolate = Isolate::GetCurrent();
     int64_t previousTimestamp = profile->GetStartTime();
 
     uint32_t idx = 0;
     for(uint32_t i = 0; i < sampleCount; i++) {
         const CpuProfileNode* node = profile->GetSample(i);
-             Isolate* isolate = Isolate::GetCurrent();
         const v8::CpuProfileNode * startNode = node;
 
         uint32_t stackDepth = -1;
         // Count the number of frames in the stack so that we can insert them in reverse order.
-        while(startNode != NULL) {
+        while(startNode != nullptr) {
             stackDepth++;
             startNode = startNode->GetParent();
         };
@@ -120,7 +121,7 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
         Local<Array> stack = Nan::New<Array>(stackDepth-1);
         uint32_t tailOffset = 0;
 
-        while(node != NULL) {
+        while(node != nullptr) {
             Local<String> functionName = node->GetFunctionName();
             String::Utf8Value str(isolate, functionName);
             std::string cppStr(*str);
@@ -189,6 +190,10 @@ Local<Value> CreateProfile(const CpuProfile* profile) {
 // StartProfiling(string title)
 // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#aedf6a5ca49432ab665bc3a1ccf46cca4
 NAN_METHOD(StartProfiling) {
+  if(info[0].IsEmpty()) {
+        return Nan::ThrowError("StartProfiling expects a string as first argument.");
+    };
+
     if(!info[0]->IsString()) {
         return Nan::ThrowError("StartProfiling requires a string as the first argument.");
     };
@@ -208,8 +213,19 @@ NAN_METHOD(StartProfiling) {
 // StopProfiling(string title)
 // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#a40ca4c8a8aa4c9233aa2a2706457cc80
 NAN_METHOD(StopProfiling) {
-    Local<String> title = Nan::To<String>(info[0]).ToLocalChecked();
-    CpuProfile *profile = cpuProfiler->StopProfiling(title);
+    if(info[0].IsEmpty()) {
+        return Nan::ThrowError("StopProfiling expects a string as first argument.");
+    };
+
+    if(!info[0]->IsString()) {
+        return Nan::ThrowError("StopProfiling expects a string as first argument.");
+    };
+
+    CpuProfile *profile = cpuProfiler->StopProfiling(Nan::To<String>(info[0]).ToLocalChecked());
+
+    if(profile == nullptr) {
+      return Nan::ThrowError("StopProfiling failed to stop the profile.");
+    };
 
     info.GetReturnValue().Set(CreateProfile(profile));
     profile->Delete();
