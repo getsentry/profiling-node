@@ -30,19 +30,5 @@ export interface V8CpuProfilerBindings {
   setSamplingInterval(samplingIntervalInMicroseconds: number): void;
 }
 
-const CpuProfilerBindings: V8CpuProfilerBindings = {
-  startProfiling(name: string): void {
-    profiler.startProfiling(name);
-  },
-  stopProfiling(name: string): CpuProfile {
-    console.log('Calling stopProfiling with', name);
-    return profiler.stopProfiling(name);
-  },
-  setUsePreciseSampling(usePreciseSampling: boolean): void {
-    profiler.setUsePreciseSampling(usePreciseSampling);
-  },
-  setSamplingInterval(samplingIntervalInMicroseconds: number): void {
-    profiler.setSamplingInterval(samplingIntervalInMicroseconds);
-  }
-};
+const CpuProfilerBindings: V8CpuProfilerBindings = profiler;
 export { CpuProfilerBindings };

@@ -26,8 +26,6 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     const profileSampleRate = this.getClient()?.getOptions().profileSampleRate ?? undefined;
     const transaction = startTransaction.call(this, transactionContext, customSamplingContext);
 
-    console.log('Transaction context', transactionContext);
-
     if (profileSampleRate === undefined) {
       return transaction;
     }
@@ -45,9 +43,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     }
 
     function profilingWrappedTransactionFinish() {
-      console.log('Before stopProfiling', transactionContext.name);
       const profile = profiler.stopProfiling(transactionContext.name);
-      console.log('After stopProfiling', profile);
       if (isDebugBuild()) {
         logger.log('[Profiling] stopped profiling of transaction: ' + transactionContext.name);
       }
