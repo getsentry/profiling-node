@@ -16,7 +16,11 @@ export class ProfilingIntegration implements Integration {
   }
 
   handleGlobalEvent(event: Event): Event {
-    if (isProfiledTransactionEvent(event) && this.getCurrentHub !== undefined) {
+    if (this.getCurrentHub === undefined) {
+      return maybeRemoveProfileFromSdkMetadata(event);
+    }
+
+    if (isProfiledTransactionEvent(event)) {
       // Client, Dsn and Transport are all required to be able to send the profiling event to Sentry.
       // If either of them is not available, we remove the profile from the transaction event.
       // and forward it to the next event processor.
