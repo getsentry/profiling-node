@@ -7,11 +7,10 @@ import type {
   Event,
   EventItem,
   EventEnvelope,
-  EventEnvelopeHeaders,
-  Baggage
+  EventEnvelopeHeaders
 } from '@sentry/types';
 
-import { createEnvelope, dropUndefinedKeys, dsnToString, getSentryBaggageItems, uuid4 } from '@sentry/utils';
+import { createEnvelope, dropUndefinedKeys, dsnToString, uuid4 } from '@sentry/utils';
 
 interface Profile {
   platform: string;
@@ -71,8 +70,7 @@ function createEventEnvelopeHeaders(
   tunnel: string | undefined,
   dsn: DsnComponents
 ): EventEnvelopeHeaders {
-  const baggage: Baggage | undefined = event.sdkProcessingMetadata && event.sdkProcessingMetadata['baggage'];
-  const dynamicSamplingContext = baggage && getSentryBaggageItems(baggage);
+  const dynamicSamplingContext = event.sdkProcessingMetadata && event.sdkProcessingMetadata['dynamicSamplingContext'];
 
   return {
     event_id: event.event_id as string,
