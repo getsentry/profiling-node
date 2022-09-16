@@ -52,3 +52,8 @@ Todo: explain overhead and difference for kLazyLogging vs kEagerLogging
 ### Will starting the profiler on main thread automatically profile worker threads too?
 
 No, it will not (see WORKERS.md for an explanation)
+
+### What happens in the event of a profiler crash?
+
+Todo: Check if napi will crash main process if worker is terminated while profiling.
+Todo: Check what happens if it crashes on main thread.
