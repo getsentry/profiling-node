@@ -356,16 +356,6 @@
     "want_separate_host_toolset": 0,
     "xcode_version": "12.0",
     "nodedir": "/Users/jonasbadalic/Library/Caches/node-gyp/16.16.0",
-    "standalone_static_library": 1,
-    "metrics_registry": "https://registry.npmjs.org/",
-    "global_prefix": "/Users/jonasbadalic/.nvm/versions/node/v16.16.0",
-    "local_prefix": "/Users/jonasbadalic/code/node-profiler",
-    "globalconfig": "/Users/jonasbadalic/.nvm/versions/node/v16.16.0/etc/npmrc",
-    "userconfig": "/Users/jonasbadalic/.npmrc",
-    "init_module": "/Users/jonasbadalic/.npm-init.js",
-    "node_gyp": "/Users/jonasbadalic/.nvm/versions/node/v16.16.0/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js",
-    "cache": "/Users/jonasbadalic/.npm",
-    "user_agent": "npm/8.11.0 node/v16.16.0 darwin arm64 workspaces/false",
-    "prefix": "/Users/jonasbadalic/.nvm/versions/node/v16.16.0"
+    "standalone_static_library": 1
   }
 }

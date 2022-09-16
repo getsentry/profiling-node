@@ -1,17 +1,18 @@
-import * as Sentry from '@sentry/node';
-import '@sentry/tracing'; // this has a addExtensionMethods side effect
-import type { Transport } from '@sentry/types';
-import { writeFileSync } from 'fs';
-import { ProfilingIntegration } from '../../src/index'; // this has a addExtensionMethods side effect
-import path from 'path';
-import { Worker } from 'node:worker_threads';
+const Sentry = require('@sentry/node');
+require('@sentry/tracing'); // this has a addExtensionMethods side effect
+const { writeFileSync } = require('fs');
+const { Worker } = require('node:worker_threads');
+const { ProfilingIntegration } = require('../../lib/index'); // this has a addExtensionMethods side effect
+const path = require('path');
 
-const Transport: Transport = {
-  send: (event) => {
-    writeFileSync(path.resolve(__dirname, 'main_thread.profile.json'), JSON.stringify(event));
-    return Promise.resolve();
-  },
-  flush: () => Promise.resolve(true)
+const transport = () => {
+  return {
+    send: (event) => {
+      writeFileSync(path.resolve(__dirname, 'main_thread.profile.json'), JSON.stringify(event));
+      return Promise.resolve();
+    },
+    flush: () => Promise.resolve(true)
+  };
 };
 
 Sentry.init({
@@ -20,13 +21,14 @@ Sentry.init({
   tracesSampleRate: 1,
   // @ts-expect-error profilingSampleRate is not part of the options type yet
   profileSampleRate: 1,
+  transport,
   integrations: [new ProfilingIntegration()]
 });
 
 const transaction = Sentry.startTransaction({ name: 'main thread' });
 const worker = new Worker(path.resolve(__dirname, './worker.js'));
 
-function processInWorker(): Promise<void> {
+function processInWorker() {
   return new Promise((resolve, reject) => {
     worker.on('message', (event) => {
       console.log('Event received in main thread', event);

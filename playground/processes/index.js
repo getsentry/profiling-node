@@ -18,5 +18,5 @@ new Worker(path.resolve(__dirname, 'process.worker.js'));
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 (async () => {
-  await wait(2000);
+  await wait(500);
 })();

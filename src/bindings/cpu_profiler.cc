@@ -264,4 +264,4 @@ void Initialize(Local<Object> exports) {
   Nan::SetMethod(exports, "stopProfiling", StopProfiling);
 };
 
-NODE_MODULE(cpu_profiler, Initialize);
+NAN_MODULE_WORKER_ENABLED(cpu_profiler, Initialize);
