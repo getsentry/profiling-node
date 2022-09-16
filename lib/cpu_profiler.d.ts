@@ -18,11 +18,11 @@ export interface CpuProfile {
     unit: string;
     samples: number[][];
 }
-interface Profiler {
+export interface V8CpuProfilerBindings {
     startProfiling(name: string): void;
     stopProfiling(name: string): CpuProfile;
     setUsePreciseSampling(usePreciseSampling: boolean): void;
     setSamplingInterval(samplingIntervalInMicroseconds: number): void;
 }
-declare const CpuProfiler: Profiler;
-export { CpuProfiler };
+declare const CpuProfilerBindings: V8CpuProfilerBindings;
+export { CpuProfilerBindings };
