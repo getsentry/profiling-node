@@ -15,7 +15,7 @@
 <!-- - [Official SDK Docs](https://docs.sentry.io/quickstart/) -->
 <!-- - [TypeDoc](http://getsentry.github.io/sentry-javascript/) -->
 
-## Usage
+## Usage 🔥
 
 ```javascript
 import * as Sentry from '@sentry/node';
@@ -38,3 +38,17 @@ const transaction = Sentry.startTransaction({ name: 'I will do some work' });
 
 transaction.finish();
 ```
+
+## FAQ 💭
+
+### Can the profiler leak PII to Sentry?
+
+Todo: unlikely as we do not collect function arguments unless function calls are somehow created per user
+
+### What is the profiler overhead?
+
+Todo: explain overhead and difference for kLazyLogging vs kEagerLogging
+
+### Will starting the profiler on main thread automatically profile worker threads too?
+
+No, it will not (see WORKERS.md for an explanation)
