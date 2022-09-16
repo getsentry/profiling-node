@@ -264,4 +264,5 @@ void Initialize(Local<Object> exports) {
   Nan::SetMethod(exports, "stopProfiling", StopProfiling);
 };
 
-NAN_MODULE_WORKER_ENABLED(cpu_profiler, Initialize);
+// https://github.com/nodejs/node/issues/21783#issuecomment-429637117
+NODE_MODULE(cpu_profiler, Initialize);

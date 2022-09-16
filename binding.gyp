@@ -9,9 +9,9 @@
       ]
     },
     {
-      "target_name": "cpu_profiler.format.benchmark",
+      "target_name": "cpu_profiler_format_benchmark",
       "sources": [ "src/bindings/cpu_profiler.cc" ],
-      "defines": ["FORMAT_BENCHMARK=1"],
+      "defines": ["FORMAT_BENCHMARK=0xF"],
       'include_dirs': [
         '<!(node -e "require(\'nan\')")'
       ]
