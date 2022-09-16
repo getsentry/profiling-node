@@ -1,9 +1,7 @@
-// Bindings to v8 profiler
 #include <unordered_map>
 
 #include "nan.h"
 #include "v8-profiler.h"
-#include "iostream"
 
 #define FORMAT_SAMPLED 2
 #define FORMAT_RAW 1
@@ -17,7 +15,6 @@
 #endif
 
 using namespace v8;
-using namespace std;
 
 // 1e5 us aka every 10ms
 // static int defaultSamplingIntervalMicroseconds = 1e5;
@@ -171,7 +168,7 @@ Local<Value> CreateProfile(const CpuProfile* profile) {
   Nan::Set(js_profile, Nan::New<String>("startValue").ToLocalChecked(), Nan::New<Number>(profile->GetStartTime()));
   Nan::Set(js_profile, Nan::New<String>("endValue").ToLocalChecked(), Nan::New<Number>(profile->GetEndTime()));
   Nan::Set(js_profile, Nan::New<String>("type").ToLocalChecked(), Nan::New<String>("sampled").ToLocalChecked());
-  Nan::Set(js_profile, Nan::New<String>("threadID").ToLocalChecked(), Nan::New<Number>(10));
+  Nan::Set(js_profile, Nan::New<String>("threadID").ToLocalChecked(), Nan::New<Number>(node::ThreadId().id));
   Nan::Set(js_profile, Nan::New<String>("unit").ToLocalChecked(), Nan::New<String>("microseconds").ToLocalChecked());
   Nan::Set(js_profile, Nan::New<String>("duration_ns").ToLocalChecked(), Nan::New<Number>((profile->GetEndTime() - profile->GetStartTime()) * 1e3));
 
