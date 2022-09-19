@@ -1,7 +1,6 @@
 
 #include <unordered_map>
 #include <node_api.h>
-#include <iostream>
 
 #include "nan.h"
 #include "v8-profiler.h"
@@ -18,8 +17,6 @@
 #endif
 
 using namespace v8;
-
-using namespace std;
 
 // 1e5 us aka every 10ms
 // static int defaultSamplingIntervalMicroseconds = 1e5;
