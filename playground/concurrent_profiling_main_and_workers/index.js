@@ -1,22 +1,31 @@
 const Sentry = require('@sentry/node');
 require('@sentry/tracing'); // this has a addExtensionMethods side effect
-const { writeFileSync } = require('fs');
+const { writeFileSync, existsSync, unlinkSync } = require('fs');
 const { Worker } = require('node:worker_threads');
 const { ProfilingIntegration } = require('../../lib/index'); // this has a addExtensionMethods side effect
 const path = require('path');
 
+if (existsSync(path.resolve(__dirname, 'main.profile.json'))) {
+  unlinkSync(path.resolve(__dirname, 'main.profile.json'));
+}
+
 const transport = () => {
   return {
     send: (event) => {
-      writeFileSync(path.resolve(__dirname, 'main_thread.profile.json'), JSON.stringify(event));
+      if (event[1][0][0].type === 'profile') {
+        console.log('Writing main.profile.json');
+        writeFileSync(path.resolve(__dirname, 'main.profile.json'), JSON.stringify(event[1][0][1]));
+      }
       return Promise.resolve();
     },
-    flush: () => Promise.resolve(true)
+    flush: () => {
+      return Promise.resolve(true);
+    }
   };
 };
 
 Sentry.init({
-  dsn: 'https://3e28828639ff4360baed0f350b8010bd@o1137848.ingest.sentry.io/6326615',
+  dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
   debug: true,
   tracesSampleRate: 1,
   // @ts-expect-error profilingSampleRate is not part of the options type yet
@@ -39,7 +48,7 @@ function processInWorker() {
       if (code !== 0) reject(new Error(`Worker stopped with exit code ${code}`));
     });
 
-    worker.postMessage('start');
+    worker.postMessage('ping');
   });
 }
 

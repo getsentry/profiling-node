@@ -3,7 +3,7 @@ import '@sentry/tracing'; // this has a addExtensionMethods side effect
 import { ProfilingIntegration } from './index'; // this has a addExtensionMethods side effect
 
 Sentry.init({
-  dsn: 'https://3e28828639ff4360baed0f350b8010bd@o1137848.ingest.sentry.io/6326615',
+  dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
   debug: false,
   tracesSampleRate: 1,
   // @ts-expect-error profilingSampleRate is not part of the options type yet
