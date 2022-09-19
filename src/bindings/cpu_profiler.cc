@@ -24,7 +24,9 @@ using namespace std;
 // 1e5 us aka every 10ms
 // static int defaultSamplingIntervalMicroseconds = 1e5;
 
-// Isolate represents an instance of the v8 engine and can be entered at most by 1 thread at a given time
+// Isolate represents an instance of the v8 engine and can be entered at most by 1 thread at a given time.
+// The Profiler is a context aware class that is bound to an isolate. This allows us to profile multiple isolates 
+// at the same time and avoid segafaults when profiling multiple threads.
 // https://nodejs.org/api/addons.html.
 class Profiler {
   public: 

@@ -30,7 +30,5 @@ export interface V8CpuProfilerBindings {
   setSamplingInterval(samplingIntervalInMicroseconds: number): void;
 }
 
-console.log(profiler);
-
 const CpuProfilerBindings: V8CpuProfilerBindings = profiler;
 export { CpuProfilerBindings };
