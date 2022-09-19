@@ -277,15 +277,15 @@ NODE_MODULE_INIT(/* exports, module, context */){
   Local<External> external = External::New(isolate, profiler);
 
   exports->Set(context, 
-               String::NewFromUtf8(isolate, "startProfiling").ToLocalChecked(),
+               Nan::New<String>("startProfiling").ToLocalChecked(),
                FunctionTemplate::New(isolate, StartProfiling, external)->GetFunction(context).ToLocalChecked()).FromJust();
   exports->Set(context, 
-               String::NewFromUtf8(isolate, "stopProfiling").ToLocalChecked(),
+               Nan::New<String>("stopProfiling").ToLocalChecked(),
                FunctionTemplate::New(isolate, StopProfiling, external)->GetFunction(context).ToLocalChecked()).FromJust();
   exports->Set(context, 
-               String::NewFromUtf8(isolate, "setSamplingInterval").ToLocalChecked(),
+               Nan::New<String>("setSamplingInterval").ToLocalChecked(),
                FunctionTemplate::New(isolate, SetSamplingInterval, external)->GetFunction(context).ToLocalChecked()).FromJust();
   exports->Set(context, 
-               String::NewFromUtf8(isolate, "setUsePreciseSampling").ToLocalChecked(),
+               Nan::New<String>("setUsePreciseSampling").ToLocalChecked(),
                FunctionTemplate::New(isolate, SetUsePreciseSampling, external)->GetFunction(context).ToLocalChecked()).FromJust();
 }
