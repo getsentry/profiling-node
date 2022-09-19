@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/node';
 import '@sentry/tracing'; // this has a addExtensionMethods side effect
-import { ProfilingIntegration } from '../src/index'; // this has a addExtensionMethods side effect
+import { ProfilingIntegration } from './../src/index'; // this has a addExtensionMethods side effect
 
 Sentry.init({
   dsn: 'https://3e28828639ff4360baed0f350b8010bd@o1137848.ingest.sentry.io/6326615',
@@ -11,16 +11,11 @@ Sentry.init({
   integrations: [new ProfilingIntegration()]
 });
 
-const transaction = Sentry.startTransaction({ name: 'profiling.node' });
-
-async function blocking() {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-}
-
-transaction.setStatus('Ok');
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 (async () => {
-  await blocking();
+  const transaction = Sentry.startTransaction({ name: 'profiling.node' });
+  await wait(1000);
   transaction.finish();
   await Sentry.flush(5000);
 })();

@@ -2,7 +2,7 @@ import { writeFileSync } from 'node:fs';
 import { Worker } from 'node:worker_threads';
 import path from 'path';
 
-import { CpuProfilerBindings } from './../src/cpu_profiler';
+import { CpuProfilerBindings } from '../../src/cpu_profiler';
 
 const worker = new Worker(path.resolve(__dirname, './worker.js'));
 

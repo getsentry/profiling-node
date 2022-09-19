@@ -1,6 +1,9 @@
 # Profiling support for worker threads
 
-Profiling is supported in worker threads, however each thread is treated as a separate entity and the final profile will only include the profiling data from that thread. The profiler currently does not do any linking of profiles across threads as that would require bidirectional cross thread communication. If this is something that you would like us to support, please file a feature request describing your use-case.
+Profiling is supported in worker threads for node versions >=10 (**see disclaimer below**), however each thread is treated as a separate entity and cross thread profiler are currently not linked together in any way. If this is something that you would like us to support, please file a feature request describing your use-case.
+
+**Disclaimer:**
+While profiling worker threads is supported, concurrent profiling across different threads may still crash your program if you are using an older nodejs version (<v10). This is because older versions of node did not support context aware addons described in https://nodejs.org/docs/latest-v10.x/api/addons.html#addons_context_aware_addons
 
 ## Worker SDK setup
 
