@@ -324,15 +324,10 @@ ifeq ($(strip $(foreach prefix,$(NO_LOAD),\
                  $(join ^,cpu_profiler.target.mk)))),)
   include cpu_profiler.target.mk
 endif
-ifeq ($(strip $(foreach prefix,$(NO_LOAD),\
-    $(findstring $(join ^,$(prefix)),\
-                 $(join ^,cpu_profiler_format_benchmark.target.mk)))),)
-  include cpu_profiler_format_benchmark.target.mk
-endif
 
 quiet_cmd_regen_makefile = ACTION Regenerating $@
 cmd_regen_makefile = cd $(srcdir); /Users/jonasbadalic/code/node-profiler/node_modules/node-gyp/gyp/gyp_main.py -fmake --ignore-environment "-Dlibrary=shared_library" "-Dvisibility=default" "-Dnode_root_dir=/Users/jonasbadalic/Library/Caches/node-gyp/16.16.0" "-Dnode_gyp_dir=/Users/jonasbadalic/code/node-profiler/node_modules/node-gyp" "-Dnode_lib_file=/Users/jonasbadalic/Library/Caches/node-gyp/16.16.0/<(target_arch)/node.lib" "-Dmodule_root_dir=/Users/jonasbadalic/code/node-profiler" "-Dnode_engine=v8" "--depth=." "-Goutput_dir=." "--generator-output=build" -I/Users/jonasbadalic/code/node-profiler/build/config.gypi -I/Users/jonasbadalic/code/node-profiler/node_modules/node-gyp/addon.gypi -I/Users/jonasbadalic/Library/Caches/node-gyp/16.16.0/include/node/common.gypi "--toplevel-dir=." binding.gyp
-Makefile: $(srcdir)/../../Library/Caches/node-gyp/16.16.0/include/node/common.gypi $(srcdir)/binding.gyp $(srcdir)/node_modules/node-gyp/addon.gypi $(srcdir)/build/config.gypi
+Makefile: $(srcdir)/../../Library/Caches/node-gyp/16.16.0/include/node/common.gypi $(srcdir)/binding.gyp $(srcdir)/build/config.gypi $(srcdir)/node_modules/node-gyp/addon.gypi
 	$(call do_cmd,regen_makefile)
 
 # "all" is a concatenation of the "all" targets from all the included

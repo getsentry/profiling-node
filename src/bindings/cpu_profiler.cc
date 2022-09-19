@@ -1,4 +1,7 @@
+
 #include <unordered_map>
+#include <node_api.h>
+#include <iostream>
 
 #include "nan.h"
 #include "v8-profiler.h"
@@ -16,12 +19,23 @@
 
 using namespace v8;
 
+using namespace std;
+
 // 1e5 us aka every 10ms
 // static int defaultSamplingIntervalMicroseconds = 1e5;
 
 // Isolate represents an instance of the v8 engine and can be entered at most by 1 thread at a given time
-// https://v8docs.nodesource.com/node-0.8/d5/dda/classv8_1_1_isolate.html
-CpuProfiler* cpuProfiler = CpuProfiler::New(Isolate::GetCurrent(), kDebugNaming, kLazyLogging);
+// https://nodejs.org/api/addons.html.
+class Profiler {
+  public: 
+    explicit Profiler(Isolate* isolate):
+      cpu_profiler (CpuProfiler::New(isolate, kDebugNaming, kLazyLogging)) {
+        // Ensure this per-addon-instance data is deleted at environment cleanup.
+        // node::AddEnvironmentCleanupHook(isolate, Cleanup, this);
+      }
+      
+  CpuProfiler* cpu_profiler;
+};
 
 #if PROFILER_FORMAT == FORMAT_RAW || FORMAT_BENCHMARK == 1
 Local<Object> CreateFrameGraphNode(
@@ -186,15 +200,16 @@ Local<Value> CreateProfile(const CpuProfile* profile) {
 
 // StartProfiling(string title)
 // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#aedf6a5ca49432ab665bc3a1ccf46cca4
-NAN_METHOD(StartProfiling) {
-  if(info[0].IsEmpty()) {
+static void StartProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  if(args[0].IsEmpty()) {
         return Nan::ThrowError("StartProfiling expects a string as first argument.");
     };
 
-    if(!info[0]->IsString()) {
+    if(!args[0]->IsString()) {
         return Nan::ThrowError("StartProfiling requires a string as the first argument.");
     };
 
+    Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
     // int customOrDefaultSamplingInterval = defaultSamplingIntervalMicroseconds;
     bool recordSamples = true;
 
@@ -203,66 +218,74 @@ NAN_METHOD(StartProfiling) {
     // }
 
     // cpuProfiler->SetSamplingInterval(customOrDefaultSamplingInterval);
-    cpuProfiler->SetUsePreciseSampling(true);
-    cpuProfiler->StartProfiling(Nan::To<String>(info[0]).ToLocalChecked(), recordSamples);
+    profiler->cpu_profiler->SetUsePreciseSampling(true);
+    profiler->cpu_profiler->StartProfiling(Nan::To<String>(args[0]).ToLocalChecked(), recordSamples);
 };
 
 // StopProfiling(string title)
 // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#a40ca4c8a8aa4c9233aa2a2706457cc80
-NAN_METHOD(StopProfiling) {
-    if(info[0].IsEmpty()) {
+static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
+    if(args[0].IsEmpty()) {
         return Nan::ThrowError("StopProfiling expects a string as first argument.");
     };
 
-    if(!info[0]->IsString()) {
+    if(!args[0]->IsString()) {
         return Nan::ThrowError("StopProfiling expects a string as first argument.");
     };
 
-    CpuProfile *profile = cpuProfiler->StopProfiling(Nan::To<String>(info[0]).ToLocalChecked());
+    Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
+    CpuProfile* profile = profiler->cpu_profiler->StopProfiling(Nan::To<String>(args[0]).ToLocalChecked());
 
-    if(profile == nullptr) {
-      return Nan::ThrowError("StopProfiling failed to stop the profile.");
-    };
-
-    info.GetReturnValue().Set(CreateProfile(profile));
-    profile->Delete();
+    args.GetReturnValue().Set(CreateProfile(profile));
+    // profile->Delete();
 };
 
-// SetUsePreciseSampling(bool use_precise_sampling)
-// https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#aec3784308a2ee6da56954926a90b60af
-NAN_METHOD(SetUsePreciseSampling){
-    if(info[0].IsEmpty()) {
+// // SetUsePreciseSampling(bool use_precise_sampling)
+// // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#aec3784308a2ee6da56954926a90b60af
+static void SetUsePreciseSampling(const v8::FunctionCallbackInfo<v8::Value>& args) {
+    if(args[0].IsEmpty()) {
         return Nan::ThrowError("SetUsePreciseSampling expects a boolean as first argument.");
     };
 
-    if(!info[0]->IsBoolean()) {
+    if(!args[0]->IsBoolean()) {
         return Nan::ThrowError("SetUsePreciseSampling expects a boolean as first argument.");
     };
 
-    cpuProfiler->SetUsePreciseSampling(info[0].As<Boolean>()->Value());
+    Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
+    profiler->cpu_profiler->SetUsePreciseSampling(args[0].As<Boolean>()->Value());
 };
 
-// SetSamplingInterval(int us)
-// https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#aa652c07923bf6e1a4962653cf09dceb1
-NAN_METHOD(SetSamplingInterval) {
-    if(info[0].IsEmpty()) {
+// // SetSamplingInterval(int us)
+// // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#aa652c07923bf6e1a4962653cf09dceb1
+static void SetSamplingInterval(const v8::FunctionCallbackInfo<v8::Value>& args) {
+    if(args[0].IsEmpty()) {
         return Nan::ThrowError("SetSamplingInterval expects a number as the first argument.");
     };
 
-    if(!info[0]->IsNumber()) {
+    if(!args[0]->IsNumber()) {
         return Nan::ThrowError("SetSamplingInterval expects a number as the first argument.");
     };
 
-    int us = info[0].As<Integer>()->Value();
-    cpuProfiler->SetSamplingInterval(us);
+    Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
+    profiler->cpu_profiler->SetSamplingInterval(args[0].As<Integer>()->Value());
 }
 
-void Initialize(Local<Object> exports) {
-  Nan::SetMethod(exports, "startProfiling", StartProfiling);
-  Nan::SetMethod(exports, "setSamplingInterval", SetSamplingInterval);
-  Nan::SetMethod(exports, "setUsePreciseSampling", SetUsePreciseSampling);
-  Nan::SetMethod(exports, "stopProfiling", StopProfiling);
-};
-
 // https://github.com/nodejs/node/issues/21783#issuecomment-429637117
-NODE_MODULE(cpu_profiler, Initialize);
+NODE_MODULE_INIT(/* exports, module, context */){
+  Isolate* isolate = context->GetIsolate();
+  Profiler* profiler = new Profiler(isolate);
+  Local<External> external = External::New(isolate, profiler);
+
+  exports->Set(context, 
+               String::NewFromUtf8(isolate, "startProfiling").ToLocalChecked(),
+               FunctionTemplate::New(isolate, StartProfiling, external)->GetFunction(context).ToLocalChecked()).FromJust();
+  exports->Set(context, 
+               String::NewFromUtf8(isolate, "stopProfiling").ToLocalChecked(),
+               FunctionTemplate::New(isolate, StopProfiling, external)->GetFunction(context).ToLocalChecked()).FromJust();
+  exports->Set(context, 
+               String::NewFromUtf8(isolate, "setSamplingInterval").ToLocalChecked(),
+               FunctionTemplate::New(isolate, SetSamplingInterval, external)->GetFunction(context).ToLocalChecked()).FromJust();
+  exports->Set(context, 
+               String::NewFromUtf8(isolate, "setUsePreciseSampling").ToLocalChecked(),
+               FunctionTemplate::New(isolate, SetUsePreciseSampling, external)->GetFunction(context).ToLocalChecked()).FromJust();
+}
