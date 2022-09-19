@@ -1,6 +1,6 @@
 const Sentry = require('@sentry/node');
 require('@sentry/tracing'); // this has a addExtensionMethods side effect
-const { writeFileSync, existsSync, unlinkSync } = require('fs');
+const { writeFileSync, existsSync, unlinkSync, readFileSync } = require('fs');
 const { Worker } = require('node:worker_threads');
 const { ProfilingIntegration } = require('../../lib/index'); // this has a addExtensionMethods side effect
 const path = require('path');
@@ -58,4 +58,17 @@ function processInWorker() {
   transaction.finish();
 
   await Sentry.flush(2000);
+  const getProfileThreadID = (profilePath) => {
+    const profile = require(profilePath);
+    return profile.profile[0].threadID;
+  };
+
+  const mainThreadID = getProfileThreadID(path.resolve(__dirname, 'main.profile.json'));
+  const workerThreadID = getProfileThreadID(path.resolve(__dirname, 'worker.profile.json'));
+
+  if (mainThreadID === workerThreadID) {
+    throw new Error('Main thread and worker thread have the same threadID');
+  }
+
+  console.log(mainThreadID, workerThreadID);
 })();
