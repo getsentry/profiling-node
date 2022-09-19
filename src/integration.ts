@@ -60,6 +60,7 @@ export class ProfilingIntegration implements Integration {
       if (isDebugBuild()) {
         logger.log('[Profiling] Preparing envelope and sending a profiling event.');
       }
+
       transport.send(createProfilingEventEnvelope(event, dsn, client.getOptions()._metadata));
     }
 

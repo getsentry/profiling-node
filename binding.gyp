@@ -5,7 +5,9 @@
       "sources": [ "src/bindings/cpu_profiler.cc" ],
       "defines": ["PROFILER_FORMAT=FORMAT_SAMPLED"],
       'include_dirs': [
-        '<!(node -e "require(\'nan\')")'
+        'vendor/node/src/',
+        'vendor/node/deps/v8/include/',
+        '<!(node -e "require(\'nan\')")',
       ]
     },
     # {

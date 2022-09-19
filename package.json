@@ -17,7 +17,7 @@
     "build": "npm run build:bindings && npm run build:lib",
     "build:lib": "tsc",
     "build:bindings": "node-gyp build",
-    "build:benchmark:format": "node-gyp -DFORMAT_BENCHMARK=1 rebuild",
+    "build:benchmark:format": "node-gyp -DFORMAT_BENCHMARK=1 build",
     "benchmark": "npm run benchmark:methods && npm run benchmark:profiler && npm run benchmark:server && npm run benchmark:format",
     "benchmark:methods": "node benchmarks/cpu/benchmark.methods.js",
     "benchmark:profiler": "node benchmarks/cpu/benchmark.profiler.js",

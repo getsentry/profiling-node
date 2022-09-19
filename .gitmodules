@@ -1,0 +1,4 @@
+[submodule "vendor/node"]
+	path = vendor/node
+	url = https://github.com/nodejs/node.git
+	branch = v16.x

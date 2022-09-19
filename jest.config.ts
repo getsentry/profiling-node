@@ -5,7 +5,7 @@ const config: Config = {
   forceExit: true,
   preset: 'ts-jest',
   collectCoverage: true,
-  testMatch: ['**/*.test.ts']
+  testMatch: ['src/**/*.test.ts']
 };
 
 export default config;

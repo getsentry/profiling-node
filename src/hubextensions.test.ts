@@ -46,7 +46,8 @@ describe('hubextensions', () => {
 
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).not.toHaveBeenCalled();
-    expect(transaction.metadata?.profile).toBeUndefined();
+    // @ts-expect-error profile is not part of the transaction type yet
+    expect(transaction?.metadata?.profile).toBeUndefined();
   });
   it('skips profiling if profileSampleRate is set to 0', () => {
     const hub = makeHubMock({ profileSampleRate: 0 });
@@ -59,7 +60,8 @@ describe('hubextensions', () => {
 
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).not.toHaveBeenCalled();
-    expect(transaction.metadata?.profile).toBeUndefined();
+    // @ts-expect-error profile is not part of the transaction type yet
+    expect(transaction?.metadata?.profile).toBeUndefined();
   });
   it('skips profiling when random > sampleRate', () => {
     const hub = makeHubMock({ profileSampleRate: 0.5 });
@@ -73,7 +75,8 @@ describe('hubextensions', () => {
 
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).not.toHaveBeenCalled();
-    expect(transaction.metadata?.profile).toBeUndefined();
+    // @ts-expect-error profile is not part of the transaction type yet
+    expect(transaction?.metadata?.profile).toBeUndefined();
   });
   it('starts the profiler', () => {
     jest.unmock('./../build/Release/cpu_profiler');
@@ -90,6 +93,7 @@ describe('hubextensions', () => {
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).toHaveBeenCalledTimes(1);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
-    expect(transaction.metadata?.profile).toBeDefined();
+    // @ts-expect-error profile is not part of the transaction type yet
+    expect(transaction?.metadata?.profile).toBeDefined();
   });
 });
