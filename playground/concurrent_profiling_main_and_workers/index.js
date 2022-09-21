@@ -26,7 +26,7 @@ const transport = () => {
 
 Sentry.init({
   dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
-  debug: true,
+  debug: false,
   tracesSampleRate: 1,
   // @ts-expect-error profilingSampleRate is not part of the options type yet
   profileSampleRate: 1,
@@ -60,7 +60,11 @@ function processInWorker() {
   await Sentry.flush(2000);
   const getProfileThreadID = (profilePath) => {
     const profile = require(profilePath);
-    return profile.profile[0].threadID;
+    return profile.profile[0].threadId;
+  };
+  const getProfileIsMainThread = (profilePath) => {
+    const profile = require(profilePath);
+    return profile.profile[0].isMainThread;
   };
 
   const mainThreadID = getProfileThreadID(path.resolve(__dirname, 'main.profile.json'));
@@ -69,9 +73,8 @@ function processInWorker() {
   console.log(mainThreadID, workerThreadID);
   if (mainThreadID === workerThreadID) {
     console.log('main tid:', mainThreadID);
+    console.log('main is_main_thread', getProfileIsMainThread(path.resolve(__dirname, 'main.profile.json')));
     console.log('work tid:', workerThreadID);
-    throw new Error('Main thread and worker thread have the same threadID');
+    console.log('worker is_main_thread', getProfileIsMainThread(path.resolve(__dirname, 'worker.profile.json')));
   }
-
-  console.log(mainThreadID, workerThreadID);
 })();

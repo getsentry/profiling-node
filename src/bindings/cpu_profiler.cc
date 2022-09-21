@@ -5,8 +5,6 @@
 #include <nan.h>
 #include <v8-profiler.h>
 
-#include <iostream>
-
 #include "unordered_map"
 
 #define FORMAT_SAMPLED 2
@@ -28,19 +26,18 @@ using namespace v8;
 class Profiler {
   public: 
     explicit Profiler(Isolate* isolate):
-      isolate (isolate),
       cpu_profiler (CpuProfiler::New(isolate, kDebugNaming, kLazyLogging)) {
 
       }
 
   boolean_t is_main_thread;
-  Isolate* isolate;
   uint64_t thread_id;
+
   CpuProfiler* cpu_profiler;
 };
 
 #if PROFILER_FORMAT == FORMAT_RAW || FORMAT_BENCHMARK == 1
-Local<Object> CreateFrameGraphNode(
+static Local<Object> CreateFrameGraphNode(
     Local<String> name, Local<String> scriptName,
     Local<Integer> scriptId, Local<Integer> lineNumber,
     Local<Integer> columnNumber, Local<Integer> hitCount,
@@ -59,7 +56,7 @@ Local<Object> CreateFrameGraphNode(
   return js_node;
 };
 
-Local<Value> CreateFrameGraph(const CpuProfileNode* node) {
+static Local<Value> CreateFrameGraph(const CpuProfileNode* node) {
   int32_t count = node->GetChildrenCount();
   Local<Array> children = Nan::New<Array>(count);
   for (int32_t i = 0; i < count; i++) {
@@ -79,7 +76,7 @@ Local<Value> CreateFrameGraph(const CpuProfileNode* node) {
 #endif
 
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
-Local<Object> CreateSampleFrameNode(
+static Local<Object> CreateSampleFrameNode(
     Local<String> name, Local<String> scriptName,
     Local<Integer> scriptId, Local<Integer> lineNumber,
     Local<Integer> columnNumber, std::vector<CpuProfileDeoptInfo> deoptInfos) {
@@ -107,9 +104,11 @@ Local<Object> CreateSampleFrameNode(
   return js_node;
 };
 
-std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfile* profile, Isolate* isolate) {
+static std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfile* profile) {
     int sampleCount = profile->GetSamplesCount();
     std::unordered_map<std::string, int> frameLookupTable;
+
+    Isolate* isolate = Isolate::GetCurrent();
 
     Local<Array> samples = Nan::New<Array>(sampleCount);
     Local<Array> weights = Nan::New<Array>(sampleCount);
@@ -176,25 +175,22 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
 };
 #endif
 
-Local<Value> CreateProfile(const CpuProfile* profile, Isolate* isolate, uint64_t threadId, boolean_t is_main_thread) {
+Local<Value> CreateProfile(const CpuProfile* profile, Profiler* profiler) {
   Local<Object> js_profile = Nan::New<Object>();
 
-  node::Environment *env = node::GetCurrentEnvironment(isolate->GetCurrentContext());
-
-  std::cout << "thread_id: " << env->thread_id() << std::endl;
-  std::cout << "is_main_thread: " << env->is_main_thread() << std::endl;
+  std::cout << "Create profile:" << &profiler << std::endl;
 
   Nan::Set(js_profile, Nan::New<String>("title").ToLocalChecked(), profile->GetTitle());
   Nan::Set(js_profile, Nan::New<String>("startValue").ToLocalChecked(), Nan::New<Number>(profile->GetStartTime()));
   Nan::Set(js_profile, Nan::New<String>("endValue").ToLocalChecked(), Nan::New<Number>(profile->GetEndTime()));
   Nan::Set(js_profile, Nan::New<String>("type").ToLocalChecked(), Nan::New<String>("sampled").ToLocalChecked());
-  Nan::Set(js_profile, Nan::New<String>("threadId").ToLocalChecked(), Nan::New<Number>(threadId));
-  Nan::Set(js_profile, Nan::New<String>("isMainThread").ToLocalChecked(), Nan::New<Boolean>(is_main_thread));
+  Nan::Set(js_profile, Nan::New<String>("threadId").ToLocalChecked(), Nan::New<Number>(profiler->thread_id));
+  Nan::Set(js_profile, Nan::New<String>("isMainThread").ToLocalChecked(), Nan::New<Boolean>(profiler->is_main_thread));
   Nan::Set(js_profile, Nan::New<String>("unit").ToLocalChecked(), Nan::New<String>("microseconds").ToLocalChecked());
   Nan::Set(js_profile, Nan::New<String>("duration_ns").ToLocalChecked(), Nan::New<Number>((profile->GetEndTime() - profile->GetStartTime()) * 1e3));
 
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
-  std::tuple<Local<Value>, Local<Value>, Local<Value>> samples = GetSamples(profile, isolate);
+  std::tuple<Local<Value>, Local<Value>, Local<Value>> samples = GetSamples(profile);
   Nan::Set(js_profile, Nan::New<String>("samples").ToLocalChecked(), std::get<0>(samples));
   Nan::Set(js_profile, Nan::New<String>("weights").ToLocalChecked(), std::get<1>(samples));
   Nan::Set(js_profile, Nan::New<String>("frames").ToLocalChecked(), std::get<2>(samples));
@@ -217,15 +213,15 @@ static void StartProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
     };
 
     Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
-    bool recordSamples = true;
     
     profiler->cpu_profiler->SetUsePreciseSampling(true);
-    profiler->cpu_profiler->StartProfiling(Nan::To<String>(args[0]).ToLocalChecked(), recordSamples);
+    profiler->cpu_profiler->StartProfiling(Nan::To<String>(args[0]).ToLocalChecked(), true);
 };
 
 // StopProfiling(string title)
 // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#a40ca4c8a8aa4c9233aa2a2706457cc80
 static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
+    Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
     if(args[0].IsEmpty()) {
         return Nan::ThrowError("StopProfiling expects a string as first argument.");
     };
@@ -234,10 +230,10 @@ static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
         return Nan::ThrowError("StopProfiling expects a string as first argument.");
     };
 
-    Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
+    node::Environment* env = node::Environment::GetCurrent(args);
     CpuProfile* profile = profiler->cpu_profiler->StopProfiling(Nan::To<String>(args[0]).ToLocalChecked());
 
-    args.GetReturnValue().Set(CreateProfile(profile, profiler->isolate, profiler->thread_id, profiler->is_main_thread));
+    args.GetReturnValue().Set(CreateProfile(profile, profiler));
     profile->Delete();
 };
 
@@ -275,15 +271,16 @@ static void SetSamplingInterval(const v8::FunctionCallbackInfo<v8::Value>& args)
 // https://github.com/nodejs/node/issues/21783#issuecomment-429637117
 NODE_MODULE_INIT(/* exports, module, context */){
   Isolate* isolate = context->GetIsolate();
-  Profiler* profiler = new Profiler(isolate);
-  Local<External> external = External::New(isolate, profiler);
 
-  node::Environment *env = node::GetCurrentEnvironment(context);
+  auto current_isolate = isolate->GetCurrent();  
+
+  Profiler* profiler = new Profiler(current_isolate);
+  node::Environment* env = (node::GetCurrentEnvironment(context));
+
   profiler->thread_id = env->thread_id();
   profiler->is_main_thread = env->is_main_thread();
 
-  std::cout << "thread_id: " << profiler->thread_id << std::endl;
-  std::cout << "is_main_thread: " << profiler->is_main_thread << std::endl;
+  Local<External> external = External::New(env->isolate(), profiler);
 
   exports->Set(context, 
                Nan::New<String>("startProfiling").ToLocalChecked(),
