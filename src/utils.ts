@@ -1,4 +1,5 @@
 import os from 'os';
+import { threadId } from 'worker_threads';
 import type {
   SdkInfo,
   SdkMetadata,
@@ -11,11 +12,12 @@ import type {
 } from '@sentry/types';
 
 import { createEnvelope, dropUndefinedKeys, dsnToString, uuid4 } from '@sentry/utils';
+import type { ThreadCpuProfile } from './cpu_profiler';
 
-interface Profile {
+export interface Profile<T extends ThreadCpuProfile | ProcessedThreadCpuProfile> {
   platform: string;
   profile_id: string;
-  profile: [unknown, unknown];
+  profile: [T, unknown];
   device_locale: string;
   device_manufacturer: string;
   device_model: string;
@@ -31,11 +33,33 @@ interface Profile {
   transaction_id: string;
 }
 
+export interface ProcessedThreadCpuProfile extends ThreadCpuProfile {
+  duration_ns: number;
+  thread_id: number;
+}
+
+function isProcessedThreadCpuProfile(
+  profile: ThreadCpuProfile | ProcessedThreadCpuProfile
+): profile is ProcessedThreadCpuProfile {
+  return !!(profile as ProcessedThreadCpuProfile)?.thread_id;
+}
+
+// Enriches the profile with threadId of the current thread.
+// This is done in node as we seem to not be able to get the info from C native code.
+export function enrichWithThreadId(profile: ThreadCpuProfile): ProcessedThreadCpuProfile {
+  if (isProcessedThreadCpuProfile(profile)) {
+    return profile;
+  }
+
+  profile.thread_id = threadId;
+  return profile as ProcessedThreadCpuProfile;
+}
+
 // Profile is marked as optional because it is deleted from the metadata
 // by the integration before the event is processed by other integrations.
 export interface ProfiledEvent extends Event {
   sdkProcessingMetadata: {
-    profile?: Profile;
+    profile?: ThreadCpuProfile;
   };
 }
 
@@ -101,11 +125,12 @@ export function createProfilingEventEnvelope(
 
   enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
   const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
+  const enrichedThreadProfile = enrichWithThreadId(rawProfile);
 
-  const profile: Profile = {
+  const profile: Profile<ProcessedThreadCpuProfile> = {
     platform: 'typescript',
     profile_id: uuid4(),
-    profile: [rawProfile, {}],
+    profile: [enrichedThreadProfile, {}],
     device_locale:
       (process.env['LC_ALL'] || process.env['LC_MESSAGES'] || process.env['LANG'] || process.env['LANGUAGE']) ??
       'unknown locale',

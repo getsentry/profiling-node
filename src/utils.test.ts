@@ -1,7 +1,13 @@
 import type { SdkMetadata, DsnComponents } from '@sentry/types';
 import type { ProfiledEvent } from './utils';
 
-import { maybeRemoveProfileFromSdkMetadata, isProfiledTransactionEvent, createProfilingEventEnvelope } from './utils';
+import {
+  maybeRemoveProfileFromSdkMetadata,
+  isProfiledTransactionEvent,
+  createProfilingEventEnvelope,
+  Profile,
+  ProcessedThreadCpuProfile
+} from './utils';
 import os from 'os';
 
 function makeSdkMetadata(props: Partial<SdkMetadata['sdk']>): SdkMetadata {
@@ -32,22 +38,16 @@ function makeProfile(
   props: Partial<ProfiledEvent['sdkProcessingMetadata']['profile']>
 ): NonNullable<ProfiledEvent['sdkProcessingMetadata']['profile']> {
   return {
-    duration_ns: '100',
-    platform: 'typescript',
-    profile_id: '00000000-0000-0000-0000-000000000000',
-    profile: [{}, {}],
-    device_locale: 'unknown locale',
-    device_manufacturer: 'unknown manufacturer',
-    device_model: 'unknown model',
-    device_os_name: 'unknown os name',
-    device_os_version: 'unknown os version',
-    device_is_emulator: false,
-    transaction_name: 'unknown transaction',
-    environment: 'unknown environment',
-    version_code: 'unknown version code',
-    version_name: 'unknown version name',
-    trace_id: '00000000000000000000000000000000',
-    transaction_id: '00000000000000000000000000000000',
+    duration_ns: '1',
+    title: 'profile',
+    start_value: 0,
+    end_value: 1,
+    type: 'sampled',
+    unit: 'microseconds',
+    samples: [],
+    weights: [],
+    thread_id: undefined,
+    frames: [],
     ...props
   };
 }
@@ -154,7 +154,7 @@ describe('createProfilingEventEnvelope', () => {
     spies.push(jest.spyOn(os, 'type').mockReturnValue('linux'));
 
     const envelope = createProfilingEventEnvelope(makeEvent({}, makeProfile({})), makeDsn({}), makeSdkMetadata({}));
-    const profile = envelope[1][0]?.[1] as NonNullable<ProfiledEvent['sdkProcessingMetadata']['profile']>;
+    const profile = envelope[1][0]?.[1] as Profile<ProcessedThreadCpuProfile>;
 
     expect(profile.device_manufacturer).toBe('linux');
     expect(profile.device_model).toBe('x64');
@@ -166,11 +166,21 @@ describe('createProfilingEventEnvelope', () => {
     }
   });
 
+  it('enriches profile with thread_id', () => {
+    const envelope = createProfilingEventEnvelope(
+      makeEvent({}, makeProfile({ thread_id: undefined })),
+      makeDsn({}),
+      makeSdkMetadata({})
+    );
+
+    const profile = envelope[1][0]?.[1] as Profile<ProcessedThreadCpuProfile>;
+    expect(profile.profile[0].thread_id).not.toBe(undefined);
+    expect(typeof profile.profile[0].thread_id).toBe('number');
+  });
+
   it('copied duration_ns from profile', () => {
     const envelope = createProfilingEventEnvelope(
-      // @ts-expect-error duration_ns is not a valid property on the raw profile, but we are required
-      // to encode it to string so that backend will accept it.
-      makeEvent({ sdkProcessingMetadata: { profile: { duration_ns: 100 } } }, makeProfile({})),
+      makeEvent({ sdkProcessingMetadata: {} }, makeProfile({ duration_ns: 100 })),
       makeDsn({}),
       makeSdkMetadata({})
     );

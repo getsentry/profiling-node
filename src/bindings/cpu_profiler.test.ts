@@ -1,5 +1,5 @@
 import { CpuProfilerBindings } from '../cpu_profiler';
-import type { CpuProfile } from '../cpu_profiler';
+import type { ThreadCpuProfile } from '../cpu_profiler';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const profiled = (name: string, fn: () => void) => {
@@ -8,15 +8,15 @@ const profiled = (name: string, fn: () => void) => {
   return CpuProfilerBindings.stopProfiling(name);
 };
 
-const assertDeoptReasons = (frames: CpuProfile['frames']) => {
-  const hasDeoptimizedFrame = frames.some((f) => f.deoptReasons && f.deoptReasons.length > 0);
+const assertDeoptReasons = (frames: ThreadCpuProfile['frames']) => {
+  const hasDeoptimizedFrame = frames.some((f) => f.deopt_reasons && f.deopt_reasons.length > 0);
   expect(hasDeoptimizedFrame).toBe(true);
 };
 const assertValidWeights = (weights: number[]) => {
   const isValidWeights = Array.isArray(weights) && weights.every((w) => w >= 0);
   expect(isValidWeights).toBe(true);
 };
-const assertValidSamples = (samples: number[][]) => {
+const assertValidSamples = (samples: number[]) => {
   const isValidSamples =
     Array.isArray(samples) &&
     samples.every((s) => {
@@ -26,7 +26,7 @@ const assertValidSamples = (samples: number[][]) => {
   expect(isValidSamples).toBe(true);
 };
 
-const assertWeightsToSamples = (weights: number[], samples: number[][]) => {
+const assertWeightsToSamples = (weights: number[], samples: number[]) => {
   expect(weights.length).toBe(samples.length);
 };
 
