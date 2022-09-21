@@ -46,6 +46,7 @@ describe('hubextensions', () => {
 
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).not.toHaveBeenCalled();
+    // @ts-expect-error profile is not part of SDK metadata
     expect(transaction.metadata?.profile).toBeUndefined();
   });
   it('skips profiling if profileSampleRate is set to 0', () => {
@@ -59,6 +60,7 @@ describe('hubextensions', () => {
 
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).not.toHaveBeenCalled();
+    // @ts-expect-error profile is not part of SDK metadata
     expect(transaction.metadata?.profile).toBeUndefined();
   });
   it('skips profiling when random > sampleRate', () => {
@@ -73,6 +75,7 @@ describe('hubextensions', () => {
 
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).not.toHaveBeenCalled();
+    // @ts-expect-error profile is not part of SDK metadata
     expect(transaction.metadata?.profile).toBeUndefined();
   });
   it('starts the profiler', () => {
@@ -90,6 +93,7 @@ describe('hubextensions', () => {
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).toHaveBeenCalledTimes(1);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
+    // @ts-expect-error profile is not part of SDK metadata
     expect(transaction.metadata?.profile).toBeDefined();
   });
 });

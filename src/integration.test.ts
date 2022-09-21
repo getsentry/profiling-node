@@ -12,22 +12,16 @@ function makeProfiledEvent(): ProfiledEvent {
   return {
     sdkProcessingMetadata: {
       profile: {
-        duration_ns: '100',
-        platform: 'typescript',
-        profile_id: '00000000-0000-0000-0000-000000000000',
-        profile: [{}, {}],
-        device_locale: 'unknown locale',
-        device_manufacturer: 'unknown manufacturer',
-        device_model: 'unknown model',
-        device_os_name: 'unknown os name',
-        device_os_version: 'unknown os version',
-        device_is_emulator: false,
-        transaction_name: 'unknown transaction',
-        environment: 'unknown environment',
-        version_code: 'unknown version code',
-        version_name: 'unknown version name',
-        trace_id: '00000000000000000000000000000000',
-        transaction_id: '00000000000000000000000000000000'
+        duration_ns: 1,
+        title: 'profile',
+        start_value: 0,
+        end_value: 1,
+        type: 'sampled',
+        unit: 'microseconds',
+        samples: [],
+        weights: [],
+        thread_id: undefined,
+        frames: []
       }
     }
   };

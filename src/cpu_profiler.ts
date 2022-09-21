@@ -2,30 +2,30 @@
 const profiler = require('./../build/Release/cpu_profiler.node');
 
 interface Frame {
-  columnNumber: number;
-  deoptReasons?: string[];
-  lineNumber: number;
   name: string;
-  scriptId: number;
-  scriptName: string;
+  script_name: string;
+  script_id: number;
+  line_number: number;
+  column_number: number;
+  deopt_reasons?: string[];
 }
 
-export interface CpuProfile {
-  weights: number[];
-  duration_ns: number[];
-  startValue: number;
-  endValue: number;
-  frames: Frame[];
+export interface ThreadCpuProfile {
   title: string;
-  threadId: number;
-  type: 'sampled';
+  start_value: number;
+  end_value: number;
+  type: string;
   unit: string;
-  samples: number[][];
+  duration_ns: string | number;
+  samples: number[];
+  weights: number[];
+  thread_id: number | undefined;
+  frames: Frame[];
 }
 
 export interface V8CpuProfilerBindings {
   startProfiling(name: string): void;
-  stopProfiling(name: string): CpuProfile;
+  stopProfiling(name: string): ThreadCpuProfile;
   setUsePreciseSampling(usePreciseSampling: boolean): void;
   setSamplingInterval(samplingIntervalInMicroseconds: number): void;
 }

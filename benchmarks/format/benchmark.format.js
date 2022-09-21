@@ -3,7 +3,7 @@ const ReactDOMServer = require('react-dom/server');
 const fs = require('fs');
 const path = require('path');
 const gzip = require('zlib');
-const { ZSTDCompress, ZSTDDecompress } = require('simple-zstd');
+const { ZSTDCompress } = require('simple-zstd');
 
 function App() {
   const [times, setTimes] = (function () {

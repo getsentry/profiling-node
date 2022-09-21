@@ -1,8 +1,8 @@
 
 #include <unordered_map>
-#include <node_api.h>
 
 #include "nan.h"
+#include "node.h"
 #include "v8-profiler.h"
 
 #define FORMAT_SAMPLED 2
@@ -32,7 +32,6 @@ class Profiler {
         // Ensure this per-addon-instance data is deleted at environment cleanup.
         // node::AddEnvironmentCleanupHook(isolate, Cleanup, this);
       }
-      
   CpuProfiler* cpu_profiler;
 };
 
@@ -46,11 +45,11 @@ Local<Object> CreateFrameGraphNode(
   Local<Object> js_node = Nan::New<Object>();
   
   Nan::Set(js_node, Nan::New<String>("name").ToLocalChecked(), name);
-  Nan::Set(js_node, Nan::New<String>("scriptName").ToLocalChecked(), scriptName);
-  Nan::Set(js_node, Nan::New<String>("scriptId").ToLocalChecked(), scriptId);
-  Nan::Set(js_node, Nan::New<String>("lineNumber").ToLocalChecked(), lineNumber);
-  Nan::Set(js_node, Nan::New<String>("columnNumber").ToLocalChecked(), columnNumber);
-  Nan::Set(js_node, Nan::New<String>("hitCount").ToLocalChecked(), hitCount);
+  Nan::Set(js_node, Nan::New<String>("script_name").ToLocalChecked(), scriptName);
+  Nan::Set(js_node, Nan::New<String>("script_id").ToLocalChecked(), scriptId);
+  Nan::Set(js_node, Nan::New<String>("line_number").ToLocalChecked(), lineNumber);
+  Nan::Set(js_node, Nan::New<String>("column_number").ToLocalChecked(), columnNumber);
+  Nan::Set(js_node, Nan::New<String>("hit_count").ToLocalChecked(), hitCount);
   Nan::Set(js_node, Nan::New<String>("children").ToLocalChecked(), children);
 
   return js_node;
@@ -84,10 +83,10 @@ Local<Object> CreateSampleFrameNode(
   Local<Object> js_node = Nan::New<Object>();
   
   Nan::Set(js_node, Nan::New<String>("name").ToLocalChecked(), name);
-  Nan::Set(js_node, Nan::New<String>("scriptName").ToLocalChecked(), scriptName);
-  Nan::Set(js_node, Nan::New<String>("scriptId").ToLocalChecked(), scriptId);
-  Nan::Set(js_node, Nan::New<String>("lineNumber").ToLocalChecked(), lineNumber);
-  Nan::Set(js_node, Nan::New<String>("columnNumber").ToLocalChecked(), columnNumber);
+  Nan::Set(js_node, Nan::New<String>("script_name").ToLocalChecked(), scriptName);
+  Nan::Set(js_node, Nan::New<String>("script_id").ToLocalChecked(), scriptId);
+  Nan::Set(js_node, Nan::New<String>("line_number").ToLocalChecked(), lineNumber);
+  Nan::Set(js_node, Nan::New<String>("column_number").ToLocalChecked(), columnNumber);
 
   size_t size = deoptInfos.size();
 
@@ -98,7 +97,7 @@ Local<Object> CreateSampleFrameNode(
       Nan::Set(deoptReasons, i, Nan::New<String>(deoptInfos[i].deopt_reason).ToLocalChecked());
     }
 
-    Nan::Set(js_node, Nan::New<String>("deoptReasons").ToLocalChecked(), deoptReasons);
+    Nan::Set(js_node, Nan::New<String>("deopt_reasons").ToLocalChecked(), deoptReasons);
   };
 
   return js_node;
@@ -107,12 +106,12 @@ Local<Object> CreateSampleFrameNode(
 std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfile* profile) {
     int sampleCount = profile->GetSamplesCount();
     std::unordered_map<std::string, int> frameLookupTable;
+    Isolate* isolate = Isolate::GetCurrent();
 
     Local<Array> samples = Nan::New<Array>(sampleCount);
     Local<Array> weights = Nan::New<Array>(sampleCount);
     Local<Array> frameIndex = Nan::New<Array>();
 
-    Isolate* isolate = Isolate::GetCurrent();
     int64_t previousTimestamp = profile->GetStartTime();
 
     uint32_t idx = 0;
@@ -178,10 +177,10 @@ Local<Value> CreateProfile(const CpuProfile* profile) {
   Local<Object> js_profile = Nan::New<Object>();
 
   Nan::Set(js_profile, Nan::New<String>("title").ToLocalChecked(), profile->GetTitle());
-  Nan::Set(js_profile, Nan::New<String>("startValue").ToLocalChecked(), Nan::New<Number>(profile->GetStartTime()));
-  Nan::Set(js_profile, Nan::New<String>("endValue").ToLocalChecked(), Nan::New<Number>(profile->GetEndTime()));
+  Nan::Set(js_profile, Nan::New<String>("start_value").ToLocalChecked(), Nan::New<Number>(profile->GetStartTime()));
+  Nan::Set(js_profile, Nan::New<String>("end_value").ToLocalChecked(), Nan::New<Number>(profile->GetEndTime()));
   Nan::Set(js_profile, Nan::New<String>("type").ToLocalChecked(), Nan::New<String>("sampled").ToLocalChecked());
-  Nan::Set(js_profile, Nan::New<String>("threadID").ToLocalChecked(), Nan::New<Number>(node::ThreadId().id));
+  Nan::Set(js_profile, Nan::New<String>("thread_id").ToLocalChecked(), Nan::EmptyString());
   Nan::Set(js_profile, Nan::New<String>("unit").ToLocalChecked(), Nan::New<String>("microseconds").ToLocalChecked());
   Nan::Set(js_profile, Nan::New<String>("duration_ns").ToLocalChecked(), Nan::New<Number>((profile->GetEndTime() - profile->GetStartTime()) * 1e3));
 
@@ -192,7 +191,7 @@ Local<Value> CreateProfile(const CpuProfile* profile) {
   Nan::Set(js_profile, Nan::New<String>("frames").ToLocalChecked(), std::get<2>(samples));
 #endif
 #if PROFILER_FORMAT == FORMAT_RAW || FORMAT_BENCHMARK == 1
-  Nan::Set(js_profile, Nan::New<String>("topDownRoot").ToLocalChecked(), CreateFrameGraph(profile->GetTopDownRoot()));
+  Nan::Set(js_profile, Nan::New<String>("top_down_root").ToLocalChecked(), CreateFrameGraph(profile->GetTopDownRoot()));
 #endif
   return js_profile;
 };
@@ -236,7 +235,7 @@ static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
     CpuProfile* profile = profiler->cpu_profiler->StopProfiling(Nan::To<String>(args[0]).ToLocalChecked());
 
     args.GetReturnValue().Set(CreateProfile(profile));
-    // profile->Delete();
+    profile->Delete();
 };
 
 // // SetUsePreciseSampling(bool use_precise_sampling)
@@ -269,7 +268,6 @@ static void SetSamplingInterval(const v8::FunctionCallbackInfo<v8::Value>& args)
     profiler->cpu_profiler->SetSamplingInterval(args[0].As<Integer>()->Value());
 }
 
-// https://github.com/nodejs/node/issues/21783#issuecomment-429637117
 NODE_MODULE_INIT(/* exports, module, context */){
   Isolate* isolate = context->GetIsolate();
   Profiler* profiler = new Profiler(isolate);
