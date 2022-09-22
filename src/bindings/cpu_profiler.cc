@@ -166,7 +166,6 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
         Nan::Set(weights, i, Nan::New<Number>(sampleTimestamp - previousTimestamp));
 
         previousTimestamp = sampleTimestamp;
-
     };
 
     return std::make_tuple(samples, weights, frameIndex);

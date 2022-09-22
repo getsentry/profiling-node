@@ -15,22 +15,43 @@ import { createEnvelope, dropUndefinedKeys, dsnToString, uuid4 } from '@sentry/u
 import type { ThreadCpuProfile } from './cpu_profiler';
 
 export interface Profile<T extends ThreadCpuProfile | ProcessedThreadCpuProfile> {
+  event_id: string;
+  version: string;
+  os: {
+    architecture: string;
+    is_emulator: boolean;
+    locale: string;
+    manufacturer: string;
+    model: string;
+  };
+  timestamp: string;
+  thread_metadata: Record<string, { priority?: number }>;
+  queue_metadata: Record<string, { label: string }>;
+  release: string;
   platform: string;
-  profile_id: string;
-  profile: [T, unknown];
-  device_locale: string;
-  device_manufacturer: string;
-  device_model: string;
-  device_os_name: string;
-  device_os_version: string;
-  device_is_emulator: false;
-  transaction_name: string;
-  duration_ns: string;
-  environment: string;
-  version_code: string;
-  version_name: string;
-  trace_id: string;
-  transaction_id: string;
+  profile: {
+    samples: { stack_id: number; thread_id: string; queue_address: string; relative_timestamp_ns: string }[];
+    stacks: number[][];
+    frames: { function: string; file: string; line: number; column: number }[];
+  };
+  debug_meta: {
+    images: {
+      debug_id: string;
+      image_addr: string;
+      code_file: string;
+      type: string;
+      image_size: number;
+      image_vmaddr: string;
+    }[];
+  };
+  transaction: {
+    name: string;
+    trace_id: string;
+    id: string;
+    active_thread_id: string;
+    relative_start_ns: string;
+    relative_end_ns: string;
+  }[];
 }
 
 export interface ProcessedThreadCpuProfile extends ThreadCpuProfile {
