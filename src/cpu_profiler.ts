@@ -16,6 +16,14 @@ type Frame = {
   column: number;
 };
 
+export interface RawThreadCpuProfile {
+  start_value_us: number;
+  end_value_us: number;
+  stacks: Stack[]; // done
+  samples: Sample[];
+  frames: Frame[];
+}
+
 export interface ThreadCpuProfile {
   samples: Sample[];
   stacks: Stack[];

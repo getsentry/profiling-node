@@ -14,7 +14,7 @@ import type {
 import { createEnvelope, dropUndefinedKeys, dsnToString, uuid4 } from '@sentry/utils';
 import type { ThreadCpuProfile } from './cpu_profiler';
 
-export interface Profile<T extends ThreadCpuProfile | ProcessedThreadCpuProfile> {
+export interface Profile {
   event_id: string;
   version: string;
   os: {
@@ -29,11 +29,7 @@ export interface Profile<T extends ThreadCpuProfile | ProcessedThreadCpuProfile>
   queue_metadata: Record<string, { label: string }>;
   release: string;
   platform: string;
-  profile: {
-    samples: { stack_id: number; thread_id: string; queue_address: string; relative_timestamp_ns: string }[];
-    stacks: number[][];
-    frames: { function: string; file: string; line: number; column: number }[];
-  };
+  profile: ThreadCpuProfile;
   debug_meta: {
     images: {
       debug_id: string;

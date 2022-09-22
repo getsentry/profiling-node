@@ -45,7 +45,7 @@ Local<Object> CreateFrameGraphNode(
   Local<Object> js_node = Nan::New<Object>();
   
   Nan::Set(js_node, Nan::New<String>("name").ToLocalChecked(), name);
-  Nan::Set(js_node, Nan::New<String>("script_name").ToLocalChecked(), scriptName);
+  Nan::Set(js_node, Nan::New<String>("file").ToLocalChecked(), scriptName);
   Nan::Set(js_node, Nan::New<String>("script_id").ToLocalChecked(), scriptId);
   Nan::Set(js_node, Nan::New<String>("line_number").ToLocalChecked(), lineNumber);
   Nan::Set(js_node, Nan::New<String>("column_number").ToLocalChecked(), columnNumber);
@@ -76,29 +76,29 @@ Local<Value> CreateFrameGraph(const CpuProfileNode* node) {
 
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
 Local<Object> CreateSampleFrameNode(
-    Local<String> name, Local<String> scriptName,
-    Local<Integer> scriptId, Local<Integer> lineNumber,
-    Local<Integer> columnNumber, std::vector<CpuProfileDeoptInfo> deoptInfos) {
+    Local<String> name, Local<String> scriptName, Local<Integer> line,
+    Local<Integer> column, std::vector<CpuProfileDeoptInfo> deoptInfos) {
 
   Local<Object> js_node = Nan::New<Object>();
   
   Nan::Set(js_node, Nan::New<String>("name").ToLocalChecked(), name);
-  Nan::Set(js_node, Nan::New<String>("script_name").ToLocalChecked(), scriptName);
-  Nan::Set(js_node, Nan::New<String>("script_id").ToLocalChecked(), scriptId);
-  Nan::Set(js_node, Nan::New<String>("line_number").ToLocalChecked(), lineNumber);
-  Nan::Set(js_node, Nan::New<String>("column_number").ToLocalChecked(), columnNumber);
+  Nan::Set(js_node, Nan::New<String>("file").ToLocalChecked(), scriptName);
+  Nan::Set(js_node, Nan::New<String>("line").ToLocalChecked(), line);
+  // @TODO Column info needs to be added to backend
+  Nan::Set(js_node, Nan::New<String>("column").ToLocalChecked(), column);
 
-  size_t size = deoptInfos.size();
+  // @TODO Deopt info needs to be added to backend
+  // size_t size = deoptInfos.size();
 
-  if(size > 0) {
-    Local<Array> deoptReasons = Nan::New<Array>(size);
+  // if(size > 0) {
+  //   Local<Array> deoptReasons = Nan::New<Array>(size);
     
-    for(size_t i = 0; i < size; i++) {
-      Nan::Set(deoptReasons, i, Nan::New<String>(deoptInfos[i].deopt_reason).ToLocalChecked());
-    }
+  //   for(size_t i = 0; i < size; i++) {
+  //     Nan::Set(deoptReasons, i, Nan::New<String>(deoptInfos[i].deopt_reason).ToLocalChecked());
+  //   }
 
-    Nan::Set(js_node, Nan::New<String>("deopt_reasons").ToLocalChecked(), deoptReasons);
-  };
+  //   Nan::Set(js_node, Nan::New<String>("deopt_reasons").ToLocalChecked(), deoptReasons);
+  // };
 
   return js_node;
 };
@@ -108,84 +108,70 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
     std::unordered_map<std::string, int> frameLookupTable;
     Isolate* isolate = Isolate::GetCurrent();
 
-    Local<Array> samples = Nan::New<Array>(sampleCount);
+    Local<Array> stacks = Nan::New<Array>(sampleCount);
     Local<Array> weights = Nan::New<Array>(sampleCount);
     Local<Array> frameIndex = Nan::New<Array>();
 
     int64_t previousTimestamp = profile->GetStartTime();
 
-    uint32_t idx = 0;
+    uint32_t unique_frame_id = 0;
     for(uint32_t i = 0; i < sampleCount; i++) {
         const CpuProfileNode* node = profile->GetSample(i);
-        const v8::CpuProfileNode * startNode = node;
 
-        uint32_t stackDepth = -1;
-        // Count the number of frames in the stack so that we can insert them in reverse order.
-        while(startNode != nullptr) {
-            stackDepth++;
-            startNode = startNode->GetParent();
-        };
-
-        // A stack is a list of frames ordered from outermost to innermost frame
-        Local<Array> stack = Nan::New<Array>(stackDepth-1);
-        uint32_t tailOffset = 0;
+        // A stack is a list of frames ordered from outermost (top) to innermost frame (bottom)
+        Local<Array> stack = Nan::New<Array>();
 
         while(node != nullptr) {
             Local<String> functionName = node->GetFunctionName();
             String::Utf8Value str(isolate, functionName);
             std::string cppStr(*str);
 
-            int scriptId = node->GetScriptId();
             auto index = frameLookupTable.find(cppStr);
             auto deoptReason = node->GetDeoptInfos();
 
+            // If the frame does not exist in the index
             if(index == frameLookupTable.end()) {
-                frameLookupTable.insert({cppStr, idx});
+                frameLookupTable.insert({cppStr, unique_frame_id});
 
-                Nan::Set(stack, stackDepth - tailOffset, Nan::New<Number>(idx));
-                Nan::Set(frameIndex, idx, CreateSampleFrameNode(
+                Nan::Set(stack, i, Nan::New<Number>(unique_frame_id));
+                Nan::Set(frameIndex, unique_frame_id, CreateSampleFrameNode(
                     functionName,
                     node->GetScriptResourceName(),
-                    Nan::New<Integer>(scriptId),
                     Nan::New<Integer>(node->GetLineNumber()),
                     Nan::New<Integer>(node->GetColumnNumber()),
                     deoptReason
                 ));
-                idx++;
+                unique_frame_id++;
             } else {
-                Nan::Set(stack, stackDepth - tailOffset, Nan::New<Number>(index->second));
+              // If it was indexed, just add it's id to the stack
+                Nan::Set(stack, i, Nan::New<Number>(index->second));
             };
 
+            // Continue walking down the stack
             node = node->GetParent();
-            tailOffset++;
         }
 
         int64_t sampleTimestamp = profile->GetSampleTimestamp(i);
 
-        Nan::Set(samples, i, stack);
+        Nan::Set(stacks, i, stack);
         Nan::Set(weights, i, Nan::New<Number>(sampleTimestamp - previousTimestamp));
 
         previousTimestamp = sampleTimestamp;
     };
 
-    return std::make_tuple(samples, weights, frameIndex);
+    return std::make_tuple(stacks, weights, frameIndex);
 };
 #endif
 
 Local<Value> CreateProfile(const CpuProfile* profile) {
   Local<Object> js_profile = Nan::New<Object>();
 
-  Nan::Set(js_profile, Nan::New<String>("title").ToLocalChecked(), profile->GetTitle());
-  Nan::Set(js_profile, Nan::New<String>("start_value").ToLocalChecked(), Nan::New<Number>(profile->GetStartTime()));
-  Nan::Set(js_profile, Nan::New<String>("end_value").ToLocalChecked(), Nan::New<Number>(profile->GetEndTime()));
-  Nan::Set(js_profile, Nan::New<String>("type").ToLocalChecked(), Nan::New<String>("sampled").ToLocalChecked());
-  Nan::Set(js_profile, Nan::New<String>("thread_id").ToLocalChecked(), Nan::EmptyString());
-  Nan::Set(js_profile, Nan::New<String>("unit").ToLocalChecked(), Nan::New<String>("microseconds").ToLocalChecked());
-  Nan::Set(js_profile, Nan::New<String>("duration_ns").ToLocalChecked(), Nan::New<Number>((profile->GetEndTime() - profile->GetStartTime()) * 1e3));
+  Nan::Set(js_profile, Nan::New<String>("start_value_us").ToLocalChecked(), Nan::New<Number>(profile->GetStartTime()));
+  Nan::Set(js_profile, Nan::New<String>("end_value_us").ToLocalChecked(), Nan::New<Number>(profile->GetEndTime()));
 
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
   std::tuple<Local<Value>, Local<Value>, Local<Value>> samples = GetSamples(profile);
-  Nan::Set(js_profile, Nan::New<String>("samples").ToLocalChecked(), std::get<0>(samples));
+  Nan::Set(js_profile, Nan::New<String>("stacks").ToLocalChecked(), std::get<0>(samples));
   Nan::Set(js_profile, Nan::New<String>("weights").ToLocalChecked(), std::get<1>(samples));
   Nan::Set(js_profile, Nan::New<String>("frames").ToLocalChecked(), std::get<2>(samples));
 #endif
@@ -207,16 +193,9 @@ static void StartProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
     };
 
     Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
-    // int customOrDefaultSamplingInterval = defaultSamplingIntervalMicroseconds;
-    bool recordSamples = true;
 
-    // if(info[1]->IsNumber()) {
-    //     customOrDefaultSamplingInterval = info[1]->ToInteger(Local<Context>()).ToLocalChecked()->Value();
-    // }
-
-    // cpuProfiler->SetSamplingInterval(customOrDefaultSamplingInterval);
     profiler->cpu_profiler->SetUsePreciseSampling(true);
-    profiler->cpu_profiler->StartProfiling(Nan::To<String>(args[0]).ToLocalChecked(), recordSamples);
+    profiler->cpu_profiler->StartProfiling(Nan::To<String>(args[0]).ToLocalChecked(), true);
 };
 
 // StopProfiling(string title)
