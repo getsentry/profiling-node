@@ -75,7 +75,7 @@ Local<Value> CreateFrameGraph(const CpuProfileNode* node) {
 #endif
 
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
-Local<Object> CreateSampleFrameNode(
+Local<Object> CreateFrameNode(
     Local<String> name, Local<String> scriptName, Local<Integer> line,
     Local<Integer> column, std::vector<CpuProfileDeoptInfo> deoptInfos) {
 
@@ -103,38 +103,51 @@ Local<Object> CreateSampleFrameNode(
   return js_node;
 };
 
+Local<Object> CreateSample(uint32_t stack_id, uint32_t sample_timestamp) {
+  Local<Object> js_node = Nan::New<Object>();
+
+  Nan::Set(js_node, Nan::New<String>("stack_id").ToLocalChecked(), Nan::New<Number>(stack_id));
+  Nan::Set(js_node, Nan::New<String>("relative_timestamp_ns").ToLocalChecked(), Nan::New<Number>(sample_timestamp));
+
+  return js_node;
+};
+
 std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfile* profile) {
-    int sampleCount = profile->GetSamplesCount();
-    std::unordered_map<std::string, int> frameLookupTable;
     Isolate* isolate = Isolate::GetCurrent();
 
-    Local<Array> stacks = Nan::New<Array>(sampleCount);
-    Local<Array> weights = Nan::New<Array>(sampleCount);
-    Local<Array> frameIndex = Nan::New<Array>();
-
-    int64_t previousTimestamp = profile->GetStartTime();
+    std::unordered_map<std::string, int> frameLookupTable;
 
     uint32_t unique_frame_id = 0;
-    for(uint32_t i = 0; i < sampleCount; i++) {
-        const CpuProfileNode* node = profile->GetSample(i);
+    uint32_t profile_start_time = profile->GetStartTime();
+    int sampleCount = profile->GetSamplesCount();
 
+    Local<Array> stacks = Nan::New<Array>(sampleCount);
+    Local<Array> samples = Nan::New<Array>(sampleCount);
+    Local<Array> frames = Nan::New<Array>();
+
+    for(int i = 0; i < sampleCount; i++) {
+        const Local<Value> sample = CreateSample(i, profile->GetSampleTimestamp(i) - profile_start_time);
+        const CpuProfileNode* node = profile->GetSample(i);
         // A stack is a list of frames ordered from outermost (top) to innermost frame (bottom)
         Local<Array> stack = Nan::New<Array>();
+        uint32_t stack_depth = -1;
 
         while(node != nullptr) {
+            stack_depth++;
+
             Local<String> functionName = node->GetFunctionName();
             String::Utf8Value str(isolate, functionName);
             std::string cppStr(*str);
 
-            auto index = frameLookupTable.find(cppStr);
+            auto frame_index = frameLookupTable.find(cppStr);
             auto deoptReason = node->GetDeoptInfos();
 
             // If the frame does not exist in the index
-            if(index == frameLookupTable.end()) {
+            if(frame_index == frameLookupTable.end()) {
                 frameLookupTable.insert({cppStr, unique_frame_id});
 
-                Nan::Set(stack, i, Nan::New<Number>(unique_frame_id));
-                Nan::Set(frameIndex, unique_frame_id, CreateSampleFrameNode(
+                Nan::Set(stack, stack_depth, Nan::New<Number>(unique_frame_id));
+                Nan::Set(frames, unique_frame_id, CreateFrameNode(
                     functionName,
                     node->GetScriptResourceName(),
                     Nan::New<Integer>(node->GetLineNumber()),
@@ -144,22 +157,18 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
                 unique_frame_id++;
             } else {
               // If it was indexed, just add it's id to the stack
-                Nan::Set(stack, i, Nan::New<Number>(index->second));
+                Nan::Set(stack, stack_depth, Nan::New<Number>(frame_index->second));
             };
-
+      
             // Continue walking down the stack
             node = node->GetParent();
         }
 
-        int64_t sampleTimestamp = profile->GetSampleTimestamp(i);
-
         Nan::Set(stacks, i, stack);
-        Nan::Set(weights, i, Nan::New<Number>(sampleTimestamp - previousTimestamp));
-
-        previousTimestamp = sampleTimestamp;
+        Nan::Set(samples, i, sample);
     };
 
-    return std::make_tuple(stacks, weights, frameIndex);
+    return std::make_tuple(stacks, samples, frames);
 };
 #endif
 
@@ -172,7 +181,7 @@ Local<Value> CreateProfile(const CpuProfile* profile) {
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
   std::tuple<Local<Value>, Local<Value>, Local<Value>> samples = GetSamples(profile);
   Nan::Set(js_profile, Nan::New<String>("stacks").ToLocalChecked(), std::get<0>(samples));
-  Nan::Set(js_profile, Nan::New<String>("weights").ToLocalChecked(), std::get<1>(samples));
+  Nan::Set(js_profile, Nan::New<String>("samples").ToLocalChecked(), std::get<1>(samples));
   Nan::Set(js_profile, Nan::New<String>("frames").ToLocalChecked(), std::get<2>(samples));
 #endif
 #if PROFILER_FORMAT == FORMAT_RAW || FORMAT_BENCHMARK == 1

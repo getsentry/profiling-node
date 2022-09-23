@@ -14,6 +14,8 @@ import type {
 import { createEnvelope, dropUndefinedKeys, dsnToString, uuid4 } from '@sentry/utils';
 import type { ThreadCpuProfile } from './cpu_profiler';
 
+const THREAD_ID_STRING = String(threadId);
+
 export interface Profile {
   event_id: string;
   version: string;
@@ -50,11 +52,6 @@ export interface Profile {
   }[];
 }
 
-export interface ProcessedThreadCpuProfile extends ThreadCpuProfile {
-  duration_ns: number;
-  thread_id: number;
-}
-
 function isProcessedThreadCpuProfile(
   profile: ThreadCpuProfile | ProcessedThreadCpuProfile
 ): profile is ProcessedThreadCpuProfile {
@@ -68,7 +65,12 @@ export function enrichWithThreadId(profile: ThreadCpuProfile): ProcessedThreadCp
     return profile;
   }
 
-  profile.thread_id = threadId;
+  for (let i = 0; i < profile.samples.length; i++) {
+    const sample = profile.samples[i];
+    if (sample) {
+      sample.thread_id = THREAD_ID_STRING;
+    }
+  }
   return profile as ProcessedThreadCpuProfile;
 }
 
@@ -144,10 +146,10 @@ export function createProfilingEventEnvelope(
   const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
   const enrichedThreadProfile = enrichWithThreadId(rawProfile);
 
-  const profile: Profile<ProcessedThreadCpuProfile> = {
+  const profile: Profile = {
     platform: 'typescript',
     profile_id: uuid4(),
-    profile: [enrichedThreadProfile, {}],
+    profile: enrichedThreadProfile,
     device_locale:
       (process.env['LC_ALL'] || process.env['LC_MESSAGES'] || process.env['LANG'] || process.env['LANGUAGE']) ??
       'unknown locale',
