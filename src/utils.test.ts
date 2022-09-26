@@ -5,8 +5,7 @@ import {
   maybeRemoveProfileFromSdkMetadata,
   isProfiledTransactionEvent,
   createProfilingEventEnvelope,
-  Profile,
-  ProcessedThreadCpuProfile
+  Profile
 } from './utils';
 import os from 'os';
 
@@ -38,15 +37,10 @@ function makeProfile(
   props: Partial<ProfiledEvent['sdkProcessingMetadata']['profile']>
 ): NonNullable<ProfiledEvent['sdkProcessingMetadata']['profile']> {
   return {
-    duration_ns: '1',
-    title: 'profile',
-    start_value: 0,
-    end_value: 1,
-    type: 'sampled',
-    unit: 'microseconds',
+    start_value_us: 0,
+    end_value_us: 1,
+    stacks: [],
     samples: [],
-    weights: [],
-    thread_id: undefined,
     frames: [],
     ...props
   };
@@ -151,40 +145,35 @@ describe('createProfilingEventEnvelope', () => {
     spies.push(jest.spyOn(os, 'platform').mockReturnValue('linux'));
     spies.push(jest.spyOn(os, 'release').mockReturnValue('5.4.0-42-generic'));
     spies.push(jest.spyOn(os, 'arch').mockReturnValue('x64'));
+    // This will be called on node18, but not on lower versions of node
+    if (typeof os.machine === 'function') {
+      spies.push(jest.spyOn(os, 'machine').mockReturnValue('x64'));
+    }
     spies.push(jest.spyOn(os, 'type').mockReturnValue('linux'));
 
     const envelope = createProfilingEventEnvelope(makeEvent({}, makeProfile({})), makeDsn({}), makeSdkMetadata({}));
-    const profile = envelope[1][0]?.[1] as Profile<ProcessedThreadCpuProfile>;
+    const profile = envelope[1][0]?.[1] as unknown as Profile;
 
-    expect(profile.device_manufacturer).toBe('linux');
-    expect(profile.device_model).toBe('x64');
-    expect(profile.device_os_name).toBe('linux');
-    expect(profile.device_os_version).toBe('5.4.0-42-generic');
+    expect(profile.device.manufacturer).toBe('linux');
+    expect(profile.device.model).toBe('x64');
+    expect(profile.os.name).toBe('linux');
+    expect(profile.os.version).toBe('5.4.0-42-generic');
 
     for (const spy of spies) {
-      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalled();
     }
   });
 
   it('enriches profile with thread_id', () => {
     const envelope = createProfilingEventEnvelope(
-      makeEvent({}, makeProfile({ thread_id: undefined })),
+      // @ts-expect-error thread_id is forced to undefined and we assert that it is enriched
+      makeEvent({}, makeProfile({ samples: [{ stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }] })),
       makeDsn({}),
       makeSdkMetadata({})
     );
 
-    const profile = envelope[1][0]?.[1] as Profile<ProcessedThreadCpuProfile>;
-    expect(profile.profile[0].thread_id).not.toBe(undefined);
-    expect(typeof profile.profile[0].thread_id).toBe('number');
-  });
-
-  it('copied duration_ns from profile', () => {
-    const envelope = createProfilingEventEnvelope(
-      makeEvent({ sdkProcessingMetadata: {} }, makeProfile({ duration_ns: 100 })),
-      makeDsn({}),
-      makeSdkMetadata({})
-    );
-    const profile = envelope[1][0]?.[1] as NonNullable<ProfiledEvent['sdkProcessingMetadata']['profile']>;
-    expect(profile.duration_ns).toBe('100');
+    const profile = envelope[1][0]?.[1] as unknown as Profile;
+    expect(profile.profile.samples?.[0]?.thread_id).not.toBe(undefined);
+    expect(typeof profile.profile.samples?.[0]?.thread_id).toBe('string');
   });
 });

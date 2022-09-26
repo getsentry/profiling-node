@@ -98,7 +98,7 @@ function compressZstd(source, target) {
 const outpath = path.resolve(__dirname, 'output');
 
 const cleanGraphFormat = (format) => {
-  const { frames, weights, samples, ...rest } = format;
+  const { stacks, samples, ...rest } = format;
   return rest;
 };
 

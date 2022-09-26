@@ -60,17 +60,13 @@ function processInWorker() {
   await Sentry.flush(2000);
   const getProfileThreadId = (profilePath) => {
     const profile = require(profilePath);
-    return profile.profile[0].thread_id;
+    return profile.profile.samples[0].thread_id;
   };
 
   const mainThreadId = getProfileThreadId(path.resolve(__dirname, 'main.profile.json'));
   const workerThreadId = getProfileThreadId(path.resolve(__dirname, 'worker.profile.json'));
 
-  console.log('main tid:', mainThreadId);
-  console.log('work tid:', workerThreadId);
   if (mainThreadId === workerThreadId) {
-    throw new Error('Main thread and worker thread have the same ThreadId');
+    throw new Error('Main thread and worker thread have the same thread_id');
   }
-
-  console.log(mainThreadId, workerThreadId);
 })();
