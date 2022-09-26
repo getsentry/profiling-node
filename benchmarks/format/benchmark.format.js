@@ -5,6 +5,8 @@ const path = require('path');
 const gzip = require('zlib');
 const { ZSTDCompress } = require('simple-zstd');
 
+const cpu_profiler = require('../../build/Release/cpu_profiler_format_benchmark');
+
 function App() {
   const [times, setTimes] = (function () {
     let start = 0;
@@ -101,7 +103,7 @@ const cleanGraphFormat = (format) => {
 };
 
 const cleanSampledFormat = (format) => {
-  const { topDownRoot, ...rest } = format;
+  const { top_down_root, ...rest } = format;
   return rest;
 };
 
