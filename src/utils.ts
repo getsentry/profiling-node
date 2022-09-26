@@ -1,5 +1,5 @@
 import os from 'os';
-import { threadId } from 'worker_threads';
+import { isMainThread, threadId } from 'worker_threads';
 import type {
   SdkInfo,
   SdkMetadata,
@@ -12,14 +12,20 @@ import type {
 } from '@sentry/types';
 
 import { createEnvelope, dropUndefinedKeys, dsnToString, uuid4 } from '@sentry/utils';
-import type { ThreadCpuProfile } from './cpu_profiler';
+import type { ThreadCpuProfile, RawThreadCpuProfile } from './cpu_profiler';
 
 const THREAD_ID_STRING = String(threadId);
+const THREAD_NAME = isMainThread ? 'main' : 'worker';
 
 export interface Profile {
   event_id: string;
   version: string;
   os: {
+    name: string;
+    version: string;
+    build_number: string;
+  };
+  device: {
     architecture: string;
     is_emulator: boolean;
     locale: string;
@@ -27,12 +33,10 @@ export interface Profile {
     model: string;
   };
   timestamp: string;
-  thread_metadata: Record<string, { priority?: number }>;
-  queue_metadata: Record<string, { label: string }>;
   release: string;
   platform: string;
   profile: ThreadCpuProfile;
-  debug_meta: {
+  debug_meta?: {
     images: {
       debug_id: string;
       image_addr: string;
@@ -42,7 +46,7 @@ export interface Profile {
       image_vmaddr: string;
     }[];
   };
-  transaction: {
+  transaction?: {
     name: string;
     trace_id: string;
     id: string;
@@ -52,16 +56,14 @@ export interface Profile {
   }[];
 }
 
-function isProcessedThreadCpuProfile(
-  profile: ThreadCpuProfile | ProcessedThreadCpuProfile
-): profile is ProcessedThreadCpuProfile {
-  return !!(profile as ProcessedThreadCpuProfile)?.thread_id;
+function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile): profile is RawThreadCpuProfile {
+  return 'samples' in profile && profile.samples?.[0]?.thread_id === undefined;
 }
 
 // Enriches the profile with threadId of the current thread.
 // This is done in node as we seem to not be able to get the info from C native code.
-export function enrichWithThreadId(profile: ThreadCpuProfile): ProcessedThreadCpuProfile {
-  if (isProcessedThreadCpuProfile(profile)) {
+export function enrichWithThreadId(profile: ThreadCpuProfile | RawThreadCpuProfile): ThreadCpuProfile {
+  if (!isRawThreadCpuProfile(profile)) {
     return profile;
   }
 
@@ -71,14 +73,24 @@ export function enrichWithThreadId(profile: ThreadCpuProfile): ProcessedThreadCp
       sample.thread_id = THREAD_ID_STRING;
     }
   }
-  return profile as ProcessedThreadCpuProfile;
+
+  return {
+    samples: profile.samples,
+    frames: profile.frames,
+    stacks: profile.stacks,
+    thread_metadata: {
+      [THREAD_ID_STRING]: {
+        name: THREAD_NAME
+      }
+    }
+  };
 }
 
 // Profile is marked as optional because it is deleted from the metadata
 // by the integration before the event is processed by other integrations.
 export interface ProfiledEvent extends Event {
   sdkProcessingMetadata: {
-    profile?: ThreadCpuProfile;
+    profile?: RawThreadCpuProfile;
   };
 }
 
@@ -147,24 +159,28 @@ export function createProfilingEventEnvelope(
   const enrichedThreadProfile = enrichWithThreadId(rawProfile);
 
   const profile: Profile = {
-    platform: 'typescript',
-    profile_id: uuid4(),
+    event_id: event.event_id || uuid4(),
+    timestamp: (event.timestamp || Date.now()).toString(),
+    platform: 'nodejs',
+    version: '1',
+    release: event.sdk?.version || 'unknown',
+    os: {
+      name: os.platform(),
+      version: os.release(),
+      build_number: os.version()
+    },
+    device: {
+      locale:
+        (process.env['LC_ALL'] || process.env['LC_MESSAGES'] || process.env['LANG'] || process.env['LANGUAGE']) ??
+        'unknown locale',
+      // os.machine is new in node18
+      model: os.machine ? os.machine() : os.arch(),
+      manufacturer: os.type(),
+      architecture: os.arch(),
+      is_emulator: false
+    },
     profile: enrichedThreadProfile,
-    device_locale:
-      (process.env['LC_ALL'] || process.env['LC_MESSAGES'] || process.env['LANG'] || process.env['LANGUAGE']) ??
-      'unknown locale',
-    device_manufacturer: os.type(),
-    device_model: os.arch(),
-    device_os_name: os.platform(),
-    device_os_version: os.release(),
-    device_is_emulator: false,
-    environment: process.env['NODE_ENV'] ?? 'unknown environment',
-    transaction_name: event.transaction ?? 'unknown transaction',
-    duration_ns: `${rawProfile.duration_ns}`,
-    version_code: sdkInfo?.version ?? 'unknown version',
-    version_name: sdkInfo?.name ?? 'unknown name',
-    trace_id: envelopeHeaders.trace?.trace_id ?? 'unknown trace id',
-    transaction_id: envelopeHeaders.event_id
+    transaction: []
   };
 
   const envelopeItem: EventItem = [
@@ -172,6 +188,7 @@ export function createProfilingEventEnvelope(
       // @ts-expect-error profile is not yet a type in @sentry/types
       type: 'profile'
     },
+    // @ts-expect-error profile is not yet a type in @sentry/types
     profile
   ];
 

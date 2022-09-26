@@ -12,16 +12,11 @@ function makeProfiledEvent(): ProfiledEvent {
   return {
     sdkProcessingMetadata: {
       profile: {
-        duration_ns: 1,
-        title: 'profile',
-        start_value: 0,
-        end_value: 1,
-        type: 'sampled',
-        unit: 'microseconds',
+        start_value_us: 0,
+        end_value_us: 1,
         samples: [],
-        weights: [],
-        thread_id: undefined,
-        frames: []
+        frames: [],
+        stacks: []
       }
     }
   };

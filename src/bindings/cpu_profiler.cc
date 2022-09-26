@@ -103,6 +103,7 @@ Local<Object> CreateFrameNode(
   return js_node;
 };
 
+
 Local<Object> CreateSample(uint32_t stack_id, uint32_t sample_timestamp) {
   Local<Object> js_node = Nan::New<Object>();
 
@@ -156,7 +157,7 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
                 ));
                 unique_frame_id++;
             } else {
-              // If it was indexed, just add it's id to the stack
+              // If it was already indexed, just add it's id to the stack
                 Nan::Set(stack, stack_depth, Nan::New<Number>(frame_index->second));
             };
       
@@ -202,8 +203,6 @@ static void StartProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
     };
 
     Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
-
-    profiler->cpu_profiler->SetUsePreciseSampling(true);
     profiler->cpu_profiler->StartProfiling(Nan::To<String>(args[0]).ToLocalChecked(), true);
 };
 

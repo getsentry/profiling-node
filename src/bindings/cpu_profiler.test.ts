@@ -8,26 +8,8 @@ const profiled = (name: string, fn: () => void) => {
   return CpuProfilerBindings.stopProfiling(name);
 };
 
-const assertDeoptReasons = (frames: ThreadCpuProfile['frames']) => {
-  const hasDeoptimizedFrame = frames.some((f) => f.deopt_reasons && f.deopt_reasons.length > 0);
-  expect(hasDeoptimizedFrame).toBe(true);
-};
-const assertValidWeights = (weights: number[]) => {
-  const isValidWeights = Array.isArray(weights) && weights.every((w) => w >= 0);
-  expect(isValidWeights).toBe(true);
-};
-const assertValidSamples = (samples: number[]) => {
-  const isValidSamples =
-    Array.isArray(samples) &&
-    samples.every((s) => {
-      return Array.isArray(s) && s.every((v) => v >= 0);
-    });
-
-  expect(isValidSamples).toBe(true);
-};
-
-const assertWeightsToSamples = (weights: number[], samples: number[]) => {
-  expect(weights.length).toBe(samples.length);
+const assertValidSamplesAndStacks = (stacks: ThreadCpuProfile['stacks'], samples: ThreadCpuProfile['samples']) => {
+  expect(stacks.length).toBe(samples.length);
 };
 
 describe('Profiler bindings', () => {
@@ -43,14 +25,10 @@ describe('Profiler bindings', () => {
       await wait(500);
     });
 
-    expect(profile.title).toBe('profiled-program');
-
-    assertValidSamples(profile.samples);
-    assertValidWeights(profile.weights);
-    assertWeightsToSamples(profile.weights, profile.samples);
+    assertValidSamplesAndStacks(profile.stacks, profile.samples);
   });
 
-  it('includes deopt reason', async () => {
+  it.skip('includes deopt reason', async () => {
     // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#52-the-object-being-iterated-is-not-a-simple-enumerable
     function iterateOverLargeHashTable() {
       const table: Record<string, number> = {};
@@ -66,6 +44,8 @@ describe('Profiler bindings', () => {
       iterateOverLargeHashTable();
     });
 
-    assertDeoptReasons(profile.frames);
+    // @ts-expect-error deopt reasons are disabled for now as we need to figure out the backend support
+    const hasDeoptimizedFrame = profile.frames.some((f) => f.deopt_reasons && f.deopt_reasons.length > 0);
+    expect(hasDeoptimizedFrame).toBe(true);
   });
 });

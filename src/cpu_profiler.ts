@@ -20,11 +20,15 @@ export interface RawThreadCpuProfile {
   stacks: Stack[];
   samples: Sample[];
   frames: Frame[];
+  start_value_us: number;
+  end_value_us: number;
 }
 export interface ThreadCpuProfile {
   samples: Sample[];
   stacks: Stack[];
   frames: Frame[];
+  thread_metadata: Record<string, { name?: string; priority?: number }>;
+  queue_metadata?: Record<string, { label: string }>;
 }
 
 export interface V8CpuProfilerBindings {
