@@ -108,7 +108,6 @@ Local<Object> CreateSample(uint32_t stack_id, uint32_t sample_timestamp) {
   Local<Object> js_node = Nan::New<Object>();
 
   Nan::Set(js_node, Nan::New<String>("stack_id").ToLocalChecked(), Nan::New<Number>(stack_id));
-  Nan::Set(js_node, Nan::New<String>("thread_id").ToLocalChecked(), Nan::New<Number>(0));
   Nan::Set(js_node, Nan::New<String>("elapsed_since_start_ns").ToLocalChecked(), Nan::New<Number>(sample_timestamp));
 
   return js_node;

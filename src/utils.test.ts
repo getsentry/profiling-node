@@ -145,6 +145,10 @@ describe('createProfilingEventEnvelope', () => {
     spies.push(jest.spyOn(os, 'platform').mockReturnValue('linux'));
     spies.push(jest.spyOn(os, 'release').mockReturnValue('5.4.0-42-generic'));
     spies.push(jest.spyOn(os, 'arch').mockReturnValue('x64'));
+    // This will be called on node18, but not on lower versions of node
+    if (typeof os.machine === 'function') {
+      spies.push(jest.spyOn(os, 'machine').mockReturnValue('x64'));
+    }
     spies.push(jest.spyOn(os, 'type').mockReturnValue('linux'));
 
     const envelope = createProfilingEventEnvelope(makeEvent({}, makeProfile({})), makeDsn({}), makeSdkMetadata({}));
