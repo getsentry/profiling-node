@@ -103,7 +103,7 @@ const cleanGraphFormat = (format) => {
 };
 
 const cleanSampledFormat = (format) => {
-  const { topDownRoot, ...rest } = format;
+  const { top_down_root, ...rest } = format;
   return rest;
 };
 
