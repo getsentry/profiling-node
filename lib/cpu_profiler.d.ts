@@ -1,7 +1,7 @@
 interface Sample {
     stack_id: number;
     thread_id: string;
-    relative_timestamp_ns: string;
+    elapsed_since_start_ns: string;
 }
 declare type Stack = number[];
 declare type Frame = {
@@ -14,14 +14,15 @@ export interface RawThreadCpuProfile {
     stacks: Stack[];
     samples: Sample[];
     frames: Frame[];
-    start_value_us: number;
-    end_value_us: number;
+    profile_start_ms: number;
+    profile_end_ms: number;
 }
 export interface ThreadCpuProfile {
     samples: Sample[];
     stacks: Stack[];
     frames: Frame[];
     thread_metadata: Record<string, {
+        name?: string;
         priority?: number;
     }>;
     queue_metadata?: Record<string, {

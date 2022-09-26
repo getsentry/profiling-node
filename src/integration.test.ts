@@ -10,6 +10,7 @@ function assertCleanProfile(event: ProfiledEvent | Event): void {
 
 function makeProfiledEvent(): ProfiledEvent {
   return {
+    type: 'transaction',
     sdkProcessingMetadata: {
       profile: {
         start_value_us: 0,

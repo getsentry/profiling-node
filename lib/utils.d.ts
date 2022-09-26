@@ -8,6 +8,10 @@ export interface Profile {
         version: string;
         build_number: string;
     };
+    runtime: {
+        name: string;
+        version: string;
+    };
     device: {
         architecture: string;
         is_emulator: boolean;
@@ -29,7 +33,7 @@ export interface Profile {
             image_vmaddr: string;
         }[];
     };
-    transaction?: {
+    transactions?: {
         name: string;
         trace_id: string;
         id: string;

@@ -20,8 +20,8 @@ export interface RawThreadCpuProfile {
   stacks: Stack[];
   samples: Sample[];
   frames: Frame[];
-  start_value_us: number;
-  end_value_us: number;
+  profile_start_ms: number;
+  profile_end_ms: number;
 }
 export interface ThreadCpuProfile {
   samples: Sample[];
