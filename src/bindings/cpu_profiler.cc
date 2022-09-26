@@ -84,7 +84,6 @@ Local<Object> CreateFrameNode(
   Nan::Set(js_node, Nan::New<String>("name").ToLocalChecked(), name);
   Nan::Set(js_node, Nan::New<String>("file").ToLocalChecked(), scriptName);
   Nan::Set(js_node, Nan::New<String>("line").ToLocalChecked(), line);
-  // @TODO Column info needs to be added to backend
   Nan::Set(js_node, Nan::New<String>("column").ToLocalChecked(), column);
 
   // @TODO Deopt info needs to be added to backend
