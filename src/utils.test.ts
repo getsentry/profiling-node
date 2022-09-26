@@ -37,8 +37,8 @@ function makeProfile(
   props: Partial<ProfiledEvent['sdkProcessingMetadata']['profile']>
 ): NonNullable<ProfiledEvent['sdkProcessingMetadata']['profile']> {
   return {
-    start_value_us: 0,
-    end_value_us: 1,
+    profile_end_ms: 1,
+    profile_start_ms: 0,
     stacks: [],
     samples: [],
     frames: [],
@@ -71,19 +71,19 @@ describe('maybeRemoveProfileFromSdkMetadata', () => {
 
 describe('createProfilingEventEnvelope', () => {
   it('throws if profile is undefined', () => {
-    // @ts-expect-error undefined is not a valid profile, we are forcing it here for some defensive programming
-    expect(() => createProfilingEventEnvelope(makeEvent({}, undefined), makeDsn({}), makeSdkMetadata({}))).toThrowError(
-      'Cannot construct profiling event envelope without a valid profile. Got undefined instead.'
-    );
-    // @ts-expect-error null is not a valid profile, we are forcing it here for some defensive programming
-    expect(() => createProfilingEventEnvelope(makeEvent({}, null), makeDsn({}), makeSdkMetadata({}))).toThrowError(
-      'Cannot construct profiling event envelope without a valid profile. Got null instead.'
-    );
+    expect(() =>
+      // @ts-expect-error undefined is not a valid profile, we are forcing it here for some defensive programming
+      createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, undefined), makeDsn({}), makeSdkMetadata({}))
+    ).toThrowError('Cannot construct profiling event envelope without a valid profile. Got undefined instead.');
+    expect(() =>
+      // @ts-expect-error null is not a valid profile, we are forcing it here for some defensive programming
+      createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, null), makeDsn({}), makeSdkMetadata({}))
+    ).toThrowError('Cannot construct profiling event envelope without a valid profile. Got null instead.');
   });
 
   it('envelope header is of type: profile', () => {
     const envelope = createProfilingEventEnvelope(
-      makeEvent({}, makeProfile({})),
+      makeEvent({ type: 'transaction' }, makeProfile({})),
       makeDsn({}),
       makeSdkMetadata({
         name: 'sentry.javascript.node',
@@ -99,7 +99,7 @@ describe('createProfilingEventEnvelope', () => {
   });
   it('enriches envelope with sdk metadata', () => {
     const envelope = createProfilingEventEnvelope(
-      makeEvent({}, makeProfile({})),
+      makeEvent({ type: 'transaction' }, makeProfile({})),
       makeDsn({}),
       makeSdkMetadata({
         name: 'sentry.javascript.node',
@@ -114,7 +114,11 @@ describe('createProfilingEventEnvelope', () => {
   });
 
   it('handles undefined sdk metadata', () => {
-    const envelope = createProfilingEventEnvelope(makeEvent({}, makeProfile({})), makeDsn({}), undefined);
+    const envelope = createProfilingEventEnvelope(
+      makeEvent({ type: 'transaction' }, makeProfile({})),
+      makeDsn({}),
+      undefined
+    );
 
     // @ts-expect-error header type inference is broken
     expect(envelope[0].sdk).toBe(undefined);
@@ -122,7 +126,7 @@ describe('createProfilingEventEnvelope', () => {
 
   it('enriches envelope with dsn metadata', () => {
     const envelope = createProfilingEventEnvelope(
-      makeEvent({}, makeProfile({})),
+      makeEvent({ type: 'transaction' }, makeProfile({})),
       makeDsn({
         host: 'sentry.io',
         projectId: '123',
@@ -151,7 +155,11 @@ describe('createProfilingEventEnvelope', () => {
     }
     spies.push(jest.spyOn(os, 'type').mockReturnValue('linux'));
 
-    const envelope = createProfilingEventEnvelope(makeEvent({}, makeProfile({})), makeDsn({}), makeSdkMetadata({}));
+    const envelope = createProfilingEventEnvelope(
+      makeEvent({ type: 'transaction' }, makeProfile({})),
+      makeDsn({}),
+      makeSdkMetadata({})
+    );
     const profile = envelope[1][0]?.[1] as unknown as Profile;
 
     expect(profile.device.manufacturer).toBe('linux');
@@ -166,8 +174,11 @@ describe('createProfilingEventEnvelope', () => {
 
   it('enriches profile with thread_id', () => {
     const envelope = createProfilingEventEnvelope(
-      // @ts-expect-error thread_id is forced to undefined and we assert that it is enriched
-      makeEvent({}, makeProfile({ samples: [{ stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }] })),
+      makeEvent(
+        { type: 'transaction' },
+        // @ts-expect-error thread_id is forced to undefined and we assert that it is enriched
+        makeProfile({ samples: [{ stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }] })
+      ),
       makeDsn({}),
       makeSdkMetadata({})
     );
@@ -175,5 +186,52 @@ describe('createProfilingEventEnvelope', () => {
     const profile = envelope[1][0]?.[1] as unknown as Profile;
     expect(profile.profile.samples?.[0]?.thread_id).not.toBe(undefined);
     expect(typeof profile.profile.samples?.[0]?.thread_id).toBe('string');
+  });
+
+  it('throws if event.type is not a transaction', () => {
+    expect(() =>
+      createProfilingEventEnvelope(
+        makeEvent(
+          // @ts-expect-error type is forced to something other than transaction
+          { type: 'error' },
+          // @ts-expect-error thread_id is forced to undefined and we assert that it is enriched
+          makeProfile({ samples: [{ stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }] })
+        ),
+        makeDsn({}),
+        makeSdkMetadata({})
+      )
+    ).toThrowError('Profiling events may only be attached to transactions, this should never occur.');
+  });
+
+  it('inherits transaction properties', () => {
+    const start = new Date(2022, 8, 1, 12, 0, 0);
+    const end = new Date(2022, 8, 1, 12, 0, 10);
+
+    const envelope = createProfilingEventEnvelope(
+      makeEvent(
+        {
+          type: 'transaction',
+          transaction: 'transaction-name',
+          start_timestamp: start.getTime() / 1000,
+          timestamp: end.getTime() / 1000,
+          contexts: {
+            trace: {
+              span_id: 'span_id',
+              trace_id: 'trace_id'
+            }
+          }
+        },
+        // @ts-expect-error thread_id is forced to undefined and we assert that it is enriched
+        makeProfile({ samples: [{ stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }] })
+      ),
+      makeDsn({}),
+      makeSdkMetadata({})
+    );
+
+    const profile = envelope[1][0]?.[1] as unknown as Profile;
+
+    expect(profile.transactions?.[0]?.name).toBe('transaction-name');
+    expect(profile.transactions?.[0]?.id).toBe('span_id');
+    expect(profile.transactions?.[0]?.trace_id).toBe('trace_id');
   });
 });

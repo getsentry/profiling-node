@@ -25,6 +25,10 @@ export interface Profile {
     version: string;
     build_number: string;
   };
+  runtime: {
+    name: string;
+    version: string;
+  };
   device: {
     architecture: string;
     is_emulator: boolean;
@@ -46,7 +50,7 @@ export interface Profile {
       image_vmaddr: string;
     }[];
   };
-  transaction?: {
+  transactions?: {
     name: string;
     trace_id: string;
     id: string;
@@ -148,6 +152,12 @@ export function createProfilingEventEnvelope(
   const sdkInfo = getSdkMetadataForEnvelopeHeader(metadata);
   const rawProfile = event.sdkProcessingMetadata['profile'];
 
+  if (event.type !== 'transaction') {
+    // createProfilingEventEnvelope should only be called for transactions,
+    // we type guard this behavior with isProfiledTransactionEvent.
+    throw new TypeError('Profiling events may only be attached to transactions, this should never occur.');
+  }
+
   if (rawProfile === undefined || rawProfile === null) {
     throw new TypeError(
       `Cannot construct profiling event envelope without a valid profile. Got ${rawProfile} instead.`
@@ -157,13 +167,19 @@ export function createProfilingEventEnvelope(
   enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
   const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
   const enrichedThreadProfile = enrichWithThreadId(rawProfile);
+  const transactionStartMs = typeof event.start_timestamp === 'number' ? event.start_timestamp * 1000 : Date.now();
+  const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : Date.now();
 
   const profile: Profile = {
     event_id: event.event_id || uuid4(),
-    timestamp: (event.timestamp || Date.now()).toString(),
-    platform: 'nodejs',
+    timestamp: new Date(transactionStartMs).toISOString(),
+    platform: 'node',
     version: '1',
     release: event.sdk?.version || 'unknown',
+    runtime: {
+      name: 'node',
+      version: process.versions.node
+    },
     os: {
       name: os.platform(),
       version: os.release(),
@@ -180,7 +196,21 @@ export function createProfilingEventEnvelope(
       is_emulator: false
     },
     profile: enrichedThreadProfile,
-    transaction: []
+    transactions: [
+      {
+        name: event.transaction ?? '',
+        id: (event?.contexts?.['trace']?.['span_id'] as string) ?? '',
+        trace_id: (event?.contexts?.['trace']?.['trace_id'] as string) ?? '',
+        active_thread_id: THREAD_ID_STRING,
+        // relative_start_ns and relative_end_ns values are not accurate. In real world, a transaction is started after
+        // the profiling is started and there is some delay (hopefully small). V8 does not expose a ts format, we instead get elapsed time
+        // from some unspecified point in time when we call profile->getStartTime(). We fallback to transaction start and end, but
+        // essentially loose visibility into how much of a delay there is between the profiler start/stop
+        // and transaction start/finish. This should be fine for now, but it should be improved so that we keep that information.
+        relative_start_ns: '0',
+        relative_end_ns: ((transactionEndMs - transactionStartMs) * 1e6).toFixed(0)
+      }
+    ]
   };
 
   const envelopeItem: EventItem = [
