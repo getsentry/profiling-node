@@ -4,7 +4,7 @@ const profiler = require('./../build/Release/cpu_profiler.node');
 interface Sample {
   stack_id: number;
   thread_id: string;
-  relative_timestamp_ns: string;
+  elapsed_since_start_ns: string;
 }
 
 type Stack = number[];

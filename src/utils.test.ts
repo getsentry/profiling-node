@@ -163,7 +163,7 @@ describe('createProfilingEventEnvelope', () => {
   it('enriches profile with thread_id', () => {
     const envelope = createProfilingEventEnvelope(
       // @ts-expect-error thread_id is forced to undefined and we assert that it is enriched
-      makeEvent({}, makeProfile({ samples: [{ stack_id: 0, thread_id: undefined, relative_timestamp_ns: '0' }] })),
+      makeEvent({}, makeProfile({ samples: [{ stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }] })),
       makeDsn({}),
       makeSdkMetadata({})
     );
