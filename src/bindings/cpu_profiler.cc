@@ -25,6 +25,9 @@ using namespace v8;
 // The Profiler is a context aware class that is bound to an isolate. This allows us to profile multiple isolates 
 // at the same time and avoid segafaults when profiling multiple threads.
 // https://nodejs.org/api/addons.html.
+
+const uint8_t MAX_STACK_DEPTH = 128;
+
 class Profiler {
   public: 
     explicit Profiler(Isolate* isolate):
@@ -131,10 +134,9 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
         const CpuProfileNode* node = profile->GetSample(i);
         // A stack is a list of frames ordered from outermost (top) to innermost frame (bottom)
         Local<Array> stack = Nan::New<Array>();
-        uint32_t stack_depth = -1;
+        uint32_t stack_depth = 0;
 
-        while(node != nullptr) {
-            stack_depth++;
+        while(node != nullptr && stack_depth < MAX_STACK_DEPTH) {
 
             Local<String> functionName = node->GetFunctionName();
             String::Utf8Value str(isolate, functionName);
@@ -163,6 +165,7 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
       
             // Continue walking down the stack
             node = node->GetParent();
+            stack_depth++;
         }
 
         Nan::Set(stacks, i, stack);
