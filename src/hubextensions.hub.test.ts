@@ -35,7 +35,7 @@ describe('hubextensions', () => {
     await Sentry.flush(1000);
 
     expect(startProfilingSpy).toHaveBeenCalledTimes(1);
-    expect(stopProfilingSpy).toHaveBeenCalledWith('profile_hub');
+    expect(stopProfilingSpy).toHaveBeenCalledWith('profile_hub', 0);
     // One for profile, the other for transaction
     expect(transportSpy).toHaveBeenCalledTimes(2);
     expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0]).toMatchObject({ type: 'profile' });

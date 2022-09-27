@@ -172,22 +172,6 @@ describe('createProfilingEventEnvelope', () => {
     }
   });
 
-  it('enriches profile with thread_id', () => {
-    const envelope = createProfilingEventEnvelope(
-      makeEvent(
-        { type: 'transaction' },
-        // @ts-expect-error thread_id is forced to undefined and we assert that it is enriched
-        makeProfile({ samples: [{ stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }] })
-      ),
-      makeDsn({}),
-      makeSdkMetadata({})
-    );
-
-    const profile = envelope[1][0]?.[1] as unknown as Profile;
-    expect(profile.profile.samples?.[0]?.thread_id).not.toBe(undefined);
-    expect(typeof profile.profile.samples?.[0]?.thread_id).toBe('string');
-  });
-
   it('throws if event.type is not a transaction', () => {
     expect(() =>
       createProfilingEventEnvelope(

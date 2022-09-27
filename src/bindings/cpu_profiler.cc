@@ -234,36 +234,6 @@ static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
     profile->Delete();
 };
 
-// // SetUsePreciseSampling(bool use_precise_sampling)
-// // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#aec3784308a2ee6da56954926a90b60af
-static void SetUsePreciseSampling(const v8::FunctionCallbackInfo<v8::Value>& args) {
-    if(args[0].IsEmpty()) {
-        return Nan::ThrowError("SetUsePreciseSampling expects a boolean as first argument.");
-    };
-
-    if(!args[0]->IsBoolean()) {
-        return Nan::ThrowError("SetUsePreciseSampling expects a boolean as first argument.");
-    };
-
-    Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
-    profiler->cpu_profiler->SetUsePreciseSampling(args[0].As<Boolean>()->Value());
-};
-
-// // SetSamplingInterval(int us)
-// // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#aa652c07923bf6e1a4962653cf09dceb1
-static void SetSamplingInterval(const v8::FunctionCallbackInfo<v8::Value>& args) {
-    if(args[0].IsEmpty()) {
-        return Nan::ThrowError("SetSamplingInterval expects a number as the first argument.");
-    };
-
-    if(!args[0]->IsNumber()) {
-        return Nan::ThrowError("SetSamplingInterval expects a number as the first argument.");
-    };
-
-    Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
-    profiler->cpu_profiler->SetSamplingInterval(args[0].As<Integer>()->Value());
-}
-
 NODE_MODULE_INIT(/* exports, module, context */){
   Isolate* isolate = context->GetIsolate();
   Profiler* profiler = new Profiler(isolate);
@@ -275,10 +245,4 @@ NODE_MODULE_INIT(/* exports, module, context */){
   exports->Set(context, 
                Nan::New<String>("stopProfiling").ToLocalChecked(),
                FunctionTemplate::New(isolate, StopProfiling, external)->GetFunction(context).ToLocalChecked()).FromJust();
-  exports->Set(context, 
-               Nan::New<String>("setSamplingInterval").ToLocalChecked(),
-               FunctionTemplate::New(isolate, SetSamplingInterval, external)->GetFunction(context).ToLocalChecked()).FromJust();
-  exports->Set(context, 
-               Nan::New<String>("setUsePreciseSampling").ToLocalChecked(),
-               FunctionTemplate::New(isolate, SetUsePreciseSampling, external)->GetFunction(context).ToLocalChecked()).FromJust();
 }

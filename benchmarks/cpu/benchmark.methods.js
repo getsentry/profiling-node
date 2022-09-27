@@ -41,7 +41,7 @@ function computeRunResults(arr) {
     variance: variance(arr),
     variancepct: '±' + (variancepct(arr) * 100).toFixed(2) + '%',
     p75: quantile(arr, 0.75),
-    p99: quantile(arr, 0.99),
+    p99: quantile(arr, 0.99)
   };
 }
 
@@ -72,8 +72,8 @@ benchmark('StartProfiling', 100, {
     cpu_profiler.startProfiling('startProfiling');
   },
   cleanup: () => {
-    const profile = cpu_profiler.stopProfiling('startProfiling');
-  },
+    const profile = cpu_profiler.stopProfiling('startProfiling', 0);
+  }
 });
 
 // Benchmarking stopProfiling
@@ -83,5 +83,5 @@ benchmark('StopProfiling', 100, {
   },
   run: function run() {
     cpu_profiler.stopProfiling('stopProfiling');
-  },
+  }
 });
