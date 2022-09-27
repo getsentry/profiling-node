@@ -26,7 +26,7 @@ using namespace v8;
 // at the same time and avoid segafaults when profiling multiple threads.
 // https://nodejs.org/api/addons.html.
 
-uint8_t MAX_STACK_DEPTH = 128;
+const uint8_t MAX_STACK_DEPTH = 128;
 
 class Profiler {
   public: 
