@@ -25,11 +25,17 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     const transaction = startTransaction.call(this, transactionContext, customSamplingContext);
 
     if (profileSampleRate === undefined) {
+      if (isDebugBuild()) {
+        logger.log('[Profiling] Profiling disabled, enable it by setting `profileSampleRate` option to SDK init call.');
+      }
       return transaction;
     }
 
     const shouldProfileTransaction = Math.random() < profileSampleRate;
     if (!shouldProfileTransaction) {
+      if (isDebugBuild()) {
+        logger.log('[Profiling] Skip profiling transaction due to sampling.');
+      }
       return transaction;
     }
 

@@ -5,7 +5,7 @@ const express = require('express');
 const React = require('react');
 const ReactDOMServer = require('react-dom/server');
 
-const cpu_profiler = require('./../../build/Release/cpu_profiler');
+const { CpuProfilerBindings } = require('./../../lib/cpu_profiler');
 
 const db = new sqlite3.Database('memory_db');
 
@@ -67,7 +67,7 @@ function App() {
 
   return React.createElement('div', { className: 'className' }, [
     React.createElement('h1', { key: 1 }, 'Hello World'),
-    React.createElement('button', { key: 2, onClick: () => setTimes(times + 1) }, 'Click me'),
+    React.createElement('button', { key: 2, onClick: () => setTimes(times + 1) }, 'Click me')
   ]);
 }
 
@@ -82,10 +82,10 @@ api.get('/benchmark/isAlive', (req, res) => {
 });
 
 api.get('/benchmark/isAlive/profiled', (req, res) => {
-  cpu_profiler.startProfiling('isAlive - profiled');
+  CpuProfilerBindings.startProfiling('isAlive - profiled');
   res.setHeader('content-type', 'text/plain');
   res.status(200).send('OK');
-  cpu_profiler.stopProfiling('isAlive - profiled');
+  CpuProfilerBindings.stopProfiling('isAlive - profiled');
 });
 
 // DB query
@@ -97,12 +97,12 @@ api.get('/benchmark/db', (req, res) => {
 });
 
 api.get('/benchmark/db/profiled', (req, res) => {
-  cpu_profiler.startProfiling('db query');
+  CpuProfilerBindings.startProfiling('db query');
   res.setHeader('content-type', 'application/json');
   db.get(`SELECT * FROM benchmarks WHERE id = ${Math.floor(Math.random() * 100)}`, (err, row) => {
     res.status(200).json(row);
   });
-  cpu_profiler.stopProfiling('db query');
+  CpuProfilerBindings.stopProfiling('db query');
 });
 
 // SSR
@@ -111,9 +111,9 @@ api.get('/benchmark/ssr', (req, res) => {
 });
 
 api.get('/benchmark/ssr/profiled', (req, res) => {
-  cpu_profiler.startProfiling('react ssr');
+  CpuProfilerBindings.startProfiling('react ssr');
   res.status(200).send(html(ReactDOMServer.renderToString(App())));
-  cpu_profiler.stopProfiling('react ssr');
+  CpuProfilerBindings.stopProfiling('react ssr');
 });
 
 // Start the server and run the benchmark
@@ -121,45 +121,45 @@ const server = api.listen(3000, async () => {
   const loadOptions = {
     connections: 10,
     pipelining: 1,
-    duration: 10,
+    duration: 10
   };
 
   // isAlive
   const isAliveRun = await autocannon({
     url: 'http://localhost:3000/benchmark/isAlive',
-    ...loadOptions,
+    ...loadOptions
   });
   console.log(`isAlive req/sec=${isAliveRun.requests.mean}`);
 
   const isAliveRunProfiled = await autocannon({
     url: 'http://localhost:3000/benchmark/isAlive/profiled',
-    ...loadOptions,
+    ...loadOptions
   });
   console.log(`isAlive (profiled) req/sec=${isAliveRunProfiled.requests.mean}`);
 
   // DB query
   const isAliveRunDb = await autocannon({
     url: 'http://localhost:3000/benchmark/db',
-    ...loadOptions,
+    ...loadOptions
   });
   console.log(`DB query req/sec=${isAliveRunDb.requests.mean}`);
 
   const isAliveRunDbProfiled = await autocannon({
     url: 'http://localhost:3000/benchmark/db/profiled',
-    ...loadOptions,
+    ...loadOptions
   });
   console.log(`DB query (profiled) req/sec=${isAliveRunDbProfiled.requests.mean}`);
 
   // SSR
   const ssr = await autocannon({
     url: 'http://localhost:3000/benchmark/ssr',
-    ...loadOptions,
+    ...loadOptions
   });
   console.log(`SSR req/sec=${ssr.requests.mean}`);
 
   const ssrProfiled = await autocannon({
     url: 'http://localhost:3000/benchmark/ssr/profiled',
-    ...loadOptions,
+    ...loadOptions
   });
   console.log(`SSR (profiled) req/sec=${ssrProfiled.requests.mean}`);
 

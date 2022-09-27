@@ -1,6 +1,6 @@
 const fs = require('fs');
 const suite = require('benchmark');
-const cpu_profiler = require('./../../build/Release/cpu_profiler');
+const { CpuProfilerBindings } = require('./../../lib/cpu_profiler');
 
 console.log('\nBenchmarking CPU profiler use cases');
 
@@ -31,9 +31,9 @@ suite
     fibonacci(10);
   })
   .add(`Fibonacci (profiled)`, () => {
-    cpu_profiler.startProfiling('test');
+    CpuProfilerBindings.startProfiling('test');
     fibonacci(10);
-    cpu_profiler.stopProfiling('test');
+    CpuProfilerBindings.stopProfiling('test');
   })
   .add(`Disk I/O`, () => {
     const outfile = './profile.json';
@@ -43,13 +43,13 @@ suite
     fs.writeFileSync('profile.json', random(2 << 12));
   })
   .add(`Disk I/O (profiled)`, () => {
-    cpu_profiler.startProfiling('test');
+    CpuProfilerBindings.startProfiling('test');
     const outfile = './profile.json';
     if (fs.existsSync(outfile)) {
       fs.unlinkSync(outfile);
     }
     fs.writeFileSync('profile.json', random(2 << 12));
-    cpu_profiler.stopProfiling('test');
+    CpuProfilerBindings.stopProfiling('test');
   })
   .add('Long task', () => {
     const started = performance.now();
@@ -61,7 +61,7 @@ suite
     }
   })
   .add('Long task (profiled)', () => {
-    cpu_profiler.startProfiling('test');
+    CpuProfilerBindings.startProfiling('test');
     const started = performance.now();
     while (true) {
       if (performance.now() - started > 500) {
@@ -69,7 +69,7 @@ suite
       }
       noop();
     }
-    cpu_profiler.stopProfiling('test');
+    CpuProfilerBindings.stopProfiling('test');
   })
   .on('error', (error) => {
     console.log('error', error);
