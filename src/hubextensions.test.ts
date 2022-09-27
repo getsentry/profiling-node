@@ -16,13 +16,13 @@ function makeTransactionMock(): Transaction {
   } as Transaction;
 }
 
-function makeHubMock({ profileSampleRate }: { profileSampleRate: number | undefined }): Hub {
+function makeHubMock({ profilesSampleRate }: { profilesSampleRate: number | undefined }): Hub {
   return {
     getClient: jest.fn().mockImplementation(() => {
       return {
         getOptions: jest.fn().mockImplementation(() => {
           return {
-            profileSampleRate
+            profilesSampleRate
           } as unknown as ClientOptions<BaseTransportOptions>;
         })
       };
@@ -35,8 +35,8 @@ describe('hubextensions', () => {
     jest.clearAllMocks();
     jest.restoreAllMocks();
   });
-  it('skips profiling if profileSampleRate is not set (undefined)', () => {
-    const hub = makeHubMock({ profileSampleRate: undefined });
+  it('skips profiling if profilesSampleRate is not set (undefined)', () => {
+    const hub = makeHubMock({ profilesSampleRate: undefined });
     const startTransaction = jest.fn().mockImplementation(() => makeTransactionMock());
     const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
 
@@ -49,8 +49,8 @@ describe('hubextensions', () => {
     // @ts-expect-error profile is not part of SDK metadata
     expect(transaction.metadata?.profile).toBeUndefined();
   });
-  it('skips profiling if profileSampleRate is set to 0', () => {
-    const hub = makeHubMock({ profileSampleRate: 0 });
+  it('skips profiling if profilesSampleRate is set to 0', () => {
+    const hub = makeHubMock({ profilesSampleRate: 0 });
     const startTransaction = jest.fn().mockImplementation(() => makeTransactionMock());
     const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
 
@@ -64,7 +64,7 @@ describe('hubextensions', () => {
     expect(transaction.metadata?.profile).toBeUndefined();
   });
   it('skips profiling when random > sampleRate', () => {
-    const hub = makeHubMock({ profileSampleRate: 0.5 });
+    const hub = makeHubMock({ profilesSampleRate: 0.5 });
     jest.spyOn(global.Math, 'random').mockReturnValue(1);
     const startTransaction = jest.fn().mockImplementation(() => makeTransactionMock());
     const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
@@ -83,7 +83,7 @@ describe('hubextensions', () => {
     const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
     const stopProfilingSpy = jest.spyOn(profiler, 'stopProfiling');
 
-    const hub = makeHubMock({ profileSampleRate: 1 });
+    const hub = makeHubMock({ profilesSampleRate: 1 });
     const startTransaction = jest.fn().mockImplementation(() => makeTransactionMock());
 
     const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);

@@ -20,18 +20,20 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     transactionContext: TransactionContext,
     customSamplingContext?: CustomSamplingContext
   ): Transaction {
-    // @ts-expect-error profileSampleRate is not part of the options type yet
-    const profileSampleRate = this.getClient()?.getOptions().profileSampleRate ?? undefined;
+    // @ts-expect-error profilesSampleRate is not part of the options type yet
+    const profilesSampleRate = this.getClient()?.getOptions().profilesSampleRate ?? undefined;
     const transaction = startTransaction.call(this, transactionContext, customSamplingContext);
 
-    if (profileSampleRate === undefined) {
+    if (profilesSampleRate === undefined) {
       if (isDebugBuild()) {
-        logger.log('[Profiling] Profiling disabled, enable it by setting `profileSampleRate` option to SDK init call.');
+        logger.log(
+          '[Profiling] Profiling disabled, enable it by setting `profilesSampleRate` option to SDK init call.'
+        );
       }
       return transaction;
     }
 
-    const shouldProfileTransaction = Math.random() < profileSampleRate;
+    const shouldProfileTransaction = Math.random() < profilesSampleRate;
     if (!shouldProfileTransaction) {
       if (isDebugBuild()) {
         logger.log('[Profiling] Skip profiling transaction due to sampling.');

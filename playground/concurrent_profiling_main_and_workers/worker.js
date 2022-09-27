@@ -30,7 +30,7 @@ Sentry.init({
   debug: true,
   tracesSampleRate: 1,
   // @ts-expect-error profilingSampleRate is not part of the options type yet
-  profileSampleRate: 1,
+  profilesSampleRate: 1,
   integrations: [new ProfilingIntegration()],
   transport
 });

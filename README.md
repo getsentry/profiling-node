@@ -20,12 +20,14 @@
 ```javascript
 import * as Sentry from '@sentry/node';
 import '@sentry/tracing';
-import '@sentry/profiling-node';
+import { ProfilingIntegration } from '@sentry/profiling-node'.
 
 Sentry.init({
   dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
   debug: true,
-  tracesSampleRate: 1
+  tracesSampleRate: 1,
+  profilesSampleRate: 1 // Set sampling rate
+  integrations: [new ProfilingIntegration()]
 });
 ```
 
@@ -34,12 +36,16 @@ Sentry will automatically profile all transactions
 ```javascript
 const transaction = Sentry.startTransaction({ name: 'I will do some work' });
 
-// Some code inbetween
+// The code between startTransaction and transaction.finish will be profiled
 
 transaction.finish();
 ```
 
 ## FAQ 💭
+
+### When should I not use this package
+
+Todo: explain possible problems
 
 ### Can the profiler leak PII to Sentry?
 
