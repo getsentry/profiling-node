@@ -31,7 +31,7 @@ export interface ThreadCpuProfile {
 }
 export interface V8CpuProfilerBindings {
     startProfiling(name: string): void;
-    stopProfiling(name: string): ThreadCpuProfile;
+    stopProfiling(name: string, threadId: number): ThreadCpuProfile;
     setUsePreciseSampling(usePreciseSampling: boolean): void;
     setSamplingInterval(samplingIntervalInMicroseconds: number): void;
 }
