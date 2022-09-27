@@ -41,6 +41,25 @@ describe('Profiler bindings', () => {
     }
   });
 
+  it('caps stack depth at 128', () => {
+    const recurseToDepth = async (depth: number): Promise<number> => {
+      if (depth === 0) {
+        // Wait a bit to make sure stack gets sampled here
+        await wait(500);
+        return 0;
+      }
+      return await recurseToDepth(depth - 1);
+    };
+
+    const profile = profiled('profiled-program', async () => {
+      await recurseToDepth(256);
+    });
+
+    for (const stack of profile.stacks) {
+      expect(stack.length).toBeLessThanOrEqual(128);
+    }
+  });
+
   it.skip('includes deopt reason', async () => {
     // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#52-the-object-being-iterated-is-not-a-simple-enumerable
     function iterateOverLargeHashTable() {
