@@ -60,6 +60,17 @@ describe('Profiler bindings', () => {
     }
   });
 
+  it('does not record two profiles when titles match', () => {
+    CpuProfilerBindings.startProfiling('same-title');
+    CpuProfilerBindings.startProfiling('same-title');
+
+    const first = CpuProfilerBindings.stopProfiling('same-title');
+    const second = CpuProfilerBindings.stopProfiling('same-title');
+
+    expect(first).not.toBe(null);
+    expect(second).toBe(null);
+  });
+
   it('does not throw if stopTransaction is called before startTransaction', () => {
     expect(CpuProfilerBindings.stopProfiling('does not exist')).toBe(null);
     expect(() => CpuProfilerBindings.stopProfiling('does not exist')).not.toThrow();
