@@ -60,6 +60,11 @@ describe('Profiler bindings', () => {
     }
   });
 
+  it('does not throw if stopTransaction is called before startTransaction', () => {
+    expect(CpuProfilerBindings.stopProfiling('does not exist')).toBe(null);
+    expect(() => CpuProfilerBindings.stopProfiling('does not exist')).not.toThrow();
+  });
+
   it.skip('includes deopt reason', async () => {
     // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#52-the-object-being-iterated-is-not-a-simple-enumerable
     function iterateOverLargeHashTable() {

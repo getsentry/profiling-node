@@ -228,12 +228,18 @@ static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
         return Nan::ThrowError("StopProfiling expects a thread_id of type number as second argument.");
     };
 
+
     Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
     CpuProfile* profile = profiler->cpu_profiler->StopProfiling(Nan::To<String>(args[0]).ToLocalChecked());
 
-    uint32_t thread_id  = Nan::To<uint32_t>(args[1]).FromJust();
+    // If for some reason stopProfiling was called with an invalid profile title or
+    // if that title had somehow been stopped already, profile will be null.
+    if(profile == nullptr) {
+      args.GetReturnValue().Set(Nan::Null());
+      return;
+    };
 
-    args.GetReturnValue().Set(CreateProfile(profile, thread_id));
+    args.GetReturnValue().Set(CreateProfile(profile, Nan::To<uint32_t>(args[1]).FromJust()));
     profile->Delete();
 };
 
