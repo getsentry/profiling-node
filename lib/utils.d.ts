@@ -42,7 +42,7 @@ export interface Profile {
         relative_end_ns: string;
     }[];
 }
-export declare function enrichWithThreadId(profile: ThreadCpuProfile | RawThreadCpuProfile): ThreadCpuProfile;
+export declare function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThreadCpuProfile): ThreadCpuProfile;
 export interface ProfiledEvent extends Event {
     sdkProcessingMetadata: {
         profile?: RawThreadCpuProfile;

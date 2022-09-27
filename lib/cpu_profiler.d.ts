@@ -29,11 +29,9 @@ export interface ThreadCpuProfile {
         label: string;
     }>;
 }
-export interface V8CpuProfilerBindings {
+interface V8CpuProfilerBindings {
     startProfiling(name: string): void;
     stopProfiling(name: string): ThreadCpuProfile;
-    setUsePreciseSampling(usePreciseSampling: boolean): void;
-    setSamplingInterval(samplingIntervalInMicroseconds: number): void;
 }
 declare const CpuProfilerBindings: V8CpuProfilerBindings;
 export { CpuProfilerBindings };

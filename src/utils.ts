@@ -66,16 +66,9 @@ function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile):
 
 // Enriches the profile with threadId of the current thread.
 // This is done in node as we seem to not be able to get the info from C native code.
-export function enrichWithThreadId(profile: ThreadCpuProfile | RawThreadCpuProfile): ThreadCpuProfile {
+export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThreadCpuProfile): ThreadCpuProfile {
   if (!isRawThreadCpuProfile(profile)) {
     return profile;
-  }
-
-  for (let i = 0; i < profile.samples.length; i++) {
-    const sample = profile.samples[i];
-    if (sample) {
-      sample.thread_id = THREAD_ID_STRING;
-    }
   }
 
   return {
@@ -166,7 +159,7 @@ export function createProfilingEventEnvelope(
 
   enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
   const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
-  const enrichedThreadProfile = enrichWithThreadId(rawProfile);
+  const enrichedThreadProfile = enrichWithThreadInformation(rawProfile);
   const transactionStartMs = typeof event.start_timestamp === 'number' ? event.start_timestamp * 1000 : Date.now();
   const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : Date.now();
 

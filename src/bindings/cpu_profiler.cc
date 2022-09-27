@@ -103,16 +103,17 @@ Local<Object> CreateFrameNode(
 };
 
 
-Local<Object> CreateSample(uint32_t stack_id, uint32_t sample_timestamp) {
+Local<Object> CreateSample(uint32_t stack_id, uint32_t sample_timestamp, uint32_t thread_id) {
   Local<Object> js_node = Nan::New<Object>();
 
   Nan::Set(js_node, Nan::New<String>("stack_id").ToLocalChecked(), Nan::New<Number>(stack_id));
+  Nan::Set(js_node, Nan::New<String>("thread_id").ToLocalChecked(), Nan::New<String>(std::to_string(thread_id)).ToLocalChecked());
   Nan::Set(js_node, Nan::New<String>("elapsed_since_start_ns").ToLocalChecked(), Nan::New<Number>(sample_timestamp));
 
   return js_node;
 };
 
-std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfile* profile) {
+std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfile* profile, uint32_t thread_id) {
     Isolate* isolate = Isolate::GetCurrent();
 
     std::unordered_map<std::string, int> frameLookupTable;
@@ -126,7 +127,7 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
     Local<Array> frames = Nan::New<Array>();
 
     for(int i = 0; i < sampleCount; i++) {
-        const Local<Value> sample = CreateSample(i, profile->GetSampleTimestamp(i) - profile_start_time);
+        const Local<Value> sample = CreateSample(i, profile->GetSampleTimestamp(i) - profile_start_time, thread_id);
         const CpuProfileNode* node = profile->GetSample(i);
         // A stack is a list of frames ordered from outermost (top) to innermost frame (bottom)
         Local<Array> stack = Nan::New<Array>();
@@ -172,14 +173,14 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
 };
 #endif
 
-Local<Value> CreateProfile(const CpuProfile* profile) {
+Local<Value> CreateProfile(const CpuProfile* profile, uint32_t thread_id) {
   Local<Object> js_profile = Nan::New<Object>();
 
   Nan::Set(js_profile, Nan::New<String>("profile_start_ms").ToLocalChecked(), Nan::New<Number>(profile->GetStartTime()));
   Nan::Set(js_profile, Nan::New<String>("profile_end_ms").ToLocalChecked(), Nan::New<Number>(profile->GetEndTime()));
 
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
-  std::tuple<Local<Value>, Local<Value>, Local<Value>> samples = GetSamples(profile);
+  std::tuple<Local<Value>, Local<Value>, Local<Value>> samples = GetSamples(profile, thread_id);
   Nan::Set(js_profile, Nan::New<String>("stacks").ToLocalChecked(), std::get<0>(samples));
   Nan::Set(js_profile, Nan::New<String>("samples").ToLocalChecked(), std::get<1>(samples));
   Nan::Set(js_profile, Nan::New<String>("frames").ToLocalChecked(), std::get<2>(samples));
@@ -216,42 +217,22 @@ static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
         return Nan::ThrowError("StopProfiling expects a string as first argument.");
     };
 
+    if(args[1].IsEmpty()) {
+        return Nan::ThrowError("StopProfiling expects a number as second argument.");
+    };
+
+    if(!args[1]->IsNumber()){
+        return Nan::ThrowError("StopProfiling expects a thread_id of type number as second argument.");
+    };
+
     Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
     CpuProfile* profile = profiler->cpu_profiler->StopProfiling(Nan::To<String>(args[0]).ToLocalChecked());
 
-    args.GetReturnValue().Set(CreateProfile(profile));
+    uint32_t thread_id  = Nan::To<uint32_t>(args[1]).FromJust();
+
+    args.GetReturnValue().Set(CreateProfile(profile, thread_id));
     profile->Delete();
 };
-
-// // SetUsePreciseSampling(bool use_precise_sampling)
-// // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#aec3784308a2ee6da56954926a90b60af
-static void SetUsePreciseSampling(const v8::FunctionCallbackInfo<v8::Value>& args) {
-    if(args[0].IsEmpty()) {
-        return Nan::ThrowError("SetUsePreciseSampling expects a boolean as first argument.");
-    };
-
-    if(!args[0]->IsBoolean()) {
-        return Nan::ThrowError("SetUsePreciseSampling expects a boolean as first argument.");
-    };
-
-    Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
-    profiler->cpu_profiler->SetUsePreciseSampling(args[0].As<Boolean>()->Value());
-};
-
-// // SetSamplingInterval(int us)
-// // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#aa652c07923bf6e1a4962653cf09dceb1
-static void SetSamplingInterval(const v8::FunctionCallbackInfo<v8::Value>& args) {
-    if(args[0].IsEmpty()) {
-        return Nan::ThrowError("SetSamplingInterval expects a number as the first argument.");
-    };
-
-    if(!args[0]->IsNumber()) {
-        return Nan::ThrowError("SetSamplingInterval expects a number as the first argument.");
-    };
-
-    Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
-    profiler->cpu_profiler->SetSamplingInterval(args[0].As<Integer>()->Value());
-}
 
 NODE_MODULE_INIT(/* exports, module, context */){
   Isolate* isolate = context->GetIsolate();
@@ -264,10 +245,4 @@ NODE_MODULE_INIT(/* exports, module, context */){
   exports->Set(context, 
                Nan::New<String>("stopProfiling").ToLocalChecked(),
                FunctionTemplate::New(isolate, StopProfiling, external)->GetFunction(context).ToLocalChecked()).FromJust();
-  exports->Set(context, 
-               Nan::New<String>("setSamplingInterval").ToLocalChecked(),
-               FunctionTemplate::New(isolate, SetSamplingInterval, external)->GetFunction(context).ToLocalChecked()).FromJust();
-  exports->Set(context, 
-               Nan::New<String>("setUsePreciseSampling").ToLocalChecked(),
-               FunctionTemplate::New(isolate, SetUsePreciseSampling, external)->GetFunction(context).ToLocalChecked()).FromJust();
 }

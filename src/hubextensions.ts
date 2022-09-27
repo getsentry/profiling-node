@@ -3,9 +3,7 @@ import { getMainCarrier } from '@sentry/hub';
 import { logger } from '@sentry/utils';
 
 import { isDebugBuild } from './env';
-
-// @ts-expect-error file extension errors
-import profiler from './../build/Release/cpu_profiler';
+import { CpuProfilerBindings } from './cpu_profiler';
 
 type StartTransaction = (
   this: Hub,
@@ -27,23 +25,29 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     const transaction = startTransaction.call(this, transactionContext, customSamplingContext);
 
     if (profileSampleRate === undefined) {
+      if (isDebugBuild()) {
+        logger.log('[Profiling] Profiling disabled, enable it by setting `profileSampleRate` option to SDK init call.');
+      }
       return transaction;
     }
 
     const shouldProfileTransaction = Math.random() < profileSampleRate;
     if (!shouldProfileTransaction) {
+      if (isDebugBuild()) {
+        logger.log('[Profiling] Skip profiling transaction due to sampling.');
+      }
       return transaction;
     }
 
     const originalFinish = transaction.finish.bind(transaction);
 
-    profiler.startProfiling(transactionContext.name);
+    CpuProfilerBindings.startProfiling(transactionContext.name);
     if (isDebugBuild()) {
       logger.log('[Profiling] started profiling transaction: ' + transactionContext.name);
     }
 
     function profilingWrappedTransactionFinish() {
-      const profile = profiler.stopProfiling(transactionContext.name);
+      const profile = CpuProfilerBindings.stopProfiling(transactionContext.name);
       if (isDebugBuild()) {
         logger.log('[Profiling] stopped profiling of transaction: ' + transactionContext.name);
       }

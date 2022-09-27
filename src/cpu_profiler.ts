@@ -1,5 +1,6 @@
-// eslint-disable-next-line
-const profiler = require('./../build/Release/cpu_profiler.node');
+// @ts-expect-error this screams because it cannot resolve the module?
+import profiler from './../build/Release/cpu_profiler.node';
+import { threadId } from 'worker_threads';
 
 interface Sample {
   stack_id: number;
@@ -31,12 +32,23 @@ export interface ThreadCpuProfile {
   queue_metadata?: Record<string, { label: string }>;
 }
 
-export interface V8CpuProfilerBindings {
+interface PrivateV8CpuProfilerBindings {
   startProfiling(name: string): void;
-  stopProfiling(name: string): ThreadCpuProfile;
-  setUsePreciseSampling(usePreciseSampling: boolean): void;
-  setSamplingInterval(samplingIntervalInMicroseconds: number): void;
+  stopProfiling(name: string, threadId: number): ThreadCpuProfile;
 }
 
-const CpuProfilerBindings: V8CpuProfilerBindings = profiler;
+interface V8CpuProfilerBindings {
+  startProfiling(name: string): void;
+  stopProfiling(name: string): ThreadCpuProfile;
+}
+
+const privateBindings: PrivateV8CpuProfilerBindings = profiler;
+const CpuProfilerBindings: V8CpuProfilerBindings = {
+  startProfiling(name: string) {
+    return privateBindings.startProfiling(name);
+  },
+  stopProfiling(name: string) {
+    return privateBindings.stopProfiling(name, threadId);
+  }
+};
 export { CpuProfilerBindings };

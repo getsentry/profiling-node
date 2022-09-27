@@ -16,16 +16,29 @@ describe('Profiler bindings', () => {
   it('exports profiler binding methods', () => {
     expect(typeof CpuProfilerBindings['startProfiling']).toBe('function');
     expect(typeof CpuProfilerBindings['stopProfiling']).toBe('function');
-    expect(typeof CpuProfilerBindings['setSamplingInterval']).toBe('function');
-    expect(typeof CpuProfilerBindings['setUsePreciseSampling']).toBe('function');
   });
 
   it('profiles a program', async () => {
     const profile = profiled('profiled-program', async () => {
-      await wait(500);
+      await wait(100);
     });
 
     assertValidSamplesAndStacks(profile.stacks, profile.samples);
+  });
+
+  it('adds thread_id info', () => {
+    const profile = profiled('profiled-program', async () => {
+      await wait(100);
+    });
+
+    const samples = profile.samples;
+
+    if (!samples.length) {
+      throw new Error('No samples');
+    }
+    for (const sample of samples) {
+      expect(sample.thread_id).toBe('0');
+    }
   });
 
   it.skip('includes deopt reason', async () => {
