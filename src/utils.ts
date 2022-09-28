@@ -61,7 +61,7 @@ export interface Profile {
 }
 
 function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile): profile is RawThreadCpuProfile {
-  return 'samples' in profile && profile.samples?.[0]?.thread_id === undefined;
+  return 'profile_start_ms' in profile && 'profile_end_ms' in profile;
 }
 
 // Enriches the profile with threadId of the current thread.
