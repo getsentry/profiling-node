@@ -164,7 +164,7 @@ export function createProfilingEventEnvelope(
   const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : Date.now();
 
   const profile: Profile = {
-    event_id: event.event_id || uuid4(),
+    event_id: uuid4(),
     timestamp: new Date(transactionStartMs).toISOString(),
     platform: 'node',
     version: '1',
@@ -192,7 +192,7 @@ export function createProfilingEventEnvelope(
     transactions: [
       {
         name: event.transaction ?? '',
-        id: (event?.contexts?.['trace']?.['span_id'] as string) ?? '',
+        id: event.event_id ?? uuid4(),
         trace_id: (event?.contexts?.['trace']?.['trace_id'] as string) ?? '',
         active_thread_id: THREAD_ID_STRING,
         // relative_start_ns and relative_end_ns values are not accurate. In real world, a transaction is started after
