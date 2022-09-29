@@ -1,0 +1,8 @@
+## 0.0.0-alpha.1
+
+### Various fixes & improvements
+
+- fix(ci): run ci for release (#28) by @JonasBa
+- chore(craft): add bump version script (#26) by @JonasBa
+- chore(changelog): add changelog (#25) by @JonasBa
+
