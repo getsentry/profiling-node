@@ -9,8 +9,9 @@
   },
   "files": [
     "lib",
-    "binding.gyp",
     "bindings",
+    "binding.gyp",
+    "LICENSE",
     "README.md",
     "package.json",
     "package-lock.json"
