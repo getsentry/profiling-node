@@ -12,7 +12,6 @@ on:
 jobs:
   artifacts:
     name: Upload Artifacts
-    needs: [build]
     runs-on: ubuntu-latest
     # Build artifacts are only needed for releasing workflow.
     if: startsWith(github.ref, 'refs/heads/release/')
