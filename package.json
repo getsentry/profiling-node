@@ -1,14 +1,13 @@
 {
   "name": "@sentry/profiler-node",
-  "version": "0.0.0",
+  "version": "0.0.0-alpha",
   "description": "Sampling based nodejs profiler",
   "main": "./lib/index.js",
   "engines": {
-    "node": ">=10.0.0"
+    "node": ">=12.0.0"
   },
   "files": [
-    "lib/*",
-    "build/release/cpu_profiler.node"
+    "lib/*"
   ],
   "scripts": {
     "postinstall": "npm run build:bindings",
@@ -23,7 +22,7 @@
     "benchmark:profiler": "node benchmarks/cpu/benchmark.profiler.js",
     "benchmark:server": "node benchmarks/cpu/benchmark.server.js",
     "benchmark:format": "yarn build:benchmark:format && node benchmarks/format/benchmark.format.js",
-    "benchmark:integration": "node benchmarks/cpu/benchmark.integration.base.js && node benchmarks/cpu/benchmark.integration.js",
+    "benchmark:integration": "node benchmarks/cpu/benchmark.integration.base.js && node benchmarks/cpu/benchmark.integration.disabled.js && node benchmarks/cpu/benchmark.integration.js",
     "test:watch": "jest --watch",
     "test": "jest",
     "prettier": "prettier --config ./.prettierrc --write"
@@ -35,7 +34,7 @@
     "node"
   ],
   "author": "jonas.badalic@sentry.io",
-  "license": "ISC",
+  "license": "BSD-3-Clause",
   "dependencies": {
     "@sentry/hub": "^7.13.0",
     "@sentry/node": "^7.13.0",
