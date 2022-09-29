@@ -2,8 +2,12 @@ name: 'Build & Test'
 on:
   push:
     branches:
+      - jb/fix/ci
       - 'release/*'
   pull_request:
+    branches:
+      - jb/fix/ci
+      - 'release/*'
   workflow_dispatch:
     inputs:
       commit:
@@ -14,12 +18,15 @@ jobs:
     name: Upload Artifacts
     runs-on: ubuntu-latest
     # Build artifacts are only needed for releasing workflow.
-    if: startsWith(github.ref, 'refs/heads/release/')
+    # if: startsWith(github.ref, 'refs/heads/release/')
     steps:
       - name: Check out current commit
         uses: actions/checkout@v3
         with:
           ref: ${{ env.HEAD_COMMIT }}
+      - uses: actions/setup-node@v3
+      - name: Install dependencies
+        run: npm install
       - name: Lint,
         run: npm run lint
       - name: Test
@@ -30,3 +37,10 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ${{ github.sha }}
+          path: |
+            ${{ github.workspace }}/lib/
+            ${{ github.workspace }}/bindings/
+            ${{ github.workspace }}/package.json
+            ${{ github.workspace }}/package-lock.json
+            ${{ github.workspace }}/README.md
+            ${{ github.workspace }}/LICENSE
