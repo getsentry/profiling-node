@@ -2,12 +2,18 @@
   "name": "@sentry/profiling-node",
   "version": "0.0.0-alpha",
   "description": "Sampling based nodejs profiler.",
-  "main": "./lib/index.js",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "engines": {
     "node": ">=12.0.0"
   },
   "files": [
-    "lib/**/*"
+    "lib",
+    "binding.gyp",
+    "bindings",
+    "README.md",
+    "package.json",
+    "package-lock.json"
   ],
   "scripts": {
     "postinstall": "npm run build:bindings",

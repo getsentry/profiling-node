@@ -1,5 +1,5 @@
-import { CpuProfilerBindings } from '../cpu_profiler';
-import type { ThreadCpuProfile } from '../cpu_profiler';
+import { CpuProfilerBindings } from './cpu_profiler';
+import type { ThreadCpuProfile } from './cpu_profiler';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const profiled = (name: string, fn: () => void) => {
