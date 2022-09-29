@@ -1,7 +1,7 @@
 {
-  "name": "@sentry/profiler-node",
+  "name": "@sentry/profiling-node",
   "version": "0.0.0-alpha",
-  "description": "Sampling based nodejs profiler",
+  "description": "Sampling based nodejs profiler.",
   "main": "./lib/index.js",
   "engines": {
     "node": ">=12.0.0"
