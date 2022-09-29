@@ -1,3 +1,4 @@
+.craft.env
 .vscode/
 .git/
 .DS_STORE
