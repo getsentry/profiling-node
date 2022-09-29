@@ -7,7 +7,7 @@
     "node": ">=12.0.0"
   },
   "files": [
-    "lib/*"
+    "lib/**/*"
   ],
   "scripts": {
     "postinstall": "npm run build:bindings",
@@ -31,7 +31,8 @@
     "profiling",
     "monitoring",
     "cpu",
-    "node"
+    "node",
+    "performance"
   ],
   "author": "jonas.badalic@sentry.io",
   "license": "BSD-3-Clause",
