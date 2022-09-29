@@ -215,7 +215,8 @@ describe('createProfilingEventEnvelope', () => {
     const profile = envelope[1][0]?.[1] as unknown as Profile;
 
     expect(profile.transactions?.[0]?.name).toBe('transaction-name');
-    expect(profile.transactions?.[0]?.id).toBe('span_id');
+    expect(typeof profile.transactions?.[0]?.id).toBe('string');
+    expect(profile.transactions?.[0]?.id?.length).toBe(32);
     expect(profile.transactions?.[0]?.trace_id).toBe('trace_id');
   });
 });
