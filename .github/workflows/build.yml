@@ -1,13 +1,10 @@
-name: 'Build & Test'
+name: Upload build artifacts
 on:
   push:
     branches:
-      - jb/fix/ci
-      - 'release/*'
+      - main
+      - release/**
   pull_request:
-    branches:
-      - jb/fix/ci
-      - 'release/*'
   workflow_dispatch:
     inputs:
       commit:
@@ -18,7 +15,7 @@ jobs:
     name: Upload Artifacts
     runs-on: ubuntu-latest
     # Build artifacts are only needed for releasing workflow.
-    # if: startsWith(github.ref, 'refs/heads/release/')
+    if: startsWith(github.ref, 'refs/heads/release/')
     steps:
       - name: Check out current commit
         uses: actions/checkout@v3
@@ -40,6 +37,7 @@ jobs:
           path: |
             ${{ github.workspace }}/lib/
             ${{ github.workspace }}/bindings/
+            ${{ github.workspace }}/binding.gyp
             ${{ github.workspace }}/package.json
             ${{ github.workspace }}/package-lock.json
             ${{ github.workspace }}/README.md
