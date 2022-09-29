@@ -6,3 +6,5 @@ changelogPolicy: auto
 targets:
   - name: npm
     access: public
+  - name: github
+    tagPrefix: v
