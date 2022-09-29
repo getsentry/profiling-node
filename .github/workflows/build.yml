@@ -1,0 +1,30 @@
+name: 'Build & Test'
+on:
+  push:
+    branches:
+      - 'release/*'
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: If the commit you want to test isn't the head of a branch, provide its SHA here
+        required: false
+
+jobs:
+  artifacts:
+    name: Upload Artifacts
+    needs: [build]
+    runs-on: ubuntu-latest
+    # Build artifacts are only needed for releasing workflow.
+    if: startsWith(github.ref, 'refs/heads/release/')
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Pack
+        run: npm run build:lib
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.sha }}
