@@ -1,0 +1,11 @@
+## 0.0.0-alpha.1
+
+### Various fixes & improvements
+
+- ci: use npm pack (#32) by @JonasBa
+- fix(ci): remove dependant job (#31) by @JonasBa
+- ci(craft): setup build (#30) by @JonasBa
+- fix(ci): run ci for release (#28) by @JonasBa
+- chore(craft): add bump version script (#26) by @JonasBa
+- chore(changelog): add changelog (#25) by @JonasBa
+
