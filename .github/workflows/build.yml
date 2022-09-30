@@ -30,15 +30,11 @@ jobs:
         run: npm run test
       - name: build
         run: npm run build:lib
+      - name: pack
+        run: npm pack
       - name: Archive artifacts
         uses: actions/upload-artifact@v3
         with:
           name: ${{ github.sha }}
           path: |
-            ${{ github.workspace }}/lib/
-            ${{ github.workspace }}/bindings/
-            ${{ github.workspace }}/binding.gyp
-            ${{ github.workspace }}/package.json
-            ${{ github.workspace }}/package-lock.json
-            ${{ github.workspace }}/README.md
-            ${{ github.workspace }}/LICENSE
+            ${{ github.workspace }}/*.tgz
