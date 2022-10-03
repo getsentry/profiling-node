@@ -1,6 +1,9 @@
 const Sentry = require('@sentry/node');
 require('@sentry/tracing');
+const start = performance.now();
 require('../../lib/index.js');
+const end = performance.now();
+console.log('Startup', (end - start).toFixed(2), 'ms');
 
 const { benchmark, fibonacci } = require('./utils');
 const { ProfilingIntegration } = require('../../lib/index'); // this has a addExtensionMethods side effect
@@ -27,7 +30,7 @@ Sentry.init({
 });
 
 // Benchmarking profiled transaction
-benchmark('transaction - profiled', 100, {
+benchmark('transaction - profilesSampleRate=1', 100, {
   run: function run() {
     const transaction = Sentry.startTransaction({ name: 'test' });
     fibonacci(32);

@@ -1,6 +1,9 @@
 const Sentry = require('@sentry/node');
 require('@sentry/tracing');
+const start = performance.now();
 require('../../lib/index.js');
+const end = performance.now();
+console.log('Startup', (end - start).toFixed(2), 'ms');
 
 const { benchmark, fibonacci } = require('./utils');
 

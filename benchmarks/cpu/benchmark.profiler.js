@@ -1,5 +1,6 @@
 const fs = require('fs');
 const suite = require('benchmark');
+const path = require('path');
 const { CpuProfilerBindings } = require('./../../lib/cpu_profiler');
 
 console.log('\nBenchmarking CPU profiler use cases');
@@ -36,19 +37,19 @@ suite
     CpuProfilerBindings.stopProfiling('test');
   })
   .add(`Disk I/O`, () => {
-    const outfile = './profile.json';
+    const outfile = path.resolve(__dirname, './profile.json');
     if (fs.existsSync(outfile)) {
       fs.unlinkSync(outfile);
     }
-    fs.writeFileSync('profile.json', random(2 << 12));
+    fs.writeFileSync(outfile, random(2 << 12));
   })
   .add(`Disk I/O (profiled)`, () => {
     CpuProfilerBindings.startProfiling('test');
-    const outfile = './profile.json';
+    const outfile = path.resolve(__dirname, './profile.json');
     if (fs.existsSync(outfile)) {
       fs.unlinkSync(outfile);
     }
-    fs.writeFileSync('profile.json', random(2 << 12));
+    fs.writeFileSync(outfile, random(2 << 12));
     CpuProfilerBindings.stopProfiling('test');
   })
   .add('Long task', () => {

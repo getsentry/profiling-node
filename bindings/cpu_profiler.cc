@@ -30,11 +30,12 @@ const uint8_t MAX_STACK_DEPTH = 128;
 
 class Profiler {
   public: 
-    explicit Profiler(Isolate* isolate):
-      cpu_profiler (CpuProfiler::New(isolate, kDebugNaming, kLazyLogging)) {
+    explicit Profiler(){
+        // cpu_profiler (CpuProfiler::New(isolate, kDebugNaming, kLazyLogging)) {
         // Ensure this per-addon-instance data is deleted at environment cleanup.
         // node::AddEnvironmentCleanupHook(isolate, Cleanup, this);
-      }
+    };
+
   CpuProfiler* cpu_profiler;
 };
 
@@ -206,6 +207,11 @@ static void StartProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
     };
 
     Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
+
+    if(profiler->cpu_profiler == nullptr){
+      Isolate* currentIsolate = Isolate::GetCurrent();
+      profiler->cpu_profiler = CpuProfiler::New(currentIsolate, kDebugNaming, kLazyLogging);
+    }
     profiler->cpu_profiler->StartProfiling(Nan::To<String>(args[0]).ToLocalChecked(), true);
 };
 
@@ -230,6 +236,12 @@ static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
 
     Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
+
+    if(profiler->cpu_profiler == nullptr){
+      Isolate* currentIsolate = Isolate::GetCurrent();
+      profiler->cpu_profiler = CpuProfiler::New(currentIsolate, kDebugNaming, kLazyLogging);
+    }
+    
     CpuProfile* profile = profiler->cpu_profiler->StopProfiling(Nan::To<String>(args[0]).ToLocalChecked());
 
     // If for some reason stopProfiling was called with an invalid profile title or
@@ -245,7 +257,7 @@ static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
 NODE_MODULE_INIT(/* exports, module, context */){
   Isolate* isolate = context->GetIsolate();
-  Profiler* profiler = new Profiler(isolate);
+  Profiler* profiler = new Profiler();
   Local<External> external = External::New(isolate, profiler);
 
   exports->Set(context, 
