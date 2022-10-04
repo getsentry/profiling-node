@@ -45,21 +45,16 @@ transaction.finish();
 
 ### When should I not use this package
 
-Todo: explain possible problems
+The package is still in alpha stage and we discourage using it in production systems while extensive testing is done. There is a possibility that adding this package may crash your entire node process (even when imported only in worker threads). We would also advise caution if you want to profile high throughput operations as starting the profiler adds some performance overhead and while we do have micro benchmarks to measure overhead, we have yet to properly test this on production system.
 
 ### Can the profiler leak PII to Sentry?
 
-Todo: unlikely as we do not collect function arguments unless function calls are somehow created per user
+The profiler does not collect function arguments so leaking any PII is unlikely unless. We only collect a subset of the values which may identify the device and os that the profiler is running on - this is a smaller subset of the values already collected by the @sentry/node SDK. The only way to leak PII would be if you are executing code like eval("function scriptFor${CUSTOMER_NAME}....") or similar, in that case it is possible that the function name may end up being reported to Sentry.
+
+### Will starting the profiler on main thread automatically profile worker threads too?
+
+No. All instances of the profiler are scoped per thread (v8 isolate). In practice, this means that starting a transaction on thread A and delegating work to thread B will only result in sample stacks being collected from thread A. That said, nothing should prevent you from starting a transaction on thread B concurrently which will result in two independant profiles being sent to the Sentry backend. We currently do not do any correlation between such transactions, but we would be open to exploring the possibilities, please file an issue if you have suggestions or specific use-cases in mind.
 
 ### What is the profiler overhead?
 
 Todo: explain overhead and difference for kLazyLogging vs kEagerLogging
-
-### Will starting the profiler on main thread automatically profile worker threads too?
-
-No, it will not (see WORKERS.md for an explanation)
-
-### What happens in the event of a profiler crash?
-
-Todo: Check if napi will crash main process if worker is terminated while profiling.
-Todo: Check what happens if it crashes on main thread.
