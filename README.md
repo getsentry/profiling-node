@@ -53,8 +53,8 @@ The profiler does not collect function arguments so leaking any PII is unlikely 
 
 ### Will starting the profiler on main thread automatically profile worker threads too?
 
-No. All instances of the profiler are scoped per thread (v8 isolate). In practice, this means that starting a transaction on thread A and delegating work to thread B will only result in sample stacks being collected from thread A. That said, nothing should prevent you from starting a transaction on thread B concurrently which will result in two independant profiles being sent to the Sentry backend. We currently do not do any correlation between such transactions, but we would be open to exploring the possibilities, please file an issue if you have suggestions or specific use-cases in mind.
+No. All instances of the profiler are scoped per thread (v8 isolate). In practice, this means that starting a transaction on thread A and delegating work to thread B will only result in sample stacks being collected from thread A. That said, nothing should prevent you from starting a transaction on thread B concurrently which will result in two independant profiles being sent to the Sentry backend. We currently do not do any correlation between such transactions, but we would be open to exploring the possibilities. Please file an issue if you have suggestions or specific use-cases in mind.
 
-### What is the profiler overhead?
+### How much overhead will this profiler add?
 
-Todo: explain overhead and difference for kLazyLogging vs kEagerLogging
+From our initial benchmark, it seems that most of the overhead is incurred from a call to startProfiling when no profiles are currently started - this is likely due to the fact that we use kLazyLogging (https://v8docs.nodesource.com/node-18.2/d2/dc3/namespacev8.html#a7d16026419ddeaa475afc767a935c4cc) as the default option when we initialize the CpuProfiler. In our initial tests when benchmarking a simple express server, profiled requests would incur a performance penalty in the range of ~10ms. It is important to note that while the overhead is added, the majority of it is spent in startProfiling call and it seems that very little of it is actually added to the code executed between start and stop profiling calls.
