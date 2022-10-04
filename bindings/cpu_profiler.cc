@@ -32,8 +32,15 @@ class Profiler {
   public: 
     explicit Profiler(Isolate* isolate):
       cpu_profiler (CpuProfiler::New(isolate, v8::CpuProfilingNamingMode::kDebugNaming, v8::CpuProfilingLoggingMode::kLazyLogging)) {
+        node::AddEnvironmentCleanupHook(isolate, DeleteInstance, this);
       }
   CpuProfiler* cpu_profiler;
+
+  static void DeleteInstance(void* data) {
+    Profiler* profiler = static_cast<Profiler*>(data);
+    profiler->cpu_profiler->Dispose();
+    delete profiler;
+  }
 };
 
 #if PROFILER_FORMAT == FORMAT_RAW || FORMAT_BENCHMARK == 1
