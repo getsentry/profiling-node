@@ -1,3 +1,14 @@
+## 0.0.0-alpha.4
+
+### Various fixes & improvements
+
+- chore(readme): overhead explanation (c159e6bd) by @JonasBa
+- chore(readme): overhead explanation (58d865c5) by @JonasBa
+- feat(playground): add express node test (#39) by @JonasBa
+- feat(c++): cleanup addon data (#38) by @JonasBa
+- feat(playground): add express integration (#37) by @JonasBa
+- chore(readme): remove todo (505888e7) by @JonasBa
+
 ## 0.0.0-alpha.3
 
 ### Various fixes & improvements
