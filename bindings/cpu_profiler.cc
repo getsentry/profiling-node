@@ -31,9 +31,7 @@ const uint8_t MAX_STACK_DEPTH = 128;
 class Profiler {
   public: 
     explicit Profiler(Isolate* isolate):
-      cpu_profiler (CpuProfiler::New(isolate, kDebugNaming, kLazyLogging)) {
-        // Ensure this per-addon-instance data is deleted at environment cleanup.
-        // node::AddEnvironmentCleanupHook(isolate, Cleanup, this);
+      cpu_profiler (CpuProfiler::New(isolate, v8::CpuProfilingNamingMode::kDebugNaming, v8::CpuProfilingLoggingMode::kLazyLogging)) {
       }
   CpuProfiler* cpu_profiler;
 };

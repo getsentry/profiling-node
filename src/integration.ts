@@ -4,10 +4,12 @@ import { logger } from '@sentry/utils';
 import { isDebugBuild } from './env';
 import { maybeRemoveProfileFromSdkMetadata, createProfilingEventEnvelope, isProfiledTransactionEvent } from './utils';
 
-const INTEGRATION_NAME = 'ProfilingIntegration';
-
+// We need this integration in order to actually send data to Sentry. We hook into the event processor
+// and inspect each event to see if it is a transaction event and if that transaction event
+// contains a profile on it's metadata. If that is the case, we create a profiling event envelope
+// and delete the profile from the transaction metadata.
 export class ProfilingIntegration implements Integration {
-  name = INTEGRATION_NAME;
+  name = 'ProfilingIntegration';
   getCurrentHub?: () => Hub = undefined;
 
   setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
