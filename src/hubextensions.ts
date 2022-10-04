@@ -70,11 +70,17 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
 function _addProfilingExtensionMethods(): void {
   const carrier = getMainCarrier();
   if (!carrier.__SENTRY__) {
+    if (isDebugBuild()) {
+      logger.log("[Profiling] Can't find main carrier, profiling won't work.");
+    }
     return;
   }
   carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};
 
   if (carrier.__SENTRY__.extensions['startTransaction']) {
+    if (isDebugBuild()) {
+      logger.log('[Profiling] startTransaction exists, patching it with profiling.');
+    }
     carrier.__SENTRY__.extensions['startTransaction'] = __PRIVATE__wrapStartTransactionWithProfiling(
       // This is already patched by sentry/tracing, we are going to re-patch it...
       carrier.__SENTRY__.extensions['startTransaction'] as StartTransaction
