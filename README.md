@@ -4,16 +4,11 @@
   </a>
 </p>
 
-# Official Sentry Profiling SDK for NodeJS
+# Official Sentry Profiling SDK for NodeJS (alpha ⚠️)
 
-<!-- [![npm version](https://img.shields.io/npm/v/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node) -->
-<!-- [![npm dm](https://img.shields.io/npm/dm/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node) -->
-<!-- [![npm dt](https://img.shields.io/npm/dt/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node) -->
-
-<!-- ## Links -->
-
-<!-- - [Official SDK Docs](https://docs.sentry.io/quickstart/) -->
-<!-- - [TypeDoc](http://getsentry.github.io/sentry-javascript/) -->
+[![npm version](https://img.shields.io/npm/v/@sentry/profiling-node.svg)](https://www.npmjs.com/package/@sentry/profiling-node)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/profiling-node.svg)](https://www.npmjs.com/package/@sentry/profiling-node)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/profiling-node.svg)](https://www.npmjs.com/package/@sentry/profiling-node)
 
 ## Usage 🔥
 
@@ -31,7 +26,7 @@ Sentry.init({
 });
 ```
 
-Sentry will automatically profile all transactions
+Sentry SDK will now automatically profile all transactions, even the ones which may be started as a result of using an automatic instrumentation integration.
 
 ```javascript
 const transaction = Sentry.startTransaction({ name: 'I will do some work' });
