@@ -122,13 +122,11 @@ Local<Object> CreateSample(uint32_t stack_id, uint32_t sample_timestamp, uint32_
 };
 
 std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfile* profile, uint32_t thread_id) {
-    Isolate* isolate = Isolate::GetCurrent();
-
-    std::unordered_map<std::string, int> frameLookupTable;
+    const uint32_t profile_start_time = profile->GetStartTime();
+    const int sampleCount = profile->GetSamplesCount();
 
     uint32_t unique_frame_id = 0;
-    uint32_t profile_start_time = profile->GetStartTime();
-    int sampleCount = profile->GetSamplesCount();
+    std::unordered_map<uint32_t, uint32_t> frameLookupTable;
 
     Local<Array> stacks = Nan::New<Array>(sampleCount);
     Local<Array> samples = Nan::New<Array>(sampleCount);
@@ -142,21 +140,17 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
         uint32_t stack_depth = 0;
 
         while(node != nullptr && stack_depth < MAX_STACK_DEPTH) {
-
-            Local<String> functionName = node->GetFunctionName();
-            String::Utf8Value str(isolate, functionName);
-            std::string cppStr(*str);
-
-            auto frame_index = frameLookupTable.find(cppStr);
+            const uint32_t nodeId = node->GetNodeId();
+            auto frame_index = frameLookupTable.find(nodeId);
             auto deoptReason = node->GetDeoptInfos();
 
             // If the frame does not exist in the index
             if(frame_index == frameLookupTable.end()) {
-                frameLookupTable.insert({cppStr, unique_frame_id});
+                frameLookupTable.insert({nodeId, unique_frame_id});
 
                 Nan::Set(stack, stack_depth, Nan::New<Number>(unique_frame_id));
                 Nan::Set(frames, unique_frame_id, CreateFrameNode(
-                    functionName,
+                    node->GetFunctionName(),
                     node->GetScriptResourceName(),
                     Nan::New<Integer>(node->GetLineNumber()),
                     Nan::New<Integer>(node->GetColumnNumber()),
