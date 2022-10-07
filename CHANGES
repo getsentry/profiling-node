@@ -1,3 +1,11 @@
+## 0.0.0-alpha.5
+
+### Various fixes & improvements
+
+- fix(c++): make sure we use unique_id (#40) by @JonasBa
+- chore(readme): improve wording (5f439bba) by @JonasBa
+- chore(workers): remove disclaimer as we do not support node 10 (ac15d4f7) by @JonasBa
+
 ## 0.0.0-alpha.4
 
 ### Various fixes & improvements
