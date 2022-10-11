@@ -179,8 +179,8 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
 Local<Value> CreateProfile(const CpuProfile* profile, uint32_t thread_id) {
   Local<Object> js_profile = Nan::New<Object>();
 
-  Nan::Set(js_profile, Nan::New<String>("relative_started_at_ns").ToLocalChecked(), Nan::New<Number>(profile->GetStartTime() * 1000));
-  Nan::Set(js_profile, Nan::New<String>("relative_ended_at_ns").ToLocalChecked(), Nan::New<Number>(profile->GetEndTime() * 1000));
+  Nan::Set(js_profile, Nan::New<String>("profile_relative_started_at_ns").ToLocalChecked(), Nan::New<Number>(profile->GetStartTime() * 1000));
+  Nan::Set(js_profile, Nan::New<String>("profile_relative_ended_at_ns").ToLocalChecked(), Nan::New<Number>(profile->GetEndTime() * 1000));
 
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
   std::tuple<Local<Value>, Local<Value>, Local<Value>> samples = GetSamples(profile, thread_id);

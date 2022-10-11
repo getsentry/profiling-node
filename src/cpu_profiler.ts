@@ -22,8 +22,8 @@ export interface RawThreadCpuProfile {
   samples: Sample[];
   frames: Frame[];
   // These fields are relative to transaction ended at
-  relative_started_at_ns: number;
-  relative_ended_at_ns: number;
+  profile_relative_started_at_ns: number;
+  profile_relative_ended_at_ns: number;
 }
 export interface ThreadCpuProfile {
   samples: Sample[];

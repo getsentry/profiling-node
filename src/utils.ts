@@ -169,6 +169,7 @@ export function createProfilingEventEnvelope(
   const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
   const enrichedThreadProfile = enrichWithThreadInformation(rawProfile);
   const transactionStartMs = typeof event.start_timestamp === 'number' ? event.start_timestamp * 1000 : Date.now();
+  const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : Date.now();
 
   const profile: Profile = {
     event_id: uuid4(),
@@ -202,8 +203,8 @@ export function createProfilingEventEnvelope(
         id: event.event_id || uuid4(),
         trace_id: (event?.contexts?.['trace']?.['trace_id'] as string) ?? '',
         active_thread_id: THREAD_ID_STRING,
-        relative_start_ns: String(rawProfile.relative_started_at_ns),
-        relative_end_ns: String(rawProfile.relative_ended_at_ns)
+        relative_start_ns: '0',
+        relative_end_ns: ((transactionEndMs - transactionStartMs) * 1e6).toFixed(0)
       }
     ]
   };

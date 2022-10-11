@@ -25,7 +25,6 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     // @ts-expect-error profilesSampleRate is not part of the options type yet
     const profilesSampleRate = this.getClient()?.getOptions().profilesSampleRate ?? undefined;
     const transaction = startTransaction.call(this, transactionContext, customSamplingContext);
-    const transaction_started_at_ns = process.hrtime.bigint();
 
     if (profilesSampleRate === undefined) {
       if (isDebugBuild()) {
@@ -50,9 +49,6 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     if (isDebugBuild()) {
       logger.log('[Profiling] started profiling transaction: ' + transactionContext.name);
     }
-    // We collect the started_at timestamp after the call to stopProfiling so that
-    // we can see any delays between profiling start/stop and transaction start/stop.
-    const profiling_started_at_ns = process.hrtime.bigint();
 
     // A couple of important things to note here:
     // `CpuProfilerBindings.stopProfiling` will be scheduled to run in 30seconds in order to exceed max profile duration.
@@ -73,8 +69,6 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
       }
 
       profile = CpuProfilerBindings.stopProfiling(transactionContext.name);
-      const profiling_ended_at_ns = process.hrtime.bigint();
-
       if (maxDurationTimeoutID) {
         global.clearTimeout(maxDurationTimeoutID);
         maxDurationTimeoutID = undefined;
@@ -95,8 +89,6 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
         return null;
       }
 
-      profile.relative_ended_at_ns = Number(profiling_ended_at_ns - transaction_started_at_ns);
-      profile.relative_started_at_ns = Number(profiling_started_at_ns - transaction_started_at_ns);
       return profile;
     }
 
