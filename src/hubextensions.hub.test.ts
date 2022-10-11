@@ -15,6 +15,9 @@ Sentry.init({
 import profiler from './../build/Release/cpu_profiler';
 
 describe('hubextensions', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
   it('calls profiler when startTransaction is invoked on hub', async () => {
     const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
     const stopProfilingSpy = jest.spyOn(profiler, 'stopProfiling');
@@ -39,5 +42,26 @@ describe('hubextensions', () => {
     // One for profile, the other for transaction
     expect(transportSpy).toHaveBeenCalledTimes(2);
     expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0]).toMatchObject({ type: 'profile' });
+  });
+
+  it('respect max profile duration timeout', async () => {
+    jest.useFakeTimers();
+    const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
+    const stopProfilingSpy = jest.spyOn(profiler, 'stopProfiling');
+    const transport = Sentry.getCurrentHub().getClient()?.getTransport();
+
+    if (!transport) {
+      throw new Error('Sentry getCurrentHub()->getClient()->getTransport() did not return a transport');
+    }
+
+    const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub' });
+    expect(startProfilingSpy).toHaveBeenCalledTimes(1);
+    jest.advanceTimersByTime(30001);
+
+    expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
+    expect(stopProfilingSpy).toHaveBeenCalledWith('profile_hub', 0);
+
+    transaction.finish();
+    expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
   });
 });
