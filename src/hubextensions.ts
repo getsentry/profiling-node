@@ -5,6 +5,8 @@ import { logger } from '@sentry/utils';
 import { isDebugBuild } from './env';
 import { CpuProfilerBindings } from './cpu_profiler';
 
+const MAX_PROFILE_DURATION_MS = 30 * 1000;
+
 type StartTransaction = (
   this: Hub,
   transactionContext: TransactionContext,
@@ -43,18 +45,41 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
 
     // We need to reference the original finish call to avoid creating an infinite loop
     const originalFinish = transaction.finish.bind(transaction);
-
     CpuProfilerBindings.startProfiling(transactionContext.name);
-    // We collect the started_at timestamp after the call to stopProfiling so that
-    // we can see any delays between profiling start/stop and transaction start/stop.
-    const profiling_started_at_ns = process.hrtime.bigint();
+
     if (isDebugBuild()) {
       logger.log('[Profiling] started profiling transaction: ' + transactionContext.name);
     }
+    // We collect the started_at timestamp after the call to stopProfiling so that
+    // we can see any delays between profiling start/stop and transaction start/stop.
+    const profiling_started_at_ns = process.hrtime.bigint();
 
-    function profilingWrappedTransactionFinish() {
-      const profile = CpuProfilerBindings.stopProfiling(transactionContext.name);
+    // A couple of important things to note here:
+    // `CpuProfilerBindings.stopProfiling` will be scheduled to run in 30seconds in order to exceed max profile duration.
+    // Whichever of the two (transaction.finish/timeout) is first to run, the profiling will be stopped and the gathered profile
+    // will be processed when the original transaction is finished. Since onProfileHandler can be invoked multiple times in the
+    // event of an error or user mistake (calling transaction.finish multiple times), it is important that the behavior of onProfileHandler
+    // is idempotent as we do not want any timings or profiles to be overriden by the last call to onProfileHandler.
+    // After the original finish method is called, the event will be reported through the integration and delegated to transport.
+    let profile: ReturnType<typeof CpuProfilerBindings['stopProfiling']> | null = null;
+
+    function onProfileHandler(): ReturnType<typeof CpuProfilerBindings['stopProfiling']> | null {
+      // Check if the profile exists and return it the behavior has to be idempotent as users may call transaction.finish multiple times.
+      if (profile) {
+        if (isDebugBuild()) {
+          logger.log('[Profiling] profile for:', transactionContext.name, 'already exists, returning early');
+        }
+        return profile;
+      }
+
+      profile = CpuProfilerBindings.stopProfiling(transactionContext.name);
       const profiling_ended_at_ns = process.hrtime.bigint();
+
+      if (maxDurationTimeoutID) {
+        global.clearTimeout(maxDurationTimeoutID);
+        maxDurationTimeoutID = undefined;
+      }
+
       if (isDebugBuild()) {
         logger.log('[Profiling] stopped profiling of transaction: ' + transactionContext.name);
       }
@@ -67,14 +92,27 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
             'this may indicate an overlapping transaction or a call to stopProfiling with a profile title that was never started'
           );
         }
-        return originalFinish();
+        return null;
       }
 
       profile.relative_ended_at_ns = Number(profiling_ended_at_ns - transaction_started_at_ns);
       profile.relative_started_at_ns = Number(profiling_started_at_ns - transaction_started_at_ns);
+      return profile;
+    }
 
+    // Enqueue a timeout to prevent profiles from running over max duration.
+    let maxDurationTimeoutID: NodeJS.Timeout | void = global.setTimeout(() => {
+      if (isDebugBuild()) {
+        logger.log('[Profiling] max profile duration elapsed, stopping profiling for:', transactionContext.name);
+      }
+      onProfileHandler();
+    }, MAX_PROFILE_DURATION_MS);
+
+    function profilingWrappedTransactionFinish() {
       // @ts-expect-error profile is not a part of sdk metadata so we expect error until it becomes part of the official SDK.
-      transaction.setMetadata({ profile });
+      // onProfileHandler should always return the same profile even if this is called multiple times.
+      // Always call onProfileHandler to ensure stopProfiling is called and the timeout is cleared.
+      transaction.setMetadata({ profile: onProfileHandler() });
       return originalFinish();
     }
 
