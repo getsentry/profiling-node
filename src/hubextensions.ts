@@ -23,6 +23,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     // @ts-expect-error profilesSampleRate is not part of the options type yet
     const profilesSampleRate = this.getClient()?.getOptions().profilesSampleRate ?? undefined;
     const transaction = startTransaction.call(this, transactionContext, customSamplingContext);
+    const transaction_started_at_ns = process.hrtime.bigint();
 
     if (profilesSampleRate === undefined) {
       if (isDebugBuild()) {
@@ -42,16 +43,36 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
 
     // We need to reference the original finish call to avoid creating an infinite loop
     const originalFinish = transaction.finish.bind(transaction);
+
     CpuProfilerBindings.startProfiling(transactionContext.name);
+    // We collect the started_at timestamp after the call to stopProfiling so that
+    // we can see any delays between profiling start/stop and transaction start/stop.
+    const profiling_started_at_ns = process.hrtime.bigint();
     if (isDebugBuild()) {
       logger.log('[Profiling] started profiling transaction: ' + transactionContext.name);
     }
 
     function profilingWrappedTransactionFinish() {
       const profile = CpuProfilerBindings.stopProfiling(transactionContext.name);
+      const profiling_ended_at_ns = process.hrtime.bigint();
       if (isDebugBuild()) {
         logger.log('[Profiling] stopped profiling of transaction: ' + transactionContext.name);
       }
+
+      // In case of an overlapping transaction, stopProfiling may return null and silently ignore the overlapping profile.
+      if (!profile) {
+        if (isDebugBuild()) {
+          logger.log(
+            '[Profiling] profiler returned null profile for: ' + transactionContext.name,
+            'this may indicate an overlapping transaction or a call to stopProfiling with a profile title that was never started'
+          );
+        }
+        return originalFinish();
+      }
+
+      profile.relative_ended_at_ns = Number(profiling_ended_at_ns - transaction_started_at_ns);
+      profile.relative_started_at_ns = Number(profiling_started_at_ns - transaction_started_at_ns);
+
       // @ts-expect-error profile is not a part of sdk metadata so we expect error until it becomes part of the official SDK.
       transaction.setMetadata({ profile });
       return originalFinish();
