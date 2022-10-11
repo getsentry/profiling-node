@@ -40,8 +40,8 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
       return transaction;
     }
 
+    // We need to reference the original finish call to avoid creating an infinite loop
     const originalFinish = transaction.finish.bind(transaction);
-
     CpuProfilerBindings.startProfiling(transactionContext.name);
     if (isDebugBuild()) {
       logger.log('[Profiling] started profiling transaction: ' + transactionContext.name);
