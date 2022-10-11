@@ -33,8 +33,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
       return transaction;
     }
 
-    const shouldProfileTransaction = Math.random() < profilesSampleRate;
-    if (!shouldProfileTransaction) {
+    if (Math.random() > profilesSampleRate) {
       if (isDebugBuild()) {
         logger.log('[Profiling] Skip profiling transaction due to sampling.');
       }
