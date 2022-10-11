@@ -4,6 +4,7 @@
 .DS_STORE
 
 coverage/
+lib/
 
 node_modules/
 memory_db

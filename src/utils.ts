@@ -69,7 +69,7 @@ export interface Profile {
 }
 
 function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile): profile is RawThreadCpuProfile {
-  return 'profile_start_us' in profile && 'profile_end_us' in profile;
+  return !('thread_metadata' in profile);
 }
 
 // Enriches the profile with threadId of the current thread.
@@ -169,7 +169,6 @@ export function createProfilingEventEnvelope(
   const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
   const enrichedThreadProfile = enrichWithThreadInformation(rawProfile);
   const transactionStartMs = typeof event.start_timestamp === 'number' ? event.start_timestamp * 1000 : Date.now();
-  const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : Date.now();
 
   const profile: Profile = {
     event_id: uuid4(),
@@ -203,13 +202,8 @@ export function createProfilingEventEnvelope(
         id: event.event_id || uuid4(),
         trace_id: (event?.contexts?.['trace']?.['trace_id'] as string) ?? '',
         active_thread_id: THREAD_ID_STRING,
-        // relative_start_ns and relative_end_ns values are not accurate. In real world, a transaction is started after
-        // the profiling is started and there is some delay (hopefully small). V8 does not expose a ts format, we instead get elapsed time
-        // from some unspecified point in time when we call profile->getStartTime(). We fallback to transaction start and end, but
-        // essentially loose visibility into how much of a delay there is between the profiler start/stop
-        // and transaction start/finish. This should be fine for now, but it should be improved so that we keep that information.
-        relative_start_ns: '0',
-        relative_end_ns: ((transactionEndMs - transactionStartMs) * 1e6).toFixed(0)
+        relative_start_ns: String(rawProfile.relative_started_at_ns),
+        relative_end_ns: String(rawProfile.relative_ended_at_ns)
       }
     ]
   };

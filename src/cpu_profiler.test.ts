@@ -23,6 +23,7 @@ describe('Profiler bindings', () => {
       await wait(100);
     });
 
+    if (!profile) fail('Profile is null');
     assertValidSamplesAndStacks(profile.stacks, profile.samples);
   });
 
@@ -31,6 +32,7 @@ describe('Profiler bindings', () => {
       await wait(100);
     });
 
+    if (!profile) fail('Profile is null');
     const samples = profile.samples;
 
     if (!samples.length) {
@@ -55,6 +57,7 @@ describe('Profiler bindings', () => {
       await recurseToDepth(256);
     });
 
+    if (!profile) fail('Profile is null');
     for (const stack of profile.stacks) {
       expect(stack.length).toBeLessThanOrEqual(128);
     }

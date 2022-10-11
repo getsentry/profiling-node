@@ -21,8 +21,9 @@ export interface RawThreadCpuProfile {
   stacks: Stack[];
   samples: Sample[];
   frames: Frame[];
-  profile_start_us: number;
-  profile_end_us: number;
+  // These fields are relative to transaction ended at
+  relative_started_at_ns: number;
+  relative_ended_at_ns: number;
 }
 export interface ThreadCpuProfile {
   samples: Sample[];
@@ -34,12 +35,12 @@ export interface ThreadCpuProfile {
 
 interface PrivateV8CpuProfilerBindings {
   startProfiling(name: string): void;
-  stopProfiling(name: string, threadId: number): ThreadCpuProfile;
+  stopProfiling(name: string, threadId: number): RawThreadCpuProfile | null;
 }
 
 interface V8CpuProfilerBindings {
   startProfiling(name: string): void;
-  stopProfiling(name: string): ThreadCpuProfile;
+  stopProfiling(name: string): RawThreadCpuProfile | null;
 }
 
 const privateBindings: PrivateV8CpuProfilerBindings = profiler;
