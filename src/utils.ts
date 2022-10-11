@@ -17,6 +17,14 @@ import type { ThreadCpuProfile, RawThreadCpuProfile } from './cpu_profiler';
 const THREAD_ID_STRING = String(threadId);
 const THREAD_NAME = isMainThread ? 'main' : 'worker';
 
+// Machine properties (eval only once)
+const PLATFORM = os.platform();
+const RELEASE = os.release();
+const VERSION = os.version();
+const TYPE = os.type();
+const MODEL = os.machine ? os.machine() : os.arch();
+const ARCH = os.arch();
+
 export interface Profile {
   event_id: string;
   version: string;
@@ -61,7 +69,7 @@ export interface Profile {
 }
 
 function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile): profile is RawThreadCpuProfile {
-  return 'profile_start_ms' in profile && 'profile_end_ms' in profile;
+  return 'profile_start_us' in profile && 'profile_end_us' in profile;
 }
 
 // Enriches the profile with threadId of the current thread.
@@ -174,25 +182,25 @@ export function createProfilingEventEnvelope(
       version: process.versions.node
     },
     os: {
-      name: os.platform(),
-      version: os.release(),
-      build_number: os.version()
+      name: PLATFORM,
+      version: RELEASE,
+      build_number: VERSION
     },
     device: {
       locale:
         (process.env['LC_ALL'] || process.env['LC_MESSAGES'] || process.env['LANG'] || process.env['LANGUAGE']) ??
         'unknown locale',
       // os.machine is new in node18
-      model: os.machine ? os.machine() : os.arch(),
-      manufacturer: os.type(),
-      architecture: os.arch(),
+      model: MODEL,
+      manufacturer: TYPE,
+      architecture: ARCH,
       is_emulator: false
     },
     profile: enrichedThreadProfile,
     transactions: [
       {
-        name: event.transaction ?? '',
-        id: event.event_id ?? uuid4(),
+        name: event.transaction || '',
+        id: event.event_id || uuid4(),
         trace_id: (event?.contexts?.['trace']?.['trace_id'] as string) ?? '',
         active_thread_id: THREAD_ID_STRING,
         // relative_start_ns and relative_end_ns values are not accurate. In real world, a transaction is started after
