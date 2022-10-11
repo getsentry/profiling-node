@@ -112,18 +112,18 @@ Local<Object> CreateFrameNode(
 };
 
 
-Local<Object> CreateSample(uint32_t stack_id, uint32_t sample_timestamp, uint32_t thread_id) {
+Local<Object> CreateSample(uint32_t stack_id, uint32_t sample_timestamp_us, uint32_t thread_id) {
   Local<Object> js_node = Nan::New<Object>();
 
   Nan::Set(js_node, Nan::New<String>("stack_id").ToLocalChecked(), Nan::New<Number>(stack_id));
   Nan::Set(js_node, Nan::New<String>("thread_id").ToLocalChecked(), Nan::New<String>(std::to_string(thread_id)).ToLocalChecked());
-  Nan::Set(js_node, Nan::New<String>("elapsed_since_start_ns").ToLocalChecked(), Nan::New<Number>(sample_timestamp));
+  Nan::Set(js_node, Nan::New<String>("elapsed_since_start_ns").ToLocalChecked(), Nan::New<Number>(sample_timestamp_us * 1000));
 
   return js_node;
 };
 
 std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfile* profile, uint32_t thread_id) {
-    const uint32_t profile_start_time = profile->GetStartTime();
+    const uint32_t profile_start_time_us = profile->GetStartTime();
     const int sampleCount = profile->GetSamplesCount();
 
     uint32_t unique_frame_id = 0;
@@ -134,7 +134,7 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
     Local<Array> frames = Nan::New<Array>();
 
     for(int i = 0; i < sampleCount; i++) {
-        const Local<Value> sample = CreateSample(i, profile->GetSampleTimestamp(i) - profile_start_time, thread_id);
+        const Local<Value> sample = CreateSample(i, profile->GetSampleTimestamp(i) - profile_start_time_us, thread_id);
         const CpuProfileNode* node = profile->GetSample(i);
         // A stack is a list of frames ordered from outermost (top) to innermost frame (bottom)
         Local<Array> stack = Nan::New<Array>();
@@ -179,8 +179,8 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
 Local<Value> CreateProfile(const CpuProfile* profile, uint32_t thread_id) {
   Local<Object> js_profile = Nan::New<Object>();
 
-  Nan::Set(js_profile, Nan::New<String>("profile_start_us").ToLocalChecked(), Nan::New<Number>(profile->GetStartTime()));
-  Nan::Set(js_profile, Nan::New<String>("profile_end_us").ToLocalChecked(), Nan::New<Number>(profile->GetEndTime()));
+  Nan::Set(js_profile, Nan::New<String>("relative_started_at_ns").ToLocalChecked(), Nan::New<Number>(profile->GetStartTime() * 1000));
+  Nan::Set(js_profile, Nan::New<String>("relative_ended_at_ns").ToLocalChecked(), Nan::New<Number>(profile->GetEndTime() * 1000));
 
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
   std::tuple<Local<Value>, Local<Value>, Local<Value>> samples = GetSamples(profile, thread_id);
