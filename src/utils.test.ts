@@ -7,7 +7,6 @@ import {
   createProfilingEventEnvelope,
   Profile
 } from './utils';
-import os from 'os';
 
 function makeSdkMetadata(props: Partial<SdkMetadata['sdk']>): SdkMetadata {
   return {
@@ -144,17 +143,6 @@ describe('createProfilingEventEnvelope', () => {
   });
 
   it('enriches profile with device info', () => {
-    const spies: jest.SpyInstance<string>[] = [];
-
-    spies.push(jest.spyOn(os, 'platform').mockReturnValue('linux'));
-    spies.push(jest.spyOn(os, 'release').mockReturnValue('5.4.0-42-generic'));
-    spies.push(jest.spyOn(os, 'arch').mockReturnValue('x64'));
-    // This will be called on node18, but not on lower versions of node
-    if (typeof os.machine === 'function') {
-      spies.push(jest.spyOn(os, 'machine').mockReturnValue('x64'));
-    }
-    spies.push(jest.spyOn(os, 'type').mockReturnValue('linux'));
-
     const envelope = createProfilingEventEnvelope(
       makeEvent({ type: 'transaction' }, makeProfile({})),
       makeDsn({}),
@@ -162,14 +150,15 @@ describe('createProfilingEventEnvelope', () => {
     );
     const profile = envelope[1][0]?.[1] as unknown as Profile;
 
-    expect(profile.device.manufacturer).toBe('linux');
-    expect(profile.device.model).toBe('x64');
-    expect(profile.os.name).toBe('linux');
-    expect(profile.os.version).toBe('5.4.0-42-generic');
+    expect(typeof profile.device.manufacturer).toBe('string');
+    expect(typeof profile.device.model).toBe('string');
+    expect(typeof profile.os.name).toBe('string');
+    expect(typeof profile.os.version).toBe('string');
 
-    for (const spy of spies) {
-      expect(spy).toHaveBeenCalled();
-    }
+    expect(profile.device.manufacturer.length).toBeGreaterThan(0);
+    expect(profile.device.model.length).toBeGreaterThan(0);
+    expect(profile.os.name.length).toBeGreaterThan(0);
+    expect(profile.os.version.length).toBeGreaterThan(0);
   });
 
   it('throws if event.type is not a transaction', () => {

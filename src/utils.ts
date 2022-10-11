@@ -21,8 +21,8 @@ const THREAD_NAME = isMainThread ? 'main' : 'worker';
 const PLATFORM = os.platform();
 const RELEASE = os.release();
 const VERSION = os.version();
-const MODEL = os.machine ? os.machine() : os.arch();
 const TYPE = os.type();
+const MODEL = os.machine ? os.machine() : os.arch();
 const ARCH = os.arch();
 
 export interface Profile {
