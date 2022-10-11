@@ -37,8 +37,8 @@ function makeProfile(
   props: Partial<ProfiledEvent['sdkProcessingMetadata']['profile']>
 ): NonNullable<ProfiledEvent['sdkProcessingMetadata']['profile']> {
   return {
-    profile_end_ms: 1,
-    profile_start_ms: 0,
+    profile_end_us: 1,
+    profile_start_us: 0,
     stacks: [],
     samples: [],
     frames: [],

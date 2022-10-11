@@ -13,8 +13,8 @@ function makeProfiledEvent(): ProfiledEvent {
     type: 'transaction',
     sdkProcessingMetadata: {
       profile: {
-        profile_end_ms: 1,
-        profile_start_ms: 0,
+        profile_end_us: 1,
+        profile_start_us: 0,
         samples: [],
         frames: [],
         stacks: []
