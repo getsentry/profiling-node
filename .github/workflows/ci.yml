@@ -29,5 +29,6 @@ jobs:
       - run: npm i -g npm
       - run: npm run clean
       - run: npm install
-      - run: npm run build
+      - run: node-gyp configure rebuild
+      - run: npm run build:lib
       - run: npm run test
