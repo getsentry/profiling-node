@@ -69,7 +69,7 @@ describe('Sentry - Profiling', () => {
     expect(findProfile(STATIC_TRANSPORT.send)).not.toBe(null);
   });
 
-  it('discards overlapping transaction with same title', async () => {
+  it('does not discard overlapping transaction with same title', async () => {
     const t1 = Sentry.startTransaction({ name: 'same-title' });
     const t2 = Sentry.startTransaction({ name: 'same-title' });
     await wait(100);
@@ -77,7 +77,7 @@ describe('Sentry - Profiling', () => {
     t1.finish();
 
     await Sentry.flush();
-    expect(findAllProfiles(STATIC_TRANSPORT.send)).toHaveLength(1);
+    expect(findAllProfiles(STATIC_TRANSPORT.send)).toHaveLength(2);
     expect(findProfile(STATIC_TRANSPORT.send)).not.toBe(null);
   });
 

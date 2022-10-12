@@ -38,7 +38,7 @@ describe('hubextensions', () => {
     await Sentry.flush(1000);
 
     expect(startProfilingSpy).toHaveBeenCalledTimes(1);
-    expect(stopProfilingSpy).toHaveBeenCalledWith('profile_hub', 0);
+    expect((stopProfilingSpy.mock.lastCall?.[0] as string).startsWith('profile_hub')).toBe(true);
     // One for profile, the other for transaction
     expect(transportSpy).toHaveBeenCalledTimes(2);
     expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0]).toMatchObject({ type: 'profile' });
@@ -54,12 +54,12 @@ describe('hubextensions', () => {
       throw new Error('Sentry getCurrentHub()->getClient()->getTransport() did not return a transport');
     }
 
-    const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub' });
+    const transaction = Sentry.getCurrentHub().startTransaction({ name: 'timeout_transaction' });
     expect(startProfilingSpy).toHaveBeenCalledTimes(1);
     jest.advanceTimersByTime(30001);
 
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
-    expect(stopProfilingSpy).toHaveBeenCalledWith('profile_hub', 0);
+    expect((stopProfilingSpy.mock.lastCall?.[0] as string).startsWith('timeout_transaction')).toBe(true);
 
     transaction.finish();
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
