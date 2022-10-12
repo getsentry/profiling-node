@@ -1,6 +1,6 @@
 import type { Hub, TransactionContext, CustomSamplingContext, Transaction } from '@sentry/types';
 import { getMainCarrier } from '@sentry/hub';
-import { logger } from '@sentry/utils';
+import { logger, uuid4 } from '@sentry/utils';
 
 import { isDebugBuild } from './env';
 import { CpuProfilerBindings } from './cpu_profiler';
@@ -26,6 +26,11 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     const profilesSampleRate = this.getClient()?.getOptions().profilesSampleRate ?? undefined;
     const transaction = startTransaction.call(this, transactionContext, customSamplingContext);
 
+    // We create "unique" transaction names to avoid concurrent transactions with same names
+    // from being ignored by the profiler. From here on, only this transaction name should be used when
+    // calling the profiler methods. Note: we log the original name to the user to avoid confusion.
+    const uniqueTransactionName = `${transactionContext.name} ${uuid4()}`;
+
     if (profilesSampleRate === undefined) {
       if (isDebugBuild()) {
         logger.log(
@@ -44,7 +49,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
 
     // We need to reference the original finish call to avoid creating an infinite loop
     const originalFinish = transaction.finish.bind(transaction);
-    CpuProfilerBindings.startProfiling(transactionContext.name);
+    CpuProfilerBindings.startProfiling(uniqueTransactionName);
 
     if (isDebugBuild()) {
       logger.log('[Profiling] started profiling transaction: ' + transactionContext.name);
@@ -68,7 +73,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
         return profile;
       }
 
-      profile = CpuProfilerBindings.stopProfiling(transactionContext.name);
+      profile = CpuProfilerBindings.stopProfiling(uniqueTransactionName);
       if (maxDurationTimeoutID) {
         global.clearTimeout(maxDurationTimeoutID);
         maxDurationTimeoutID = undefined;
