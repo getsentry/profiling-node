@@ -1,3 +1,18 @@
+## 0.0.0-alpha.6
+
+### Various fixes & improvements
+
+- feat(sdk): use uuid to avoid ignored transactions (#47) by @JonasBa
+- fix(profiling): correct ts (b46547f6) by @JonasBa
+- feat(sdk): add max duration timeout (#46) by @JonasBa
+- fix(units): report ns to backend (#45) by @JonasBa
+- feat(timestamps): more accurate timestamps (#44) by @JonasBa
+- ref(hubextension): explain finish reference (05924fe7) by @JonasBa
+- fix(sampling): remove unnecessary negate (1b6fdab5) by @JonasBa
+- fix(profile): rename fields and eval device info only once (#43) by @JonasBa
+- feat(skd): add better messaging when we cannot patch the lib (#42) by @JonasBa
+- chore(github): add contributing (#41) by @JonasBa
+
 ## 0.0.0-alpha.5
 
 ### Various fixes & improvements
