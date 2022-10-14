@@ -208,7 +208,8 @@ static void StartProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
     };
 
     Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
-    profiler->cpu_profiler->StartProfiling(Nan::To<String>(args[0]).ToLocalChecked(), true);
+    profiler->cpu_profiler->StartProfiling(Nan::To<String>(args[0]).ToLocalChecked(), 
+        v8::CpuProfilingOptions(v8::kLeafNodeLineNumbers, UINT_MAX, SAMPLING_INTERVAL_US, v8::MaybeLocal<v8::Context>()));
 };
 
 // StopProfiling(string title)
