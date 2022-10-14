@@ -1,6 +1,10 @@
 import { CpuProfilerBindings } from './cpu_profiler';
 import type { ThreadCpuProfile } from './cpu_profiler';
 
+function fail(message: string): never {
+  throw new Error(message);
+}
+
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const profiled = (name: string, fn: () => void) => {
   CpuProfilerBindings.startProfiling(name);
@@ -77,6 +81,30 @@ describe('Profiler bindings', () => {
   it('does not throw if stopTransaction is called before startTransaction', () => {
     expect(CpuProfilerBindings.stopProfiling('does not exist')).toBe(null);
     expect(() => CpuProfilerBindings.stopProfiling('does not exist')).not.toThrow();
+  });
+
+  it('samples at ~99hz', async () => {
+    CpuProfilerBindings.startProfiling('profile');
+    await wait(100);
+    const profile = CpuProfilerBindings.stopProfiling('profile');
+
+    if (!profile) fail('Profile is null');
+
+    // Exception for macos - we seem to get way less samples there, but I'm not sure if that's due to poor
+    // performance of the actions runner, machine or something else. This needs more investigation to determine
+    // the cause of low sample count. https://github.com/actions/runner-images/issues/1336 seems relevant.
+    if (process.platform === 'darwin') {
+      if (profile.samples.length < 3) {
+        fail('Only ' + profile.samples.length + ' samples obtained on ' + process.platform + ', expected at least 3');
+      }
+    } else {
+      if (profile.samples.length < 8) {
+        fail('Only ' + profile.samples.length + ' samples obtained on ' + process.platform + ', expected at least 8');
+      }
+    }
+    if (profile.samples.length > 12) {
+      fail('Too many samples on ' + process.platform + ', got ' + profile.samples.length);
+    }
   });
 
   it.skip('includes deopt reason', async () => {

@@ -18,19 +18,22 @@
 
 using namespace v8;
 
-// 1e5 us aka every 10ms
-// static int defaultSamplingIntervalMicroseconds = 1e5;
-
 // Isolate represents an instance of the v8 engine and can be entered at most by 1 thread at a given time.
 // The Profiler is a context aware class that is bound to an isolate. This allows us to profile multiple isolates 
 // at the same time and avoid segafaults when profiling multiple threads.
 // https://nodejs.org/api/addons.html.
 
-const uint8_t MAX_STACK_DEPTH = 128;
+static const uint8_t MAX_STACK_DEPTH = 128;
+static const float SAMPLING_FREQUENCY = 99.0; // 99 to avoid lockstep sampling
+static const float SAMPLING_HZ = 1 / SAMPLING_FREQUENCY;
+static const int SAMPLING_INTERVAL_US = static_cast<int>(SAMPLING_HZ * 1e6);
 
 class Profiler {
   public: 
     explicit Profiler(Isolate* isolate):
+      // I attempted to make this initializer lazy as I wrongly assumed that it is the initializer step that is adding overhead,
+      // however after doing that and measuring the overhead I realized that it is in fact caused by the first call to startProfiling.
+      // This is only true when kLazyLogging is true, when kLazyLogging is false then init is fairly fast.
       cpu_profiler (CpuProfiler::New(isolate, v8::CpuProfilingNamingMode::kDebugNaming, v8::CpuProfilingLoggingMode::kLazyLogging)) {
         node::AddEnvironmentCleanupHook(isolate, DeleteInstance, this);
       }
@@ -205,8 +208,14 @@ static void StartProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
         return Nan::ThrowError("StartProfiling requires a string as the first argument.");
     };
 
+    Local<String> title = Nan::To<String>(args[0]).ToLocalChecked();
+
+    v8::CpuProfilingOptions options = v8::CpuProfilingOptions{ 
+      v8::CpuProfilingMode::kLeafNodeLineNumbers, CpuProfilingOptions::kNoSampleLimit, 
+      SAMPLING_INTERVAL_US };
+
     Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
-    profiler->cpu_profiler->StartProfiling(Nan::To<String>(args[0]).ToLocalChecked(), true);
+    profiler->cpu_profiler->StartProfiling(title, options);
 };
 
 // StopProfiling(string title)
