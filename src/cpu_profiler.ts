@@ -34,17 +34,27 @@ export interface ThreadCpuProfile {
 }
 
 interface PrivateV8CpuProfilerBindings {
+  initializeProfiler(loggingMode?: 'lazy' | 'eager'): void;
+  disposeProfiler(): void;
   startProfiling(name: string): void;
   stopProfiling(name: string, threadId: number): RawThreadCpuProfile | null;
 }
 
 interface V8CpuProfilerBindings {
+  initializeProfiler(loggingMode?: 'lazy' | 'eager'): void;
+  disposeProfiler(): void;
   startProfiling(name: string): void;
   stopProfiling(name: string): RawThreadCpuProfile | null;
 }
 
 const privateBindings: PrivateV8CpuProfilerBindings = profiler;
 const CpuProfilerBindings: V8CpuProfilerBindings = {
+  initializeProfiler(loggingMode) {
+    privateBindings.initializeProfiler(loggingMode);
+  },
+  disposeProfiler() {
+    privateBindings.disposeProfiler();
+  },
   startProfiling(name: string) {
     return privateBindings.startProfiling(name);
   },

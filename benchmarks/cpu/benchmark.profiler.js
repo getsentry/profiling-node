@@ -25,61 +25,74 @@ const random = (len) => {
 
 const noop = () => {};
 
-suite
-  .Suite()
-  .add(`Fibonacci`, () => {
-    fibonacci(10);
-  })
-  .add(`Fibonacci (profiled)`, () => {
-    CpuProfilerBindings.startProfiling('test');
-    fibonacci(10);
-    CpuProfilerBindings.stopProfiling('test');
-  })
-  .add(`Disk I/O`, () => {
-    const outfile = './profile.json';
-    if (fs.existsSync(outfile)) {
-      fs.unlinkSync(outfile);
-    }
-    fs.writeFileSync('profile.json', random(2 << 12));
-  })
-  .add(`Disk I/O (profiled)`, () => {
-    CpuProfilerBindings.startProfiling('test');
-    const outfile = './profile.json';
-    if (fs.existsSync(outfile)) {
-      fs.unlinkSync(outfile);
-    }
-    fs.writeFileSync('profile.json', random(2 << 12));
-    CpuProfilerBindings.stopProfiling('test');
-  })
-  .add('Long task', () => {
-    const started = performance.now();
-    while (true) {
-      if (performance.now() - started > 500) {
-        break;
+function benchmark() {
+  suite
+    .Suite()
+    .add(`Fibonacci`, () => {
+      fibonacci(10);
+    })
+    .add(`Fibonacci (profiled)`, () => {
+      CpuProfilerBindings.startProfiling('test');
+      fibonacci(10);
+      CpuProfilerBindings.stopProfiling('test');
+    })
+    .add(`Disk I/O`, () => {
+      const outfile = './profile.json';
+      if (fs.existsSync(outfile)) {
+        fs.unlinkSync(outfile);
       }
-      noop();
-    }
-  })
-  .add('Long task (profiled)', () => {
-    CpuProfilerBindings.startProfiling('test');
-    const started = performance.now();
-    while (true) {
-      if (performance.now() - started > 500) {
-        break;
+      fs.writeFileSync('profile.json', random(2 << 12));
+    })
+    .add(`Disk I/O (profiled)`, () => {
+      CpuProfilerBindings.startProfiling('test');
+      const outfile = './profile.json';
+      if (fs.existsSync(outfile)) {
+        fs.unlinkSync(outfile);
       }
-      noop();
-    }
-    CpuProfilerBindings.stopProfiling('test');
-  })
-  .on('error', (error) => {
-    console.log('error', error);
-  })
-  .on('complete', function () {
-    const result = this.sort((a, b) => a.stats.hz - b.stats.hz)
-      .map((n) => n.toString())
-      .join('\n');
+      fs.writeFileSync('profile.json', random(2 << 12));
+      CpuProfilerBindings.stopProfiling('test');
+    })
+    .add('Long task', () => {
+      const started = performance.now();
+      while (true) {
+        if (performance.now() - started > 500) {
+          break;
+        }
+        noop();
+      }
+    })
+    .add('Long task (profiled)', () => {
+      CpuProfilerBindings.startProfiling('test');
+      const started = performance.now();
+      while (true) {
+        if (performance.now() - started > 500) {
+          break;
+        }
+        noop();
+      }
+      CpuProfilerBindings.stopProfiling('test');
+    })
+    .on('error', (error) => {
+      console.log('error', error);
+    })
+    .on('complete', function () {
+      const result = this.sort((a, b) => a.stats.hz - b.stats.hz)
+        .map((n) => n.toString())
+        .join('\n');
 
-    console.log(result);
-  })
-  // Do not run async tests as only 1 profiler is available to each thread
-  .run({ async: false });
+      console.log(result);
+    })
+    // Do not run async tests as only 1 profiler is available to each thread
+    .run({ async: false });
+}
+
+console.log('Benchmarking profiler with loggingMode=lazy');
+console.log('///////////////////////////////////////////');
+CpuProfilerBindings.initializeProfiler('lazy');
+benchmark();
+CpuProfilerBindings.disposeProfiler();
+CpuProfilerBindings.initializeProfiler('eager');
+console.log('Benchmarking profiler with loggingMode=eager');
+console.log('///////////////////////////////////////////');
+benchmark();
+CpuProfilerBindings.disposeProfiler();

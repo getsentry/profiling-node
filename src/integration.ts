@@ -3,14 +3,23 @@ import type { Integration, EventProcessor, Hub, Event } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { isDebugBuild } from './env';
 import { maybeRemoveProfileFromSdkMetadata, createProfilingEventEnvelope, isProfiledTransactionEvent } from './utils';
+import { CpuProfilerBindings } from './cpu_profiler';
 
 // We need this integration in order to actually send data to Sentry. We hook into the event processor
 // and inspect each event to see if it is a transaction event and if that transaction event
 // contains a profile on it's metadata. If that is the case, we create a profiling event envelope
 // and delete the profile from the transaction metadata.
+
+interface ProfilingIntegrationOptions {
+  logging: 'lazy' | 'eager';
+}
 export class ProfilingIntegration implements Integration {
   name = 'ProfilingIntegration';
   getCurrentHub?: () => Hub = undefined;
+
+  constructor(options?: ProfilingIntegrationOptions) {
+    CpuProfilerBindings.initializeProfiler(options?.logging);
+  }
 
   setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this.getCurrentHub = getCurrentHub;

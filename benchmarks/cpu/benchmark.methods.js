@@ -7,8 +7,9 @@ const { benchmark } = require('./utils');
 
 console.log('\nBenchmarking CPU profiler methods');
 
-// Benchmarking startProfiling
-benchmark('StartProfiling', 100, {
+// Benchmarking startProfiling w
+CpuProfilerBindings.initializeProfiler();
+benchmark('StartProfiling (without initialize)', 100, {
   run: function run() {
     CpuProfilerBindings.startProfiling('startProfiling');
   },
@@ -16,7 +17,22 @@ benchmark('StartProfiling', 100, {
     const profile = CpuProfilerBindings.stopProfiling('startProfiling');
   }
 });
+CpuProfilerBindings.disposeProfiler();
 
+// Benchmarking startProfiling
+benchmark('StartProfiling (with initialize)', 100, {
+  run: function run() {
+    CpuProfilerBindings.initializeProfiler();
+    CpuProfilerBindings.startProfiling('startProfiling');
+  },
+  cleanup: () => {
+    const profile = CpuProfilerBindings.stopProfiling('startProfiling');
+    CpuProfilerBindings.disposeProfiler();
+  }
+});
+CpuProfilerBindings.disposeProfiler();
+
+CpuProfilerBindings.initializeProfiler();
 // Benchmarking stopProfiling
 benchmark('StopProfiling', 100, {
   before: function before() {

@@ -1,4 +1,5 @@
 
+#include <iostream>
 #include <unordered_map>
 
 #include "nan.h"
@@ -25,14 +26,13 @@ static const uint8_t MAX_STACK_DEPTH = 128;
 static const float SAMPLING_FREQUENCY = 99.0; // 99 to avoid lockstep sampling
 static const float SAMPLING_HZ = 1 / SAMPLING_FREQUENCY;
 static const int SAMPLING_INTERVAL_US = static_cast<int>(SAMPLING_HZ * 1e6);
+static const v8::CpuProfilingNamingMode DEFAULT_FRAME_NAMING_MODE = v8::CpuProfilingNamingMode::kDebugNaming;
+static const v8::CpuProfilingLoggingMode DEFAULT_LOGGING_MODE = v8::CpuProfilingLoggingMode::kLazyLogging;
 
 class Profiler {
   public: 
-    explicit Profiler(v8::Isolate* isolate):
-      // I attempted to make this initializer lazy as I wrongly assumed that it is the initializer step that is adding overhead,
-      // however after doing that and measuring the overhead I realized that it is in fact caused by the first call to startProfiling.
-      // This is only true when kLazyLogging is true, when kLazyLogging is false then init is fairly fast.
-      cpu_profiler (v8::CpuProfiler::New(isolate, v8::CpuProfilingNamingMode::kDebugNaming, v8::CpuProfilingLoggingMode::kLazyLogging)) {
+    explicit Profiler(v8::Isolate* isolate): 
+      cpu_profiler(nullptr) {
         node::AddEnvironmentCleanupHook(isolate, DeleteInstance, this);
       }
 
@@ -40,7 +40,11 @@ class Profiler {
 
   static void DeleteInstance(void* data) {
     Profiler* profiler = static_cast<Profiler*>(data);
-    profiler->cpu_profiler->Dispose();
+    
+    if(profiler->cpu_profiler){
+      profiler->cpu_profiler->Dispose();
+      profiler->cpu_profiler = nullptr;
+    }
     delete profiler;
   }
 };
@@ -217,6 +221,11 @@ static void StartProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
     SAMPLING_INTERVAL_US };
 
   Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<v8::External>()->Value());
+
+  if(profiler->cpu_profiler == nullptr) {
+    return Nan::ThrowError("Profiler has not been initialized or may have been disposed by the isolate.");
+  };
+
   profiler->cpu_profiler->StartProfiling(title, options);
 };
 
@@ -237,6 +246,11 @@ static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
 
     Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<v8::External>()->Value());
+
+    if(profiler->cpu_profiler == nullptr) {
+      return Nan::ThrowError("Profiler has not been initialized or may have been disposed by the isolate.");
+    };
+
     v8::CpuProfile* profile = profiler->cpu_profiler->StopProfiling(Nan::To<v8::String>(args[0]).ToLocalChecked());
 
     // If for some reason stopProfiling was called with an invalid profile title or
@@ -250,18 +264,38 @@ static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
     profile->Delete();
 };
 
-// SetSamplingMode(string mode)
-static void SetSamplingMode(const v8::FunctionCallbackInfo<v8::Value>& args) {
-  if(args[0].IsEmpty() || !args[0]->IsString()) {
-      return Nan::ThrowError("SetSamplingMode expects a string as first argument.");
-  };
-
+// InitializeProfiler(string mode) initialize the cpu profiler with user provided options
+static void InitializeProfiler(const v8::FunctionCallbackInfo<v8::Value>& args) {
   Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<v8::External>()->Value());
 
-  // if(profiler->cpu_profiler::) {
-  //   return Nan::ThrowError("Call SetSamplingMode() after stopping all profiles.");
-  // };
+  if(profiler->cpu_profiler) {
+    return Nan::ThrowError("Profiler has already been initialized.");
+  };
+
+  v8::CpuProfilingLoggingMode logging_mode = DEFAULT_LOGGING_MODE;
+
+  if(!args[0].IsEmpty() && args[0]->IsString()) {
+    if(args[0]->StrictEquals(Nan::New("lazy").ToLocalChecked())){
+      logging_mode = v8::CpuProfilingLoggingMode::kLazyLogging;
+    }  else if(args[0]->StrictEquals(Nan::New("eager").ToLocalChecked())){
+      logging_mode = v8::CpuProfilingLoggingMode::kEagerLogging;
+    } else {
+      return Nan::ThrowError("Unknown logging mode.");
+    }
+  }
+
+  profiler->cpu_profiler = v8::CpuProfiler::New(v8::Isolate::GetCurrent(), DEFAULT_FRAME_NAMING_MODE, logging_mode);
 }
+
+// This only disposes the v8::CpuProfiler, not the external bridge class.
+static void DisposeProfiler(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<v8::External>()->Value());
+
+  if(profiler->cpu_profiler){
+    profiler->cpu_profiler->Dispose();
+    profiler->cpu_profiler = nullptr;
+  }
+};
 
 //***************************************************************************
 // Module init
@@ -271,6 +305,12 @@ NODE_MODULE_INIT(/* exports, module, context */){
   Profiler* profiler = new Profiler(isolate);
   v8::Local<v8::External> external = v8::External::New(isolate, profiler);
 
+  exports->Set(context, 
+               Nan::New<v8::String>("initializeProfiler").ToLocalChecked(),
+               v8::FunctionTemplate::New(isolate, InitializeProfiler, external)->GetFunction(context).ToLocalChecked()).FromJust();
+  exports->Set(context, 
+               Nan::New<v8::String>("disposeProfiler").ToLocalChecked(),
+               v8::FunctionTemplate::New(isolate, DisposeProfiler, external)->GetFunction(context).ToLocalChecked()).FromJust();
   exports->Set(context, 
                Nan::New<v8::String>("startProfiling").ToLocalChecked(),
                v8::FunctionTemplate::New(isolate, StartProfiling, external)->GetFunction(context).ToLocalChecked()).FromJust();
