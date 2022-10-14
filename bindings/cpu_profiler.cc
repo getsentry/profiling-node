@@ -24,8 +24,9 @@ using namespace v8;
 // https://nodejs.org/api/addons.html.
 
 static const uint8_t MAX_STACK_DEPTH = 128;
-static const uint8_t SAMPLING_FREQUENCY = 99; // 99 to avoid lockstep sampling
-static const int SAMPLING_INTERVAL_US = 1 / SAMPLING_FREQUENCY * 1e6;
+static const float SAMPLING_FREQUENCY = 99.0; // 99 to avoid lockstep sampling
+static const float SAMPLING_HZ = 1 / SAMPLING_FREQUENCY;
+static const int SAMPLING_INTERVAL_US = static_cast<int>(SAMPLING_HZ * 1e6);
 
 class Profiler {
   public: 
