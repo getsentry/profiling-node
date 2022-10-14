@@ -25,7 +25,7 @@ using namespace v8;
 
 static const uint8_t MAX_STACK_DEPTH = 128;
 static const uint8_t SAMPLING_FREQUENCY = 99; // 99 to avoid lockstep sampling
-static const uint32_t SAMPLING_INTERVAL_US = 1 / SAMPLING_FREQUENCY * 1e6;
+static const int SAMPLING_INTERVAL_US = 1 / SAMPLING_FREQUENCY * 1e6;
 
 class Profiler {
   public: 
@@ -207,9 +207,14 @@ static void StartProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
         return Nan::ThrowError("StartProfiling requires a string as the first argument.");
     };
 
+    Local<String> title = Nan::To<String>(args[0]).ToLocalChecked();
+
+    v8::CpuProfilingOptions options = v8::CpuProfilingOptions{ 
+      v8::CpuProfilingMode::kLeafNodeLineNumbers, CpuProfilingOptions::kNoSampleLimit, 
+      SAMPLING_INTERVAL_US };
+
     Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
-    profiler->cpu_profiler->StartProfiling(Nan::To<String>(args[0]).ToLocalChecked(), 
-        v8::CpuProfilingOptions(v8::kLeafNodeLineNumbers, UINT_MAX, SAMPLING_INTERVAL_US, v8::MaybeLocal<v8::Context>()));
+    profiler->cpu_profiler->StartProfiling(title, options);
 };
 
 // StopProfiling(string title)
