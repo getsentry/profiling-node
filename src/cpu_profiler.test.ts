@@ -94,8 +94,8 @@ describe('Profiler bindings', () => {
     // performance of the actions runner, machine or something else. This needs more investigation to determine
     // the cause of low sample count. https://github.com/actions/runner-images/issues/1336 seems relevant.
     if (process.platform === 'darwin') {
-      if (profile.samples.length < 3) {
-        fail('Only ' + profile.samples.length + ' samples obtained on ' + process.platform + ', expected at least 3');
+      if (profile.samples.length < 2) {
+        fail('Only ' + profile.samples.length + ' samples obtained on ' + process.platform + ', expected at least 2');
       }
     } else {
       if (profile.samples.length < 8) {
