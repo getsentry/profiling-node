@@ -211,7 +211,7 @@ static void StartProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
     Local<String> title = Nan::To<String>(args[0]).ToLocalChecked();
 
     v8::CpuProfilingOptions options = v8::CpuProfilingOptions{ 
-      v8::CpuProfilingMode::kLeafNodeLineNumbers, CpuProfilingOptions::kNoSampleLimit, 
+      v8::CpuProfilingMode::kCallerLineNumbers, CpuProfilingOptions::kNoSampleLimit, 
       SAMPLING_INTERVAL_US };
 
     Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
