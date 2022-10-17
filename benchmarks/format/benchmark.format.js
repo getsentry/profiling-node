@@ -10,7 +10,10 @@ const cpu_profiler = require('../../build/Release/cpu_profiler.node');
 const { threadId } = require('worker_threads');
 
 const relativeChange = (final, initial) => {
-  return ((final - initial) / initial) * 100;
+  if (initial === 0) return '0%';
+  const change = ((final - initial) / initial) * 100;
+  if (change > 0) return '+' + change.toFixed(2) + '%';
+  return change.toFixed(2) + '%';
 };
 
 function App() {
@@ -78,14 +81,20 @@ function benchmark(cb, n) {
   console.log(`Benchmarks for N=${n}`);
 }
 
-function computeResults(values) {
-  return {
-    mean: mean(values),
-    stdev: stdev(values),
-    variance: variance(values),
-    variancepct: '±' + (variancepct(values) * 100).toFixed(2) + '%',
-    p75: quantile(values, 0.75)
-  };
+function computeResults(json) {
+  const results = {};
+
+  for (const key in json) {
+    const values = json[key];
+    results[key] = {
+      mean: mean(values),
+      stdev: stdev(values),
+      variance: variance(values),
+      variancepct: '±' + (variancepct(values) * 100).toFixed(2) + '%',
+      p75: quantile(values, 0.75)
+    };
+  }
+  return results;
 }
 
 function compareResults(before, after) {
@@ -101,7 +110,7 @@ function compareResults(before, after) {
     if (!beforeResults[key]) {
       throw new Error('Key', key, 'does not exist in', before, 'results, benchmarks are not comparable');
     }
-    console.log(`${key}: ${afterResults[key]} (${relativeChange(afterResults[key], beforeResults[key]).toFixed(2)}%)`);
+    console.log(`${key}: ${afterResults[key].p75} (${relativeChange(afterResults[key].p75, beforeResults[key].p75)})`);
   }
 }
 
