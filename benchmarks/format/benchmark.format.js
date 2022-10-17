@@ -235,7 +235,7 @@ if (process.env.RUN_NAME) {
     return cpu_profiler.stopProfiling('Sampled format', threadId);
   }, 10);
 } else if (process.env.BEFORE && process.env.AFTER) {
-  compareResults(process.env.BEFORE && process.env.AFTER);
+  compareResults(process.env.BEFORE, process.env.AFTER);
 } else {
   throw new Error('No run name or before/after specified');
 }
