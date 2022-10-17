@@ -1,3 +1,23 @@
+## 0.0.1
+
+### Various fixes & improvements
+
+- feat(profile): log call site info (#53) by @JonasBa
+- fix(benchmark): recompute json (eddcad28) by @JonasBa
+- fix(benchmark): pass both options (b9911726) by @JonasBa
+- fix(benchmark): pass option to compare (ce805797) by @JonasBa
+- fix(benchmark): run node benchmark instead of compare (0a4d9abb) by @JonasBa
+- fix(benchmark): run node benchmark (595a4f96) by @JonasBa
+- fix(scripts): stash and apply script results (3d4c92df) by @JonasBa
+- fix(scripts): stash and apply script results (a9e7f360) by @JonasBa
+- fix(benchmark): allow running between two commits (#52) by @JonasBa
+- test(threshold) increase max sample threshold (847f42ac) by @JonasBa
+- test(threshold) increase max sample threshold (6d10b885) by @JonasBa
+- feat(profiling): adjust sampling frequency (#50) by @JonasBa
+- chore(github): add issue bug template (d5b488ad) by @JonasBa
+- chore(github): add feature template (f137585b) by @JonasBa
+- chore(github): add pull request template (759237f0) by @JonasBa
+
 ## 0.0.0-alpha.6
 
 ### Various fixes & improvements
