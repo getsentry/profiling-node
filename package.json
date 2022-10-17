@@ -28,7 +28,7 @@
     "benchmark:methods": "node benchmarks/cpu/benchmark.methods.js",
     "benchmark:profiler": "node benchmarks/cpu/benchmark.profiler.js",
     "benchmark:server": "node benchmarks/cpu/benchmark.server.js",
-    "benchmark:format": "scripts/benchmark-format.sh",
+    "benchmark:format": "node benchmarks/format/benchmark.format.js",
     "benchmark:integration": "node benchmarks/cpu/benchmark.integration.base.js && node benchmarks/cpu/benchmark.integration.disabled.js && node benchmarks/cpu/benchmark.integration.js",
     "test:watch": "jest --watch",
     "test": "jest",

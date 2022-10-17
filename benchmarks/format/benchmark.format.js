@@ -236,4 +236,6 @@ if (process.env.RUN_NAME) {
   }, 10);
 } else if (process.env.BEFORE && process.env.AFTER) {
   compareResults();
+} else {
+  throw new Error('No run name or before/after specified');
 }
