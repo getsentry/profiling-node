@@ -5,7 +5,14 @@ const path = require('path');
 const gzip = require('zlib');
 const { ZSTDCompress } = require('simple-zstd');
 
-const cpu_profiler = require('../../build/Release/cpu_profiler_format_benchmark');
+const { fibonacci, mean, stdev, variancepct, variance, quantile } = require('./../cpu/utils');
+const cpu_profiler = require('../../build/Release/cpu_profiler.node');
+const { threadId } = require('worker_threads');
+const { ERROR } = require('sqlite3');
+
+const relativeChange = (final, initial) => {
+  return ((final - initial) / initial) * 100;
+};
 
 function App() {
   const [times, setTimes] = (function () {
@@ -34,9 +41,70 @@ function render() {
   }
 }
 
-cpu_profiler.startProfiling('Sampled format');
-render();
-const sampledProfile = cpu_profiler.stopProfiling('Sampled format');
+function benchmark(cb, n) {
+  const outpath = path.resolve(__dirname, 'output');
+  const formats = ['graph', 'sampled'];
+  const compressions = ['gz', 'br', 'zst'];
+  const measures = {};
+
+  for (let i = 0; i < n; i++) {
+    const profile = cb();
+    compress(profile, outpath);
+
+    for (const format of formats) {
+      const name = `cpu_profiler.${format}.json`;
+      measures[format] = measures[format] || [];
+      measures[format].push(getSize(path.resolve(outpath, name)));
+
+      for (const compression of compressions) {
+        const compressed = `${name}.${compression}`;
+        const size = getSize(path.resolve(outpath, compressed));
+        if (!measures[compressed]) measures[compressed] = [];
+        measures[compressed].push(size);
+      }
+    }
+  }
+
+  if (!process.env.RUN_NAME) {
+    throw new Error('Pass RUN_NAME as env variable so we can compare results');
+  }
+
+  const saveAs = path.resolve(__dirname, `./results/${process.env.RUN_NAME}.json`);
+
+  if (fs.existsSync(saveAs)) {
+    fs.unlinkSync(saveAs);
+  }
+
+  fs.writeFileSync(saveAs, JSON.stringify(measures, null, 2));
+  console.log(`Benchmarks for N=${n}`);
+}
+
+function computeResults(values) {
+  return {
+    mean: mean(values),
+    stdev: stdev(values),
+    variance: variance(values),
+    variancepct: '±' + (variancepct(values) * 100).toFixed(2) + '%',
+    p75: quantile(values, 0.75)
+  };
+}
+
+function compareResults(before, after) {
+  console.log('Comparing results from', before, 'and', after);
+  console.log(`Logged results are results of ${after} with changes relative to ${before}`);
+  const beforeStats = require(path.resolve(__dirname, `./results/${before}.json`));
+  const afterStats = require(path.resolve(__dirname, `./results/${after}.json`));
+
+  const beforeResults = computeResults(beforeStats);
+  const afterResults = computeResults(afterStats);
+
+  for (const key in afterResults) {
+    if (!beforeResults[key]) {
+      throw new Error('Key', key, 'does not exist in', before, 'results, benchmarks are not comparable');
+    }
+    console.log(`${key}: ${afterResults[key]} (${relativeChange(afterResults[key], beforeResults[key]).toFixed(2)}%)`);
+  }
+}
 
 function getSize(path) {
   if (!fs.existsSync(path)) {
@@ -47,6 +115,8 @@ function getSize(path) {
 }
 
 function compressGzip(source, target) {
+  if (fs.existsSync(target)) fs.unlinkSync(target);
+  fs.openSync(target, 'w');
   return new Promise((resolve, reject) => {
     const stream = fs.createReadStream(source);
     stream
@@ -63,13 +133,14 @@ function compressGzip(source, target) {
 }
 
 function compressBrotli(source, target) {
+  if (fs.existsSync(target)) fs.unlinkSync(target);
+  fs.openSync(target, 'w');
   return new Promise((resolve, reject) => {
     const stream = fs.createReadStream(source);
     stream
       .pipe(gzip.createBrotliCompress())
       .pipe(fs.createWriteStream(target))
       .on('finish', () => {
-        console.log('Compressed file:', target);
         resolve();
       })
       .on('error', () => {
@@ -80,12 +151,13 @@ function compressBrotli(source, target) {
 }
 
 function compressZstd(source, target) {
+  if (fs.existsSync(target)) fs.unlinkSync(target);
+  fs.openSync(target, 'w');
   return new Promise((resolve, reject) => {
     fs.createReadStream(source)
       .pipe(ZSTDCompress(3))
       .pipe(fs.createWriteStream(target))
       .on('finish', () => {
-        console.log('Compressed file:', target);
         resolve();
       })
       .on('error', () => {
@@ -95,19 +167,18 @@ function compressZstd(source, target) {
   });
 }
 
-const outpath = path.resolve(__dirname, 'output');
+async function compress(sampledProfile, outpath) {
+  // We should really do this when we compile the binary
+  const cleanGraphFormat = (format) => {
+    const { stacks, samples, ...rest } = format;
+    return rest;
+  };
 
-const cleanGraphFormat = (format) => {
-  const { stacks, samples, ...rest } = format;
-  return rest;
-};
+  const cleanSampledFormat = (format) => {
+    const { top_down_root, ...rest } = format;
+    return rest;
+  };
 
-const cleanSampledFormat = (format) => {
-  const { top_down_root, ...rest } = format;
-  return rest;
-};
-
-(async () => {
   fs.writeFileSync(path.resolve(outpath, 'cpu_profiler.graph.json'), JSON.stringify(cleanGraphFormat(sampledProfile)));
   fs.writeFileSync(
     path.resolve(outpath, 'cpu_profiler.sampled.json'),
@@ -136,33 +207,27 @@ const cleanSampledFormat = (format) => {
   await compressBrotli(
     path.resolve(outpath, 'cpu_profiler.sampled.json'),
     path.resolve(outpath, 'cpu_profiler.sampled.json.br')
-  )
-    .catch((e) => console.log(e))
-    .then(() => console.log('Done'));
+  ).catch((e) => console.log(e));
 
   // Compress graph format to Brotli
   await compressZstd(
     path.resolve(outpath, 'cpu_profiler.graph.json'),
     path.resolve(outpath, 'cpu_profiler.graph.json.zst')
-  )
-    .catch((e) => console.log(e))
-    .then(() => console.log('Done'));
+  ).catch((e) => console.log(e));
 
   // Compress sampled format to Brotli
   await compressZstd(
     path.resolve(outpath, 'cpu_profiler.sampled.json'),
     path.resolve(outpath, 'cpu_profiler.sampled.json.zst')
-  )
-    .catch((e) => console.log(e))
-    .then(() => console.log('Done'));
+  ).catch((e) => console.log(e));
+}
 
-  console.log('graph profile size:', getSize(path.resolve(outpath, 'cpu_profiler.graph.json')));
-  console.log('sampled profile size:', getSize(path.resolve(outpath, 'cpu_profiler.sampled.json')));
-
-  console.log('graph profile size (gzipped):', getSize(path.resolve(outpath, 'cpu_profiler.graph.json.gz')));
-  console.log('graph profile size (brotli):', getSize(path.resolve(outpath, 'cpu_profiler.graph.json.br')));
-  console.log('graph profile size (zstd):', getSize(path.resolve(outpath, 'cpu_profiler.graph.json.zst')));
-  console.log('sampled profile size (gzipped):', getSize(path.resolve(outpath, 'cpu_profiler.sampled.json.gz')));
-  console.log('sampled profile size (brotli):', getSize(path.resolve(outpath, 'cpu_profiler.sampled.json.br')));
-  console.log('sampled profile size (zstd):', getSize(path.resolve(outpath, 'cpu_profiler.sampled.json.zst')));
-})();
+if (process.env.RUN_NAME) {
+  benchmark(() => {
+    cpu_profiler.startProfiling('Sampled format');
+    render();
+    return cpu_profiler.stopProfiling('Sampled format', threadId);
+  }, 10);
+} else if (process.env.BEFORE && process.env.AFTER) {
+  compareResults();
+}
