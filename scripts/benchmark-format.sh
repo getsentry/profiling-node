@@ -16,6 +16,9 @@ fi
 
 git checkout "$BEFORE";
 RUN_NAME=$BEFORE npm run benchmark:format;
+git stash;
 git checkout "$AFTER";
+git stash pop;
 RUN_NAME=$AFTER npm run benchmark:format;
 BEFORE="$BEFORE" AFTER="$AFTER" npm run benchmark:compare;
+git restore .;
