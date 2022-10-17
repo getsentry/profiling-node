@@ -5,10 +5,9 @@ const path = require('path');
 const gzip = require('zlib');
 const { ZSTDCompress } = require('simple-zstd');
 
-const { fibonacci, mean, stdev, variancepct, variance, quantile } = require('./../cpu/utils');
+const { mean, stdev, variancepct, variance, quantile } = require('./../cpu/utils');
 const cpu_profiler = require('../../build/Release/cpu_profiler.node');
 const { threadId } = require('worker_threads');
-const { ERROR } = require('sqlite3');
 
 const relativeChange = (final, initial) => {
   return ((final - initial) / initial) * 100;
@@ -178,6 +177,13 @@ async function compress(sampledProfile, outpath) {
     const { top_down_root, ...rest } = format;
     return rest;
   };
+
+  if (fs.existsSync(path.resolve(outpath, 'cpu_profiler.graph.json'))) {
+    fs.unlinkSync(path.resolve(outpath, 'cpu_profiler.graph.json'));
+  }
+  if (fs.existsSync(path.resolve(outpath, 'cpu_profiler.sampled.json'))) {
+    fs.unlinkSync(path.resolve(outpath, 'cpu_profiler.sampled.json'));
+  }
 
   fs.writeFileSync(path.resolve(outpath, 'cpu_profiler.graph.json'), JSON.stringify(cleanGraphFormat(sampledProfile)));
   fs.writeFileSync(
