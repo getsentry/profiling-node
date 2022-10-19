@@ -12,6 +12,10 @@
 #define PROFILER_FORMAT FORMAT_SAMPLED
 #endif
 
+#ifndef PROFILER_LOGGING_MODE
+#define PROFILER_LOGGING_MODE 0
+#endif
+
 #ifndef FORMAT_BENCHMARK
 #define FORMAT_BENCHMARK 0
 #endif
@@ -29,12 +33,19 @@ static const int SAMPLING_INTERVAL_US = static_cast<int>(SAMPLING_HZ * 1e6);
 class Profiler {
   public: 
     explicit Profiler(v8::Isolate* isolate):
-      // I attempted to make this initializer lazy as I wrongly assumed that it is the initializer step that is adding overhead,
-      // however after doing that and measuring the overhead I realized that it is in fact caused by the first call to startProfiling.
-      // This is only true when kLazyLogging is true, when kLazyLogging is false then init is fairly fast.
-      cpu_profiler (v8::CpuProfiler::New(isolate, v8::CpuProfilingNamingMode::kDebugNaming, v8::CpuProfilingLoggingMode::kLazyLogging)) {
+
+// Allow users to override the default logging mode via compile time flags. This is useful because sometimes the flow
+// of the profiled program can be to execute many sequential transaction - in that case, it may be preferable to set eager logging
+// to avoid paying the high cost of profiling for each individual transaction (one example for this are jest tests when run with --runInBand).
+#if PROFILER_LOGGING_MODE == 1
+      cpu_profiler (v8::CpuProfiler::New(isolate, v8::CpuProfilingNamingMode::kDebugNaming, v8::CpuProfilingLoggingMode::kEagerLogging) ) {
         node::AddEnvironmentCleanupHook(isolate, DeleteInstance, this);
       }
+#else
+      cpu_profiler (v8::CpuProfiler::New(isolate, v8::CpuProfilingNamingMode::kDebugNaming, v8::CpuProfilingLoggingMode::kLazyLogging) ) {
+        node::AddEnvironmentCleanupHook(isolate, DeleteInstance, this);
+      }
+#endif
 
   v8::CpuProfiler* cpu_profiler;
 
@@ -154,8 +165,8 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
                 Nan::Set(frames, unique_frame_id, CreateFrameNode(
                     node->GetFunctionName(),
                     node->GetScriptResourceName(),
-                    Nan::New<v8::Number>(node->GetLineNumber()),
-                    Nan::New<v8::Number>(node->GetColumnNumber()),
+                    Nan::New<v8::Integer>(node->GetLineNumber()),
+                    Nan::New<v8::Integer>(node->GetColumnNumber()),
                     deoptReason
                 ));
                 unique_frame_id++;
@@ -182,6 +193,14 @@ v8::Local<v8::Value> CreateProfile(const v8::CpuProfile* profile, uint32_t threa
 
   Nan::Set(js_profile, Nan::New<v8::String>("profile_relative_started_at_ns").ToLocalChecked(), Nan::New<v8::Number>(profile->GetStartTime() * 1000));
   Nan::Set(js_profile, Nan::New<v8::String>("profile_relative_ended_at_ns").ToLocalChecked(), Nan::New<v8::Number>(profile->GetEndTime() * 1000));
+
+#if PROFILER_LOGGING_MODE == 1
+    Nan::Set(js_profile, Nan::New<v8::String>("profiler_logging_mode").ToLocalChecked(), Nan::New<v8::String>("eager").ToLocalChecked());
+#else
+    Nan::Set(js_profile, Nan::New<v8::String>("profiler_logging_mode").ToLocalChecked(), Nan::New<v8::String>("lazy").ToLocalChecked());
+#endif
+
+
 
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
   std::tuple<v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> samples = GetSamples(profile, thread_id);

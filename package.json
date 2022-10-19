@@ -18,12 +18,12 @@
     "package-lock.json"
   ],
   "scripts": {
-    "postinstall": "npm run build:bindings",
+    "postinstall": "node scripts/compile-bindings.js",
     "clean": "rm -rf ./lib && rm -rf build",
     "lint": "eslint ./src --ext .ts",
     "build": "npm run build:bindings && npm run build:lib",
     "build:lib": "tsc",
-    "build:bindings": "node-gyp build",
+    "build:bindings": "node scripts/compile-bindings.js",
     "build:benchmark:format": "node-gyp -DFORMAT_BENCHMARK=1 rebuild",
     "benchmark": "npm run benchmark:methods && npm run benchmark:profiler && npm run benchmark:server && npm run benchmark:format",
     "benchmark:methods": "node benchmarks/cpu/benchmark.methods.js",

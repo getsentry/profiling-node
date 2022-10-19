@@ -28,6 +28,8 @@ describe('Profiler bindings', () => {
     });
 
     if (!profile) fail('Profile is null');
+
+    expect(profile.profiler_logging_mode).toBe('eager');
     assertValidSamplesAndStacks(profile.stacks, profile.samples);
   });
 
