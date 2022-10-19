@@ -1,3 +1,12 @@
+## 0.0.3
+
+### Various fixes & improvements
+
+- fix(test): fix setTag test (096619d9) by @JonasBa
+- chore(deps): bump (331e8450) by @JonasBa
+- fix(profiler): fix typo (f1cb8823) by @JonasBa
+- feat(profiler): set logging mode as tag (f2517f69) by @JonasBa
+
 ## 0.0.2
 
 ### Various fixes & improvements
