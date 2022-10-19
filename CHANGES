@@ -1,3 +1,10 @@
+## 0.0.2
+
+### Various fixes & improvements
+
+- ref(benchmark): add jest benchmark (#54) by @JonasBa
+- build(gyp): add compile time flag for profiler logging strategy (#55) by @JonasBa
+
 ## 0.0.1
 
 ### Various fixes & improvements
