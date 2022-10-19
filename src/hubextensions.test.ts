@@ -7,8 +7,13 @@ import profiler from './../build/Release/cpu_profiler';
 
 function makeTransactionMock(): Transaction {
   return {
+    metadata: {},
+    tags: {},
     finish() {
       return;
+    },
+    setTag(key: string, value: any) {
+      this.tags[key] = value;
     },
     setMetadata(metadata: Partial<TransactionMetadata>) {
       this.metadata = { ...metadata } as TransactionMetadata;

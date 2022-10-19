@@ -120,7 +120,6 @@ describe('createProfilingEventEnvelope', () => {
       undefined
     );
 
-    // @ts-expect-error header type inference is broken
     expect(envelope[0].sdk).toBe(undefined);
   });
 
@@ -139,7 +138,6 @@ describe('createProfilingEventEnvelope', () => {
       'tunnel'
     );
 
-    // @ts-expect-error header type inference is broken
     expect(envelope[0].dsn).toBe('https://publicKey@sentry.io:9000/path/123');
   });
 
