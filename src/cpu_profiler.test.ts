@@ -108,8 +108,8 @@ describe('Profiler bindings', () => {
         fail('Only ' + profile.samples.length + ' samples obtained on ' + process.platform + ', expected at least 2');
       }
     } else {
-      if (profile.samples.length < 8) {
-        fail('Only ' + profile.samples.length + ' samples obtained on ' + process.platform + ', expected at least 8');
+      if (profile.samples.length < 6) {
+        fail('Only ' + profile.samples.length + ' samples obtained on ' + process.platform + ', expected at least 6');
       }
     }
     if (profile.samples.length > 13) {
