@@ -176,7 +176,7 @@ export function createProfilingEventEnvelope(
     timestamp: new Date(transactionStartMs).toISOString(),
     platform: 'node',
     version: '1',
-    release: event.sdk?.version || 'unknown',
+    release: event.sdk?.version || 'unknown'
     runtime: {
       name: 'node',
       version: process.versions.node
