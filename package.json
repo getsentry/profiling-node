@@ -14,7 +14,7 @@
     "LICENSE",
     "README.md",
     "package.json",
-    "scripts/compile-bindings.sh",
+    "scripts/compile-bindings.js",
     "package-lock.json"
   ],
   "scripts": {
