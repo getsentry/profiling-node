@@ -29,7 +29,6 @@ describe('Profiler bindings', () => {
 
     if (!profile) fail('Profile is null');
 
-    expect(profile.profiler_logging_mode).toBe('eager');
     assertValidSamplesAndStacks(profile.stacks, profile.samples);
   });
 
@@ -83,6 +82,15 @@ describe('Profiler bindings', () => {
   it('does not throw if stopTransaction is called before startTransaction', () => {
     expect(CpuProfilerBindings.stopProfiling('does not exist')).toBe(null);
     expect(() => CpuProfilerBindings.stopProfiling('does not exist')).not.toThrow();
+  });
+
+  it('compiles with lazy logging by default', () => {
+    const profile = profiled('profiled-program', async () => {
+      await wait(100);
+    });
+
+    if (!profile) fail('Profile is null');
+    expect(profile.profiler_logging_mode).toBe('lazy');
   });
 
   it('samples at ~99hz', async () => {
