@@ -43,7 +43,7 @@
     "performance"
   ],
   "author": "jonas.badalic@sentry.io",
-  "license": "BSD-3-Clause",
+  "license": "MIT",
   "dependencies": {
     "@sentry/hub": "^7.16.0",
     "@sentry/node": "^7.16.0",
