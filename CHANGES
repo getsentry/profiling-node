@@ -1,3 +1,10 @@
+## 0.0.4
+
+### Various fixes & improvements
+
+- chore(license): switch to MIT (#56) by @JonasBa
+- fix(release): js not sh (27482070) by @JonasBa
+
 ## 0.0.3
 
 ### Various fixes & improvements
