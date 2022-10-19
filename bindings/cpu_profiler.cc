@@ -12,11 +12,13 @@
 #define PROFILER_FORMAT FORMAT_SAMPLED
 #endif
 
+#ifndef PROFILER_LOGGING_MODE
+#define PROFILER_LOGGING_MODE 0
+#endif
+
 #ifndef FORMAT_BENCHMARK
 #define FORMAT_BENCHMARK 0
 #endif
-
-using namespace v8;
 
 // Isolate represents an instance of the v8 engine and can be entered at most by 1 thread at a given time.
 // The Profiler is a context aware class that is bound to an isolate. This allows us to profile multiple isolates 
@@ -30,15 +32,22 @@ static const int SAMPLING_INTERVAL_US = static_cast<int>(SAMPLING_HZ * 1e6);
 
 class Profiler {
   public: 
-    explicit Profiler(Isolate* isolate):
-      // I attempted to make this initializer lazy as I wrongly assumed that it is the initializer step that is adding overhead,
-      // however after doing that and measuring the overhead I realized that it is in fact caused by the first call to startProfiling.
-      // This is only true when kLazyLogging is true, when kLazyLogging is false then init is fairly fast.
-      cpu_profiler (CpuProfiler::New(isolate, v8::CpuProfilingNamingMode::kDebugNaming, v8::CpuProfilingLoggingMode::kLazyLogging)) {
+    explicit Profiler(v8::Isolate* isolate):
+
+// Allow users to override the default logging mode via compile time flags. This is useful because sometimes the flow
+// of the profiled program can be to execute many sequential transaction - in that case, it may be preferable to set eager logging
+// to avoid paying the high cost of profiling for each individual transaction (one example for this are jest tests when run with --runInBand).
+#if PROFILER_LOGGING_MODE == 1
+      cpu_profiler (v8::CpuProfiler::New(isolate, v8::CpuProfilingNamingMode::kDebugNaming, v8::CpuProfilingLoggingMode::kEagerLogging) ) {
         node::AddEnvironmentCleanupHook(isolate, DeleteInstance, this);
       }
+#else
+      cpu_profiler (v8::CpuProfiler::New(isolate, v8::CpuProfilingNamingMode::kDebugNaming, v8::CpuProfilingLoggingMode::kLazyLogging) ) {
+        node::AddEnvironmentCleanupHook(isolate, DeleteInstance, this);
+      }
+#endif
 
-  CpuProfiler* cpu_profiler;
+  v8::CpuProfiler* cpu_profiler;
 
   static void DeleteInstance(void* data) {
     Profiler* profiler = static_cast<Profiler*>(data);
@@ -48,28 +57,28 @@ class Profiler {
 };
 
 #if PROFILER_FORMAT == FORMAT_RAW || FORMAT_BENCHMARK == 1
-Local<Object> CreateFrameGraphNode(
-    Local<String> name, Local<String> scriptName,
-    Local<Integer> scriptId, Local<Integer> lineNumber,
-    Local<Integer> columnNumber, Local<Integer> hitCount,
-    Local<Array> children) {
+v8::Local<v8::Object> CreateFrameGraphNode(
+    v8::Local<v8::String> name, v8::Local<v8::String> scriptName,
+    v8::Local<v8::Integer> scriptId, v8::Local<v8::Integer> lineNumber,
+    v8::Local<v8::Integer> columnNumber, v8::Local<v8::Integer> hitCount,
+    v8::Local<v8::Array> children) {
 
-  Local<Object> js_node = Nan::New<Object>();
+  v8::Local<v8::Object> js_node = Nan::New<v8::Object>();
   
-  Nan::Set(js_node, Nan::New<String>("name").ToLocalChecked(), name);
-  Nan::Set(js_node, Nan::New<String>("file").ToLocalChecked(), scriptName);
-  Nan::Set(js_node, Nan::New<String>("script_id").ToLocalChecked(), scriptId);
-  Nan::Set(js_node, Nan::New<String>("line_number").ToLocalChecked(), lineNumber);
-  Nan::Set(js_node, Nan::New<String>("column_number").ToLocalChecked(), columnNumber);
-  Nan::Set(js_node, Nan::New<String>("hit_count").ToLocalChecked(), hitCount);
-  Nan::Set(js_node, Nan::New<String>("children").ToLocalChecked(), children);
+  Nan::Set(js_node, Nan::New<v8::String>("name").ToLocalChecked(), name);
+  Nan::Set(js_node, Nan::New<v8::String>("file").ToLocalChecked(), scriptName);
+  Nan::Set(js_node, Nan::New<v8::String>("script_id").ToLocalChecked(), scriptId);
+  Nan::Set(js_node, Nan::New<v8::String>("line_number").ToLocalChecked(), lineNumber);
+  Nan::Set(js_node, Nan::New<v8::String>("column_number").ToLocalChecked(), columnNumber);
+  Nan::Set(js_node, Nan::New<v8::String>("hit_count").ToLocalChecked(), hitCount);
+  Nan::Set(js_node, Nan::New<v8::String>("children").ToLocalChecked(), children);
 
   return js_node;
 };
 
-Local<Value> CreateFrameGraph(const CpuProfileNode* node) {
+v8::Local<v8::Value> CreateFrameGraph(const CpuProfileNode* node) {
   int32_t count = node->GetChildrenCount();
-  Local<Array> children = Nan::New<Array>(count);
+  v8::Local<v8::Array> children = Nan::New<v8::Array>(count);
   for (int32_t i = 0; i < count; i++) {
     Nan::Set(children, i, CreateFrameGraph(node->GetChild(i)));
   }
@@ -87,60 +96,60 @@ Local<Value> CreateFrameGraph(const CpuProfileNode* node) {
 #endif
 
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
-Local<Object> CreateFrameNode(
-    Local<String> name, Local<String> scriptName, Local<Integer> line,
-    Local<Integer> column, std::vector<CpuProfileDeoptInfo> deoptInfos) {
+v8::Local<v8::Object> CreateFrameNode(
+    v8::Local<v8::String> name, v8::Local<v8::String> scriptName, v8::Local<v8::Integer> line,
+    v8::Local<v8::Integer> column, std::vector<v8::CpuProfileDeoptInfo> deoptInfos) {
 
-  Local<Object> js_node = Nan::New<Object>();
+  v8::Local<v8::Object> js_node = Nan::New<v8::Object>();
   
-  Nan::Set(js_node, Nan::New<String>("name").ToLocalChecked(), name);
-  Nan::Set(js_node, Nan::New<String>("file").ToLocalChecked(), scriptName);
-  Nan::Set(js_node, Nan::New<String>("line").ToLocalChecked(), line);
-  Nan::Set(js_node, Nan::New<String>("column").ToLocalChecked(), column);
+  Nan::Set(js_node, Nan::New<v8::String>("name").ToLocalChecked(), name);
+  Nan::Set(js_node, Nan::New<v8::String>("file").ToLocalChecked(), scriptName);
+  Nan::Set(js_node, Nan::New<v8::String>("line").ToLocalChecked(), line);
+  Nan::Set(js_node, Nan::New<v8::String>("column").ToLocalChecked(), column);
 
   // @TODO Deopt info needs to be added to backend
   // size_t size = deoptInfos.size();
 
   // if(size > 0) {
-  //   Local<Array> deoptReasons = Nan::New<Array>(size);
+  //   v8::Local<v8::Array> deoptReasons = Nan::New<v8::Array>(size);
     
   //   for(size_t i = 0; i < size; i++) {
-  //     Nan::Set(deoptReasons, i, Nan::New<String>(deoptInfos[i].deopt_reason).ToLocalChecked());
+  //     Nan::Set(deoptReasons, i, Nan::New<v8::String>(deoptInfos[i].deopt_reason).ToLocalChecked());
   //   }
 
-  //   Nan::Set(js_node, Nan::New<String>("deopt_reasons").ToLocalChecked(), deoptReasons);
+  //   Nan::Set(js_node, Nan::New<v8::String>("deopt_reasons").ToLocalChecked(), deoptReasons);
   // };
 
   return js_node;
 };
 
 
-Local<Object> CreateSample(uint32_t stack_id, uint32_t sample_timestamp_us, uint32_t thread_id) {
-  Local<Object> js_node = Nan::New<Object>();
+v8::Local<v8::Object> CreateSample(uint32_t stack_id, uint32_t sample_timestamp_us, uint32_t thread_id) {
+  v8::Local<v8::Object> js_node = Nan::New<v8::Object>();
 
-  Nan::Set(js_node, Nan::New<String>("stack_id").ToLocalChecked(), Nan::New<Number>(stack_id));
-  Nan::Set(js_node, Nan::New<String>("thread_id").ToLocalChecked(), Nan::New<String>(std::to_string(thread_id)).ToLocalChecked());
-  Nan::Set(js_node, Nan::New<String>("elapsed_since_start_ns").ToLocalChecked(), Nan::New<Number>(sample_timestamp_us * 1000));
+  Nan::Set(js_node, Nan::New<v8::String>("stack_id").ToLocalChecked(), Nan::New<v8::Number>(stack_id));
+  Nan::Set(js_node, Nan::New<v8::String>("thread_id").ToLocalChecked(), Nan::New<v8::String>(std::to_string(thread_id)).ToLocalChecked());
+  Nan::Set(js_node, Nan::New<v8::String>("elapsed_since_start_ns").ToLocalChecked(), Nan::New<v8::Number>(sample_timestamp_us * 1000));
 
   return js_node;
 };
 
-std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfile* profile, uint32_t thread_id) {
+std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> GetSamples(const v8::CpuProfile* profile, uint32_t thread_id) {
     const uint32_t profile_start_time_us = profile->GetStartTime();
     const int sampleCount = profile->GetSamplesCount();
 
     uint32_t unique_frame_id = 0;
     std::unordered_map<uint32_t, uint32_t> frameLookupTable;
 
-    Local<Array> stacks = Nan::New<Array>(sampleCount);
-    Local<Array> samples = Nan::New<Array>(sampleCount);
-    Local<Array> frames = Nan::New<Array>();
+    v8::Local<v8::Array> stacks = Nan::New<v8::Array>(sampleCount);
+    v8::Local<v8::Array> samples = Nan::New<v8::Array>(sampleCount);
+    v8::Local<v8::Array> frames = Nan::New<v8::Array>();
 
     for(int i = 0; i < sampleCount; i++) {
-        const Local<Value> sample = CreateSample(i, profile->GetSampleTimestamp(i) - profile_start_time_us, thread_id);
-        const CpuProfileNode* node = profile->GetSample(i);
+        const v8::Local<v8::Value> sample = CreateSample(i, profile->GetSampleTimestamp(i) - profile_start_time_us, thread_id);
+        const v8::CpuProfileNode* node = profile->GetSample(i);
         // A stack is a list of frames ordered from outermost (top) to innermost frame (bottom)
-        Local<Array> stack = Nan::New<Array>();
+        v8::Local<v8::Array> stack = Nan::New<v8::Array>();
         uint32_t stack_depth = 0;
 
         while(node != nullptr && stack_depth < MAX_STACK_DEPTH) {
@@ -152,18 +161,18 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
             if(frame_index == frameLookupTable.end()) {
                 frameLookupTable.insert({nodeId, unique_frame_id});
 
-                Nan::Set(stack, stack_depth, Nan::New<Number>(unique_frame_id));
+                Nan::Set(stack, stack_depth, Nan::New<v8::Number>(unique_frame_id));
                 Nan::Set(frames, unique_frame_id, CreateFrameNode(
                     node->GetFunctionName(),
                     node->GetScriptResourceName(),
-                    Nan::New<Integer>(node->GetLineNumber()),
-                    Nan::New<Integer>(node->GetColumnNumber()),
+                    Nan::New<v8::Integer>(node->GetLineNumber()),
+                    Nan::New<v8::Integer>(node->GetColumnNumber()),
                     deoptReason
                 ));
                 unique_frame_id++;
             } else {
               // If it was already indexed, just add it's id to the stack
-                Nan::Set(stack, stack_depth, Nan::New<Number>(frame_index->second));
+                Nan::Set(stack, stack_depth, Nan::New<v8::Number>(frame_index->second));
             };
       
             // Continue walking down the stack
@@ -179,20 +188,28 @@ std::tuple <Local<Value>, Local<Value>, Local<Value>> GetSamples(const CpuProfil
 };
 #endif
 
-Local<Value> CreateProfile(const CpuProfile* profile, uint32_t thread_id) {
-  Local<Object> js_profile = Nan::New<Object>();
+v8::Local<v8::Value> CreateProfile(const v8::CpuProfile* profile, uint32_t thread_id) {
+  v8::Local<v8::Object> js_profile = Nan::New<v8::Object>();
 
-  Nan::Set(js_profile, Nan::New<String>("profile_relative_started_at_ns").ToLocalChecked(), Nan::New<Number>(profile->GetStartTime() * 1000));
-  Nan::Set(js_profile, Nan::New<String>("profile_relative_ended_at_ns").ToLocalChecked(), Nan::New<Number>(profile->GetEndTime() * 1000));
+  Nan::Set(js_profile, Nan::New<v8::String>("profile_relative_started_at_ns").ToLocalChecked(), Nan::New<v8::Number>(profile->GetStartTime() * 1000));
+  Nan::Set(js_profile, Nan::New<v8::String>("profile_relative_ended_at_ns").ToLocalChecked(), Nan::New<v8::Number>(profile->GetEndTime() * 1000));
+
+#if PROFILER_LOGGING_MODE == 1
+    Nan::Set(js_profile, Nan::New<v8::String>("profiler_logging_mode").ToLocalChecked(), Nan::New<v8::String>("eager").ToLocalChecked());
+#else
+    Nan::Set(js_profile, Nan::New<v8::String>("profiler_logging_mode").ToLocalChecked(), Nan::New<v8::String>("lazy").ToLocalChecked());
+#endif
+
+
 
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
-  std::tuple<Local<Value>, Local<Value>, Local<Value>> samples = GetSamples(profile, thread_id);
-  Nan::Set(js_profile, Nan::New<String>("stacks").ToLocalChecked(), std::get<0>(samples));
-  Nan::Set(js_profile, Nan::New<String>("samples").ToLocalChecked(), std::get<1>(samples));
-  Nan::Set(js_profile, Nan::New<String>("frames").ToLocalChecked(), std::get<2>(samples));
+  std::tuple<v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> samples = GetSamples(profile, thread_id);
+  Nan::Set(js_profile, Nan::New<v8::String>("stacks").ToLocalChecked(), std::get<0>(samples));
+  Nan::Set(js_profile, Nan::New<v8::String>("samples").ToLocalChecked(), std::get<1>(samples));
+  Nan::Set(js_profile, Nan::New<v8::String>("frames").ToLocalChecked(), std::get<2>(samples));
 #endif
 #if PROFILER_FORMAT == FORMAT_RAW || FORMAT_BENCHMARK == 1
-  Nan::Set(js_profile, Nan::New<String>("top_down_root").ToLocalChecked(), CreateFrameGraph(profile->GetTopDownRoot()));
+  Nan::Set(js_profile, Nan::New<v8::String>("top_down_root").ToLocalChecked(), CreateFrameGraph(profile->GetTopDownRoot()));
 #endif
   return js_profile;
 };
@@ -208,13 +225,13 @@ static void StartProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
         return Nan::ThrowError("StartProfiling requires a string as the first argument.");
     };
 
-    Local<String> title = Nan::To<String>(args[0]).ToLocalChecked();
+    v8::Local<v8::String> title = Nan::To<v8::String>(args[0]).ToLocalChecked();
 
     v8::CpuProfilingOptions options = v8::CpuProfilingOptions{ 
-      v8::CpuProfilingMode::kCallerLineNumbers, CpuProfilingOptions::kNoSampleLimit, 
+      v8::CpuProfilingMode::kCallerLineNumbers, v8::CpuProfilingOptions::kNoSampleLimit, 
       SAMPLING_INTERVAL_US };
 
-    Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
+    Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<v8::External>()->Value());
     profiler->cpu_profiler->StartProfiling(title, options);
 };
 
@@ -238,8 +255,8 @@ static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
     };
 
 
-    Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<External>()->Value());
-    CpuProfile* profile = profiler->cpu_profiler->StopProfiling(Nan::To<String>(args[0]).ToLocalChecked());
+    Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<v8::External>()->Value());
+    v8::CpuProfile* profile = profiler->cpu_profiler->StopProfiling(Nan::To<v8::String>(args[0]).ToLocalChecked());
 
     // If for some reason stopProfiling was called with an invalid profile title or
     // if that title had somehow been stopped already, profile will be null.
@@ -253,14 +270,14 @@ static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
 };
 
 NODE_MODULE_INIT(/* exports, module, context */){
-  Isolate* isolate = context->GetIsolate();
+  v8::Isolate* isolate = context->GetIsolate();
   Profiler* profiler = new Profiler(isolate);
-  Local<External> external = External::New(isolate, profiler);
+  v8::Local<v8::External> external = v8::External::New(isolate, profiler);
 
   exports->Set(context, 
-               Nan::New<String>("startProfiling").ToLocalChecked(),
-               FunctionTemplate::New(isolate, StartProfiling, external)->GetFunction(context).ToLocalChecked()).FromJust();
+               Nan::New<v8::String>("startProfiling").ToLocalChecked(),
+               v8::FunctionTemplate::New(isolate, StartProfiling, external)->GetFunction(context).ToLocalChecked()).FromJust();
   exports->Set(context, 
-               Nan::New<String>("stopProfiling").ToLocalChecked(),
-               FunctionTemplate::New(isolate, StopProfiling, external)->GetFunction(context).ToLocalChecked()).FromJust();
+               Nan::New<v8::String>("stopProfiling").ToLocalChecked(),
+               v8::FunctionTemplate::New(isolate, StopProfiling, external)->GetFunction(context).ToLocalChecked()).FromJust();
 }

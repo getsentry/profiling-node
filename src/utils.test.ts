@@ -38,6 +38,7 @@ function makeProfile(
   return {
     profile_relative_ended_at_ns: 1,
     profile_relative_started_at_ns: 0,
+    profiler_logging_mode: 'lazy',
     stacks: [],
     samples: [],
     frames: [],
