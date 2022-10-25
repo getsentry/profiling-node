@@ -134,32 +134,61 @@ v8::Local<v8::Object> CreateSample(uint32_t stack_id, uint32_t sample_timestamp_
   return js_node;
 };
 
+std::string hashCpuProfilerNodeByPath(const v8::CpuProfileNode* node) {
+  std::string path = std::string();
+  std::string delimiter = std::string(";");
+  
+  while(node != nullptr) {
+    path += std::to_string(node->GetNodeId());
+    path += delimiter;
+    node = node->GetParent();
+  }
+
+  return path;
+}
+
 std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> GetSamples(const v8::CpuProfile* profile, uint32_t thread_id) {
     const uint32_t profile_start_time_us = profile->GetStartTime();
     const int sampleCount = profile->GetSamplesCount();
 
     uint32_t unique_frame_id = 0;
-    std::unordered_map<uint32_t, uint32_t> frameLookupTable;
+    std::unordered_map<uint32_t, uint32_t> frame_lookup_table;
+    std::unordered_map<std::string, uint32_t> stack_lookup_table;
 
-    v8::Local<v8::Array> stacks = Nan::New<v8::Array>(sampleCount);
     v8::Local<v8::Array> samples = Nan::New<v8::Array>(sampleCount);
+    v8::Local<v8::Array> stacks = Nan::New<v8::Array>();
     v8::Local<v8::Array> frames = Nan::New<v8::Array>();
 
     for(int i = 0; i < sampleCount; i++) {
-        const v8::Local<v8::Value> sample = CreateSample(i, profile->GetSampleTimestamp(i) - profile_start_time_us, thread_id);
         const v8::CpuProfileNode* node = profile->GetSample(i);
+
+        std::string node_hash = hashCpuProfilerNodeByPath(node);
+        auto stack_index = stack_lookup_table.find(node_hash);
+
+        bool has_indexed_stack = stack_index != stack_lookup_table.end();
+        
+        const v8::Local<v8::Value> sample = CreateSample(
+            has_indexed_stack ? stack_index->second : i, 
+            profile->GetSampleTimestamp(i) - profile_start_time_us, thread_id);
+
+        // If we find a match from a stack, we can skip generating the actual
+        // code samples and just point the sample to the already indexed stack.
+        if(stack_index != stack_lookup_table.end()){
+          Nan::Set(samples, i, sample);
+          continue;
+        }
+
         // A stack is a list of frames ordered from outermost (top) to innermost frame (bottom)
         v8::Local<v8::Array> stack = Nan::New<v8::Array>();
         uint32_t stack_depth = 0;
 
         while(node != nullptr && stack_depth < MAX_STACK_DEPTH) {
             const uint32_t nodeId = node->GetNodeId();
-            auto frame_index = frameLookupTable.find(nodeId);
-            auto deoptReason = node->GetDeoptInfos();
+            auto frame_index = frame_lookup_table.find(nodeId);
 
             // If the frame does not exist in the index
-            if(frame_index == frameLookupTable.end()) {
-                frameLookupTable.insert({nodeId, unique_frame_id});
+            if(frame_index == frame_lookup_table.end()) {
+                frame_lookup_table.insert({nodeId, unique_frame_id});
 
                 Nan::Set(stack, stack_depth, Nan::New<v8::Number>(unique_frame_id));
                 Nan::Set(frames, unique_frame_id, CreateFrameNode(
@@ -167,7 +196,7 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
                     node->GetScriptResourceName(),
                     Nan::New<v8::Integer>(node->GetLineNumber()),
                     Nan::New<v8::Integer>(node->GetColumnNumber()),
-                    deoptReason
+                    node->GetDeoptInfos()
                 ));
                 unique_frame_id++;
             } else {
@@ -180,6 +209,7 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
             stack_depth++;
         }
 
+        stack_lookup_table.insert({node_hash, i});
         Nan::Set(stacks, i, stack);
         Nan::Set(samples, i, sample);
     };
