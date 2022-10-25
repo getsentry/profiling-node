@@ -5,7 +5,8 @@ const config: Config = {
   forceExit: true,
   preset: 'ts-jest',
   collectCoverage: true,
-  testMatch: ['**/*.test.ts']
+  testMatch: ['**/*.test.ts'],
+  testPathIgnorePatterns: ['benchmarks/']
 };
 
 export default config;
