@@ -13,7 +13,9 @@ const profiled = (name: string, fn: () => void) => {
 };
 
 const assertValidSamplesAndStacks = (stacks: ThreadCpuProfile['stacks'], samples: ThreadCpuProfile['samples']) => {
-  expect(stacks.length).toBe(samples.length);
+  expect(stacks.length).toBeGreaterThan(0);
+  expect(samples.length).toBeGreaterThan(0);
+  expect(stacks.length <= samples.length).toBe(true);
 };
 
 describe('Profiler bindings', () => {
