@@ -20,11 +20,8 @@
 #define FORMAT_BENCHMARK 0
 #endif
 
-// Isolate represents an instance of the v8 engine and can be entered at most by 1 thread at a given time.
-// The Profiler is a context aware class that is bound to an isolate. This allows us to profile multiple isolates 
-// at the same time and avoid segafaults when profiling multiple threads.
-// https://nodejs.org/api/addons.html.
-
+// Isolate represents an instance of the v8 engine and can be entered at most by 1 thread at a 
+// given time. The Profiler is a context aware class that is bound to an isolate. 
 static const uint8_t MAX_STACK_DEPTH = 128;
 static const float SAMPLING_FREQUENCY = 99.0; // 99 to avoid lockstep sampling
 static const float SAMPLING_HZ = 1 / SAMPLING_FREQUENCY;
@@ -34,9 +31,11 @@ class Profiler {
 public:
   explicit Profiler(v8::Isolate* isolate) :
 
-    // Allow users to override the default logging mode via compile time flags. This is useful because sometimes the flow
-    // of the profiled program can be to execute many sequential transaction - in that case, it may be preferable to set eager logging
-    // to avoid paying the high cost of profiling for each individual transaction (one example for this are jest tests when run with --runInBand).
+    // Allow users to override the default logging mode via compile time flags. This is useful 
+    // because sometimes the flow of the profiled program can be to execute many sequential 
+    // transaction - in that case, it may be preferable to set eager logging to avoid paying the
+    // high cost of profiling for each individual transaction (one example for this are jest 
+    // tests when run with --runInBand option).
 #if PROFILER_LOGGING_MODE == 1
     cpu_profiler(v8::CpuProfiler::New(isolate, v8::CpuProfilingNamingMode::kDebugNaming, v8::CpuProfilingLoggingMode::kEagerLogging)) {
     node::AddEnvironmentCleanupHook(isolate, DeleteInstance, this);
@@ -166,7 +165,8 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
     int stack_index = i;
     const v8::CpuProfileNode* node = profile->GetSample(i);
 
-    // If a node was only on top of the stack once, then it will only ever be inserted once and there is no need for hashing.
+    // If a node was only on top of the stack once, then it will only ever 
+    // be inserted once and there is no need for hashing.
     if (node->GetHitCount() > 1) {
       std::string node_hash = hashCpuProfilerNodeByPath(node);
       std::unordered_map<std::string, int>::iterator stack_index_cache_hit = stack_lookup_table.find(node_hash);
