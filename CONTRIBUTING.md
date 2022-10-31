@@ -6,7 +6,7 @@
 
 # Contributing
 
-We welcome suggested improvements and bug fixes to the `@sentry/*` family of packages, in the form of pull requests on [`GitHub`](https://github.com/getsentry/sentry-javascript). The guide below will help you get started, but if you have further questions, please feel free to reach out on [Discord](https://discord.gg/Ww9hbqr).
+We welcome suggested improvements and bug fixes to the `@sentry/*` family of packages, in the form of pull requests on [`GitHub`](https://github.com/getsentry/profiling-node). The guide below will help you get started, but if you have further questions, please feel free to reach out on [Discord](https://discord.gg/Ww9hbqr).
 
 ## Setting up an Environment
 
@@ -51,7 +51,7 @@ Remember that these are micro benchmarks and that results will vary across diffe
 _These steps are only relevant to Sentry employees when preparing and publishing a new SDK release._
 
 1. Determine what version will be released (we use [semver](https://semver.org)).
-2. Update [`CHANGELOG.md`](https://github.com/getsentry/sentry-javascript/edit/master/CHANGELOG.md) to add an entry for the next release number and a list of changes since the last release. (See details below.)
-3. Run the [Prepare Release](https://github.com/getsentry/sentry-javascript/actions/workflows/release.yml) workflow.
+2. Update [`CHANGELOG.md`](https://github.com/getsentry/profiling-node/edit/master/CHANGELOG.md) to add an entry for the next release number and a list of changes since the last release. (See details below.)
+3. Run the [Prepare Release](https://github.com/getsentry/profiling-node/actions/workflows/release.yml) workflow.
 4. A new issue should appear in https://github.com/getsentry/publish/issues.
 5. Ask a member of the [@getsentry/releases team](https://github.com/orgs/getsentry/teams/releases/members) to approve the release.
