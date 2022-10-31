@@ -12,14 +12,17 @@ if (existsSync(path.resolve(__dirname, 'cpu_profiler.profile.json'))) {
 (async () => {
   const p1 = CpuProfilerBindings.stopProfiling('stop_before_start');
   await wait(1000);
-  writeFileSync(path.resolve(__dirname, './stop_before_start.profile.json'), JSON.stringify(p1));
+  if (p1) {
+    throw new Error('Stop before start should not return a profile');
+  }
 
   // Double start
   CpuProfilerBindings.startProfiling('same_title');
   await wait(1000);
   CpuProfilerBindings.startProfiling('same_title');
   await wait(1000);
-  const p2 = CpuProfilerBindings.startProfiling('same_title');
+  const p2 = CpuProfilerBindings.stopProfiling('same_title');
+
   writeFileSync(path.resolve(__dirname, './stop_before_start.profile.json'), JSON.stringify(p2));
 
   // Simple profile
