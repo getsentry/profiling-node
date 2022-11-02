@@ -12,10 +12,6 @@
 #define PROFILER_FORMAT FORMAT_SAMPLED
 #endif
 
-#ifndef PROFILER_LOGGING_MODE
-#define PROFILER_LOGGING_MODE 0
-#endif
-
 #ifndef FORMAT_BENCHMARK
 #define FORMAT_BENCHMARK 0
 #endif
@@ -26,25 +22,33 @@ static const uint8_t MAX_STACK_DEPTH = 128;
 static const float SAMPLING_FREQUENCY = 99.0; // 99 to avoid lockstep sampling
 static const float SAMPLING_HZ = 1 / SAMPLING_FREQUENCY;
 static const int SAMPLING_INTERVAL_US = static_cast<int>(SAMPLING_HZ * 1e6);
+static const v8::CpuProfilingNamingMode NAMING_MODE = v8::CpuProfilingNamingMode::kDebugNaming;
+v8::CpuProfilingLoggingMode LOGGING_MODE = v8::CpuProfilingLoggingMode::kLazyLogging;
 
+// Allow users to override the default logging mode via env variable. This is useful 
+// because sometimes the flow of the profiled program can be to execute many sequential 
+// transaction - in that case, it may be preferable to set eager logging to avoid paying the
+// high cost of profiling for each individual transaction (one example for this are jest 
+// tests when run with --runInBand option).
+v8::CpuProfilingLoggingMode getLoggingMode(){
+  char* logging_mode = getenv("SENTRY_PROFILER_LOGGING_MODE");
+  if(logging_mode){
+    if(std::strcmp(logging_mode, "eager") == 0) {
+      return v8::CpuProfilingLoggingMode::kEagerLogging;
+    } if(std::strcmp(logging_mode, "lazy") == 0) {
+      return v8::CpuProfilingLoggingMode::kLazyLogging;
+    }
+  }
+  
+  return LOGGING_MODE;
+}
 class Profiler {
 public:
-  explicit Profiler(v8::Isolate* isolate) :
-
-    // Allow users to override the default logging mode via compile time flags. This is useful 
-    // because sometimes the flow of the profiled program can be to execute many sequential 
-    // transaction - in that case, it may be preferable to set eager logging to avoid paying the
-    // high cost of profiling for each individual transaction (one example for this are jest 
-    // tests when run with --runInBand option).
-#if PROFILER_LOGGING_MODE == 1
-    cpu_profiler(v8::CpuProfiler::New(isolate, v8::CpuProfilingNamingMode::kDebugNaming, v8::CpuProfilingLoggingMode::kEagerLogging)) {
-    node::AddEnvironmentCleanupHook(isolate, DeleteInstance, this);
-  }
-#else
-    cpu_profiler(v8::CpuProfiler::New(isolate, v8::CpuProfilingNamingMode::kDebugNaming, v8::CpuProfilingLoggingMode::kLazyLogging)) {
-    node::AddEnvironmentCleanupHook(isolate, DeleteInstance, this);
-  }
-#endif
+  explicit Profiler(v8::Isolate* isolate):
+    cpu_profiler(
+      v8::CpuProfiler::New(isolate, NAMING_MODE, getLoggingMode())) {
+        node::AddEnvironmentCleanupHook(isolate, DeleteInstance, this);
+    }
 
   v8::CpuProfiler* cpu_profiler;
 
@@ -236,12 +240,7 @@ v8::Local<v8::Value> CreateProfile(const v8::CpuProfile* profile, uint32_t threa
   Nan::Set(js_profile, Nan::New<v8::String>("profile_relative_started_at_ns").ToLocalChecked(), Nan::New<v8::Number>(profile->GetStartTime() * 1000));
   Nan::Set(js_profile, Nan::New<v8::String>("profile_relative_ended_at_ns").ToLocalChecked(), Nan::New<v8::Number>(profile->GetEndTime() * 1000));
 
-#if PROFILER_LOGGING_MODE == 1
-  Nan::Set(js_profile, Nan::New<v8::String>("profiler_logging_mode").ToLocalChecked(), Nan::New<v8::String>("eager").ToLocalChecked());
-#else
-  Nan::Set(js_profile, Nan::New<v8::String>("profiler_logging_mode").ToLocalChecked(), Nan::New<v8::String>("lazy").ToLocalChecked());
-#endif
-
+  Nan::Set(js_profile, Nan::New<v8::String>("profiler_logging_mode").ToLocalChecked(), Nan::New<v8::String>(getLoggingMode() == v8::CpuProfilingLoggingMode::kEagerLogging ? "eager" : "lazy").ToLocalChecked());
 
 
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
