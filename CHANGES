@@ -1,3 +1,10 @@
+## 0.0.7
+
+### Various fixes & improvements
+
+- ref(sdk): remove spans (#62) by @JonasBa
+- feat(profiling): use env variable instead of compile time (#61) by @JonasBa
+
 ## 0.0.6
 
 ### Various fixes & improvements
