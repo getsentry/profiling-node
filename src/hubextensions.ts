@@ -50,6 +50,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
 
     // We need to reference the original finish call to avoid creating an infinite loop
     const originalFinish = transaction.finish.bind(transaction);
+    // @TODO remove this
     const start = transaction.startChild({
       op: 'sentry.startProfiling'
     });
@@ -78,6 +79,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
         return profile;
       }
 
+      // @TODO remove this
       const stop = transaction.startChild({
         op: 'sentry.stopProfiling'
       });

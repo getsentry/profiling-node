@@ -9,6 +9,7 @@ function makeTransactionMock(): Transaction {
   return {
     metadata: {},
     tags: {},
+    startChild: () => ({ finish: () => void 0 }),
     finish() {
       return;
     },
