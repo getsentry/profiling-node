@@ -50,12 +50,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
 
     // We need to reference the original finish call to avoid creating an infinite loop
     const originalFinish = transaction.finish.bind(transaction);
-    // @TODO remove this
-    const start = transaction.startChild({
-      op: 'sentry.startProfiling'
-    });
     CpuProfilerBindings.startProfiling(uniqueTransactionName);
-    start.finish();
 
     if (isDebugBuild()) {
       logger.log('[Profiling] started profiling transaction: ' + transactionContext.name);
@@ -79,12 +74,8 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
         return profile;
       }
 
-      // @TODO remove this
-      const stop = transaction.startChild({
-        op: 'sentry.stopProfiling'
-      });
       profile = CpuProfilerBindings.stopProfiling(uniqueTransactionName);
-      stop.finish();
+
       if (maxDurationTimeoutID) {
         global.clearTimeout(maxDurationTimeoutID);
         maxDurationTimeoutID = undefined;
