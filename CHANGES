@@ -1,3 +1,11 @@
+## 0.0.6
+
+### Various fixes & improvements
+
+- ref(sdk): add temporary spans (#60) by @JonasBa
+- ref(sdk): remove sdk tag (#59) by @JonasBa
+- fix: fix javascript repo reference (af046f28) by @JonasBa
+
 ## 0.0.5
 
 ### Various fixes & improvements
