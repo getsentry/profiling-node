@@ -22,8 +22,9 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     transactionContext: TransactionContext,
     customSamplingContext?: CustomSamplingContext
   ): Transaction {
+    const client = this.getClient();
     // @ts-expect-error profilesSampleRate is not part of the options type yet
-    const profilesSampleRate = this.getClient()?.getOptions().profilesSampleRate ?? undefined;
+    const profilesSampleRate = client?.getOptions().profilesSampleRate ?? undefined;
     const transaction = startTransaction.call(this, transactionContext, customSamplingContext);
 
     // We create "unique" transaction names to avoid concurrent transactions with same names
@@ -49,7 +50,11 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
 
     // We need to reference the original finish call to avoid creating an infinite loop
     const originalFinish = transaction.finish.bind(transaction);
+    const start = transaction.startChild({
+      op: 'sentry.startProfiling'
+    });
     CpuProfilerBindings.startProfiling(uniqueTransactionName);
+    start.finish();
 
     if (isDebugBuild()) {
       logger.log('[Profiling] started profiling transaction: ' + transactionContext.name);
@@ -73,7 +78,11 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
         return profile;
       }
 
+      const stop = transaction.startChild({
+        op: 'sentry.stopProfiling'
+      });
       profile = CpuProfilerBindings.stopProfiling(uniqueTransactionName);
+      stop.finish();
       if (maxDurationTimeoutID) {
         global.clearTimeout(maxDurationTimeoutID);
         maxDurationTimeoutID = undefined;
