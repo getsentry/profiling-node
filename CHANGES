@@ -1,3 +1,10 @@
+## 0.0.9
+
+### Various fixes & improvements
+
+- fix(envelope): missmatch in type guard (#65) by @JonasBa
+- feat(binaries): precompile binaries (#64) by @JonasBa
+
 ## 0.0.8
 
 ### Various fixes & improvements
