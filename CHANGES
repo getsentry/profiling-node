@@ -1,3 +1,9 @@
+## 0.0.8
+
+### Various fixes & improvements
+
+- fix(profiling): remove build script (c5cf7353) by @JonasBa
+
 ## 0.0.7
 
 ### Various fixes & improvements
