@@ -22,16 +22,18 @@
     "binaries",
     "scripts/binaries.js",
     "scripts/check-build.js",
-    "scripts/copu-target.js"
+    "scripts/copy-target.js",
+    "scripts/empty.js"
   ],
   "scripts": {
+    "install": "node scripts/empty.js",
     "postinstall": "node scripts/check-build.js",
     "clean": "rm -rf ./lib && rm -rf build",
     "lint": "eslint ./src --ext .ts",
     "build": "npm run build:bindings && npm run build:lib",
     "build:lib": "tsc",
     "build:configure": "node-gyp configure",
-    "build:bindings": "node-gyp rebuild",
+    "build:bindings": "node-gyp build",
     "build:benchmark:format": "node-gyp -DFORMAT_BENCHMARK=1 build",
     "benchmark": "npm run benchmark:methods && npm run benchmark:profiler && npm run benchmark:server && npm run benchmark:format",
     "benchmark:methods": "node benchmarks/cpu/benchmark.methods.js",

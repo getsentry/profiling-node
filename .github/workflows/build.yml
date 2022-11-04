@@ -11,28 +11,6 @@ on:
         description: If the commit you want to test isn't the head of a branch, provide its SHA here
         required: false
 jobs:
-  build-library:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 16
-
-      - run: npm ci
-
-      - run: npm run build:lib
-
-      - run: npm pack
-
-      - name: Archive artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ github.sha }}
-          path: |
-            ${{ github.workspace }}/*.tgz
-
   precompile-bindings:
     strategy:
       fail-fast: false
@@ -83,3 +61,43 @@ jobs:
           name: ${{ matrix.os }}.${{ matrix.node-version }}.${{ matrix.host }}.${{ github.sha }}
           path: |
             ${{ github.workspace }}/binaries/
+
+  build-library:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18
+
+      - run: npm ci
+
+      - run: npm run build:lib
+
+      - run: npm pack
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.sha }}
+          path: |
+            ${{ github.workspace }}/*.tgz
+
+  prepare-repository:
+    runs-on: ubuntu-latest
+    needs: [precompile-bindings, build-library]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18
+
+      - uses: actions/download-artifact@v1
+        with:
+          name: ${{ github.sha }}
+
+      - run: ls -R
+
