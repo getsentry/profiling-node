@@ -58,7 +58,7 @@ jobs:
       - name: Archive binary
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.os }}.${{ matrix.node-version }}.${{ matrix.host }}.${{ github.sha }}
+          name: ${{ github.sha }}
           path: |
             ${{ github.workspace }}/binaries/
 
