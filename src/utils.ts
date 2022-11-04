@@ -222,11 +222,7 @@ export function createProfilingEventEnvelope(
 }
 
 export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent {
-  return !!(
-    event.sdkProcessingMetadata &&
-    'profile' in event.sdkProcessingMetadata &&
-    event.sdkProcessingMetadata['profile'] !== undefined
-  );
+  return !!(event.sdkProcessingMetadata && event.sdkProcessingMetadata['profile']);
 }
 
 // Due to how profiles are attached to event metadata, we may sometimes want to remove them to ensure
