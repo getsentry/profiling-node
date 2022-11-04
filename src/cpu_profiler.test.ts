@@ -102,10 +102,10 @@ describe('Profiler bindings', () => {
 
     if (!profile) fail('Profile is null');
 
-    // Exception for macos - we seem to get way less samples there, but I'm not sure if that's due to poor
+    // Exception for macos and windows - we seem to get way less samples there, but I'm not sure if that's due to poor
     // performance of the actions runner, machine or something else. This needs more investigation to determine
     // the cause of low sample count. https://github.com/actions/runner-images/issues/1336 seems relevant.
-    if (process.platform === 'darwin') {
+    if (process.platform === 'darwin' || process.platform === 'win32') {
       if (profile.samples.length < 2) {
         fail('Only ' + profile.samples.length + ' samples obtained on ' + process.platform + ', expected at least 2');
       }

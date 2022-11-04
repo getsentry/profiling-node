@@ -6,7 +6,7 @@ const gzip = require('zlib');
 const { ZSTDCompress } = require('simple-zstd');
 
 const { mean, stdev, variancepct, variance, quantile } = require('./../cpu/utils');
-const cpu_profiler = require('../../build/Release/cpu_profiler.node');
+const cpu_profiler = require('../../build/Release/sentry_cpu_profiler.node');
 const { threadId } = require('worker_threads');
 
 const relativeChange = (final, initial) => {

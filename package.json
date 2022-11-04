@@ -18,14 +18,21 @@
     "LICENSE",
     "README.md",
     "package.json",
-    "package-lock.json"
+    "package-lock.json",
+    "binaries",
+    "scripts/binaries.js",
+    "scripts/check-build.js",
+    "scripts/copy-target.js",
+    "scripts/empty.js"
   ],
   "scripts": {
-    "postinstall": "npm run build:bindings",
+    "install": "node scripts/empty.js",
+    "postinstall": "node scripts/check-build.js",
     "clean": "rm -rf ./lib && rm -rf build",
     "lint": "eslint ./src --ext .ts",
     "build": "npm run build:bindings && npm run build:lib",
     "build:lib": "tsc",
+    "build:configure": "node-gyp configure",
     "build:bindings": "node-gyp build",
     "build:benchmark:format": "node-gyp -DFORMAT_BENCHMARK=1 build",
     "benchmark": "npm run benchmark:methods && npm run benchmark:profiler && npm run benchmark:server && npm run benchmark:format",
@@ -54,12 +61,14 @@
     "@sentry/types": "^7.16.0",
     "@sentry/utils": "^7.16.0",
     "nan": "^2.17.0",
+    "node-abi": "^3.28.0",
     "node-gyp": "^9.3.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.14",
     "@types/jest": "^29.0.0",
     "@types/node": "^18.0.2",
+    "@types/node-abi": "^3.0.0",
     "@typescript-eslint/eslint-plugin": "^5.36.2",
     "@typescript-eslint/parser": "^5.36.2",
     "autocannon": "^7.9.0",
