@@ -11,6 +11,28 @@ on:
         description: If the commit you want to test isn't the head of a branch, provide its SHA here
         required: false
 jobs:
+  build-library:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 16
+
+      - run: npm ci
+
+      - run: npm run build:lib
+
+      - run: npm pack
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.sha }}
+          path: |
+            ${{ github.workspace }}/*.tgz
+
   precompile-bindings:
     strategy:
       fail-fast: false
@@ -34,7 +56,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
           architecture: ${{ matrix.host }}
 
-      - name: Add msbuild to PATH
+      - name: Setup windows build tools
         uses: microsoft/setup-msbuild@v1.1
         if: ${{ runner.os == 'Windows' }}
         with:
@@ -52,5 +74,12 @@ jobs:
       - name: Test
         run: npm run test
       
-      - name: Binary size
-        run: du -h build/Release/cpu_profiler.node
+      - name: Copy Binary
+        run: node scripts/copy-target.js
+
+      - name: Archive binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.os }}.${{ matrix.node-version }}.${{ matrix.host }}.${{ github.sha }}
+          path: |
+            ${{ github.workspace }}/binaries/*.node

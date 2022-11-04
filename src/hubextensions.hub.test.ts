@@ -12,7 +12,7 @@ Sentry.init({
 });
 
 // @ts-expect-error file extension errors
-import profiler from './../build/Release/cpu_profiler';
+import profiler from './../build/Release/sentry_cpu_profiler';
 
 describe('hubextensions', () => {
   beforeEach(() => {

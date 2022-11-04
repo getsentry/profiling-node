@@ -1,5 +1,5 @@
 // @ts-expect-error this screams because it cannot resolve the module?
-import profiler from './../build/Release/cpu_profiler.node';
+import profiler from './../build/Release/sentry_cpu_profiler.node';
 import { threadId } from 'worker_threads';
 
 interface Sample {

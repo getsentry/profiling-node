@@ -3,7 +3,7 @@ import type { BaseTransportOptions, ClientOptions, Hub, Transaction, Transaction
 import { __PRIVATE__wrapStartTransactionWithProfiling } from './hubextensions';
 
 // @ts-expect-error file extension errors
-import profiler from './../build/Release/cpu_profiler';
+import profiler from './../build/Release/sentry_cpu_profiler';
 
 function makeTransactionMock(): Transaction {
   return {
@@ -85,7 +85,7 @@ describe('hubextensions', () => {
     expect(transaction.metadata?.profile).toBeUndefined();
   });
   it('starts the profiler', () => {
-    jest.unmock('./../build/Release/cpu_profiler');
+    jest.unmock('./../build/Release/sentry_cpu_profiler');
     const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
     const stopProfilingSpy = jest.spyOn(profiler, 'stopProfiling');
 

@@ -18,7 +18,8 @@
     "LICENSE",
     "README.md",
     "package.json",
-    "package-lock.json"
+    "package-lock.json",
+    "binaries"
   ],
   "scripts": {
     "clean": "rm -rf ./lib && rm -rf build",
@@ -26,7 +27,7 @@
     "build": "npm run build:bindings && npm run build:lib",
     "build:lib": "tsc",
     "build:configure": "node-gyp configure",
-    "build:bindings": "node-gyp build",
+    "build:bindings": "node-gyp rebuild",
     "build:benchmark:format": "node-gyp -DFORMAT_BENCHMARK=1 build",
     "benchmark": "npm run benchmark:methods && npm run benchmark:profiler && npm run benchmark:server && npm run benchmark:format",
     "benchmark:methods": "node benchmarks/cpu/benchmark.methods.js",
@@ -54,6 +55,7 @@
     "@sentry/types": "^7.16.0",
     "@sentry/utils": "^7.16.0",
     "nan": "^2.17.0",
+    "node-abi": "^3.28.0",
     "node-gyp": "^9.3.0"
   },
   "devDependencies": {
