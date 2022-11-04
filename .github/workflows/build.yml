@@ -82,4 +82,4 @@ jobs:
         with:
           name: ${{ matrix.os }}.${{ matrix.node-version }}.${{ matrix.host }}.${{ github.sha }}
           path: |
-            ${{ github.workspace }}/binaries/*.node
+            ${{ github.workspace }}/binaries/

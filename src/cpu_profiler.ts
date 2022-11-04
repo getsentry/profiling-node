@@ -1,6 +1,12 @@
-// @ts-expect-error this screams because it cannot resolve the module?
-import profiler from './../build/Release/sentry_cpu_profiler.node';
+import os from 'os';
+import path from 'path';
+import abi from 'node-abi';
 import { threadId } from 'worker_threads';
+
+export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
+  const name = `sentry_cpu_profiler-v${abi.getAbi(process.versions.node, 'node')}-${os.platform()}-${os.arch()}.node`;
+  return require(path.join(__dirname, '..', 'binaries', name));
+}
 
 interface Sample {
   stack_id: number;
@@ -44,7 +50,7 @@ interface V8CpuProfilerBindings {
   stopProfiling(name: string): RawThreadCpuProfile | null;
 }
 
-const privateBindings: PrivateV8CpuProfilerBindings = profiler;
+const privateBindings: PrivateV8CpuProfilerBindings = importCppBindingsModule();
 const CpuProfilerBindings: V8CpuProfilerBindings = {
   startProfiling(name: string) {
     return privateBindings.startProfiling(name);

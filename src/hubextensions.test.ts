@@ -1,9 +1,9 @@
 import type { BaseTransportOptions, ClientOptions, Hub, Transaction, TransactionMetadata } from '@sentry/types';
 
 import { __PRIVATE__wrapStartTransactionWithProfiling } from './hubextensions';
+import { importCppBindingsModule } from './cpu_profiler';
 
-// @ts-expect-error file extension errors
-import profiler from './../build/Release/sentry_cpu_profiler';
+const profiler = importCppBindingsModule();
 
 function makeTransactionMock(): Transaction {
   return {
