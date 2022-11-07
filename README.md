@@ -36,11 +36,11 @@ const transaction = Sentry.startTransaction({ name: 'I will do some work' });
 transaction.finish();
 ```
 
-### Runtime time flags
+### Environment flags flags
 
-The default mode of the v8 CpuProfiler is kLazyLogging which disables logging when no profiles are active - this is good because it does not add any overhead to the runtime, however it may result in calls to startProfiling to significantly block script execution when the first profiles starts. You can switch to eager logging which decreases the startup cost for the tradeoff of some CPU overhead by specifying environment variable `SENTRY_PROFILER_LOGGING_MODE` with values `eager|lazy` before running npm install.
+The default mode of the v8 CpuProfiler is kLazyLogging which disables logging when no profiles are active - this is good because it does not add any overhead to the runtime, but the tradeoff is that it results in slow calls to startProfiling (this can exceed couple hundred ms from our tests). You can switch to eager logging which decreases the startup cost for the tradeoff of CPU overhead. You can do so by defining a `SENTRY_PROFILER_LOGGING_MODE` environment variable `eager|lazy` before running your script.
 
-Example of starting a webserver with eager logging mode.
+Example of starting a server with eager logging mode.
 
 ```javascript
 SENTRY_PROFILER_LOGGING_MODE=eager node server.js
