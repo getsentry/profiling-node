@@ -154,6 +154,7 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
   const uint32_t profile_start_time_us = profile->GetStartTime();
   const int sampleCount = profile->GetSamplesCount();
 
+  uint32_t unique_stack_id = 0;
   uint32_t unique_frame_id = 0;
 
   // Initialize the lookup tables for stacks and frames, both of these are indexed
@@ -166,7 +167,7 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
   v8::Local<v8::Array> frames = Nan::New<v8::Array>();
 
   for (int i = 0; i < sampleCount; i++) {
-    int stack_index = i;
+    uint32_t stack_index = unique_stack_id;
     const v8::CpuProfileNode* node = profile->GetSample(i);
 
     // If a node was only on top of the stack once, then it will only ever 
@@ -189,7 +190,7 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
     const v8::Local<v8::Value> sample = CreateSample(stack_index, profile->GetSampleTimestamp(i) - profile_start_time_us, thread_id);
 
     // If stack index differs from the sample index that means the stack had been indexed.
-    if (stack_index != i) {
+    if (stack_index != unique_stack_id) {
       Nan::Set(samples, i, sample);
       continue;
     }
@@ -226,8 +227,9 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
       stack_depth++;
     }
 
-    Nan::Set(stacks, i, stack);
+    Nan::Set(stacks, stack_index, stack);
     Nan::Set(samples, i, sample);
+    unique_stack_id++;
   };
 
   return std::make_tuple(stacks, samples, frames);

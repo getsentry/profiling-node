@@ -5,10 +5,17 @@ function fail(message: string): never {
   throw new Error(message);
 }
 
+const fibonacci = (n: number): number => {
+  if (n <= 1) {
+    return n;
+  }
+  return fibonacci(n - 1) + fibonacci(n - 2);
+};
+
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const profiled = (name: string, fn: () => void) => {
+const profiled = async (name: string, fn: () => void) => {
   CpuProfilerBindings.startProfiling(name);
-  fn();
+  await fn();
   return CpuProfilerBindings.stopProfiling(name);
 };
 
@@ -16,6 +23,9 @@ const assertValidSamplesAndStacks = (stacks: ThreadCpuProfile['stacks'], samples
   expect(stacks.length).toBeGreaterThan(0);
   expect(samples.length).toBeGreaterThan(0);
   expect(stacks.length <= samples.length).toBe(true);
+  for (const stack of stacks) {
+    expect(stack).not.toBe(undefined);
+  }
 };
 
 describe('Profiler bindings', () => {
@@ -25,7 +35,7 @@ describe('Profiler bindings', () => {
   });
 
   it('profiles a program', async () => {
-    const profile = profiled('profiled-program', async () => {
+    const profile = await profiled('profiled-program', async () => {
       await wait(100);
     });
 
@@ -34,8 +44,8 @@ describe('Profiler bindings', () => {
     assertValidSamplesAndStacks(profile.stacks, profile.samples);
   });
 
-  it('adds thread_id info', () => {
-    const profile = profiled('profiled-program', async () => {
+  it('adds thread_id info', async () => {
+    const profile = await profiled('profiled-program', async () => {
       await wait(100);
     });
 
@@ -50,7 +60,7 @@ describe('Profiler bindings', () => {
     }
   });
 
-  it('caps stack depth at 128', () => {
+  it('caps stack depth at 128', async () => {
     const recurseToDepth = async (depth: number): Promise<number> => {
       if (depth === 0) {
         // Wait a bit to make sure stack gets sampled here
@@ -60,7 +70,7 @@ describe('Profiler bindings', () => {
       return await recurseToDepth(depth - 1);
     };
 
-    const profile = profiled('profiled-program', async () => {
+    const profile = await profiled('profiled-program', async () => {
       await recurseToDepth(256);
     });
 
@@ -86,13 +96,25 @@ describe('Profiler bindings', () => {
     expect(() => CpuProfilerBindings.stopProfiling('does not exist')).not.toThrow();
   });
 
-  it('compiles with lazy logging by default', () => {
-    const profile = profiled('profiled-program', async () => {
+  it('compiles with lazy logging by default', async () => {
+    const profile = await profiled('profiled-program', async () => {
       await wait(100);
     });
 
     if (!profile) fail('Profile is null');
     expect(profile.profiler_logging_mode).toBe('lazy');
+  });
+
+  it('stacks are not null', async () => {
+    const profile = await profiled('non nullable stack', async () => {
+      await wait(1000);
+      fibonacci(36);
+      await wait(1000);
+    });
+
+    if (!profile) fail('Profile is null');
+    console.log(profile.stacks);
+    assertValidSamplesAndStacks(profile.stacks, profile.samples);
   });
 
   it('samples at ~99hz', async () => {
@@ -131,7 +153,7 @@ describe('Profiler bindings', () => {
       }
     }
 
-    const profile = profiled('profiled-program', async () => {
+    const profile = await profiled('profiled-program', async () => {
       iterateOverLargeHashTable();
     });
 
