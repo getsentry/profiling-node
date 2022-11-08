@@ -127,7 +127,7 @@ v8::Local<v8::Object> CreateFrameNode(
 };
 
 
-v8::Local<v8::Object> CreateSample(uint32_t stack_id, uint32_t sample_timestamp_us, uint32_t thread_id) {
+v8::Local<v8::Object> CreateSample(uint32_t stack_id, int64_t sample_timestamp_us, uint32_t thread_id) {
   v8::Local<v8::Object> js_node = Nan::New<v8::Object>();
 
   Nan::Set(js_node, Nan::New<v8::String>("stack_id").ToLocalChecked(), Nan::New<v8::Number>(stack_id));
@@ -151,7 +151,7 @@ std::string hashCpuProfilerNodeByPath(const v8::CpuProfileNode* node) {
 }
 
 std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> GetSamples(const v8::CpuProfile* profile, uint32_t thread_id) {
-  const uint32_t profile_start_time_us = profile->GetStartTime();
+  const int64_t profile_start_time_us = profile->GetStartTime();
   const int sampleCount = profile->GetSamplesCount();
 
   uint32_t unique_stack_id = 0;
