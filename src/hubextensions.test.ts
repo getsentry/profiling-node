@@ -85,7 +85,6 @@ describe('hubextensions', () => {
     expect(transaction.metadata?.profile).toBeUndefined();
   });
   it('starts the profiler', () => {
-    jest.unmock('./../build/Release/sentry_cpu_profiler');
     const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
     const stopProfilingSpy = jest.spyOn(profiler, 'stopProfiling');
 

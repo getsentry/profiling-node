@@ -58,7 +58,7 @@ export interface Profile {
       image_vmaddr: string;
     }[];
   };
-  transactions?: {
+  transactions: {
     name: string;
     trace_id: string;
     id: string;
@@ -179,7 +179,7 @@ export function createProfilingEventEnvelope(
     release: event.sdk?.version || 'unknown',
     runtime: {
       name: 'node',
-      version: process.versions.node
+      version: process.versions.node || 'unknown'
     },
     os: {
       name: PLATFORM,
@@ -190,7 +190,6 @@ export function createProfilingEventEnvelope(
       locale:
         (process.env['LC_ALL'] || process.env['LC_MESSAGES'] || process.env['LANG'] || process.env['LANGUAGE']) ??
         'unknown locale',
-      // os.machine is new in node18
       model: MODEL,
       manufacturer: TYPE,
       architecture: ARCH,
