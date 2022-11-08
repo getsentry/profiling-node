@@ -1,3 +1,11 @@
+## 0.0.10
+
+### Various fixes & improvements
+
+- fix(profile): wrong stack indexing insertion (#67) by @JonasBa
+- docs: readme semicolon (#66) by @scttcper
+- Update README.md (595ebb99) by @JonasBa
+
 ## 0.0.9
 
 ### Various fixes & improvements
