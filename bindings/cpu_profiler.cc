@@ -182,7 +182,7 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
         stack_index = stack_index_cache_hit->second;
       }
       else {
-        stack_lookup_table.insert({ node_hash, i });
+        stack_lookup_table.insert({ node_hash, stack_index });
       }
     }
 

@@ -23,6 +23,14 @@ const assertValidSamplesAndStacks = (stacks: ThreadCpuProfile['stacks'], samples
   expect(stacks.length).toBeGreaterThan(0);
   expect(samples.length).toBeGreaterThan(0);
   expect(stacks.length <= samples.length).toBe(true);
+
+  for (const sample of samples) {
+    if (!stacks[sample.stack_id]) {
+      throw new Error(`Failed to find stack for sample: ${JSON.stringify(sample)}`);
+    }
+    expect(stacks[sample.stack_id]).not.toBe(undefined);
+  }
+
   for (const stack of stacks) {
     expect(stack).not.toBe(undefined);
   }
@@ -113,7 +121,6 @@ describe('Profiler bindings', () => {
     });
 
     if (!profile) fail('Profile is null');
-    console.log(profile.stacks);
     assertValidSamplesAndStacks(profile.stacks, profile.samples);
   });
 
