@@ -100,13 +100,13 @@ v8::Local<v8::Value> CreateFrameGraph(const CpuProfileNode* node) {
 
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
 v8::Local<v8::Object> CreateFrameNode(
-  v8::Local<v8::String> name, v8::Local<v8::String> scriptName, v8::Local<v8::Integer> line,
+  v8::Local<v8::String> name, v8::Local<v8::String> absPath, v8::Local<v8::Integer> line,
   v8::Local<v8::Integer> column, std::vector<v8::CpuProfileDeoptInfo> deoptInfos) {
 
   v8::Local<v8::Object> js_node = Nan::New<v8::Object>();
 
   Nan::Set(js_node, Nan::New<v8::String>("name").ToLocalChecked(), name);
-  Nan::Set(js_node, Nan::New<v8::String>("file").ToLocalChecked(), scriptName);
+  Nan::Set(js_node, Nan::New<v8::String>("absPath").ToLocalChecked(), absPath);
   Nan::Set(js_node, Nan::New<v8::String>("line").ToLocalChecked(), line);
   Nan::Set(js_node, Nan::New<v8::String>("column").ToLocalChecked(), column);
 
