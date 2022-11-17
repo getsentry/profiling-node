@@ -107,6 +107,7 @@ v8::Local<v8::Object> CreateFrameNode(
 
   Nan::Set(js_node, Nan::New<v8::String>("function").ToLocalChecked(), function);
   Nan::Set(js_node, Nan::New<v8::String>("abs_path").ToLocalChecked(), abs_path);
+  Nan::Set(js_node, Nan::New<v8::String>("file").ToLocalChecked(), abs_path);
   Nan::Set(js_node, Nan::New<v8::String>("lineno").ToLocalChecked(), lineno);
   Nan::Set(js_node, Nan::New<v8::String>("colno").ToLocalChecked(), colno);
   Nan::Set(js_node, Nan::New<v8::Boolean>("in_app"), 
