@@ -106,7 +106,9 @@ v8::Local<v8::Object> CreateFrameNode(
   v8::Local<v8::Object> js_node = Nan::New<v8::Object>();
 
   Nan::Set(js_node, Nan::New<v8::String>("function").ToLocalChecked(), function);
-  Nan::Set(js_node, Nan::New<v8::String>("abs_path").ToLocalChecked(), abs_path);
+  // @TODO file is currently reporting abs_path, but should be relative to the project root.
+  // Since I do not know what would be the best way to do this as of now, I'm leaving it open.
+  // Nan::Set(js_node, Nan::New<v8::String>("abs_path").ToLocalChecked(), abs_path);
   Nan::Set(js_node, Nan::New<v8::String>("file").ToLocalChecked(), abs_path);
   Nan::Set(js_node, Nan::New<v8::String>("lineno").ToLocalChecked(), lineno);
   Nan::Set(js_node, Nan::New<v8::String>("colno").ToLocalChecked(), colno);
