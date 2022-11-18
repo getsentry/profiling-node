@@ -18,12 +18,12 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "importsNotUsedAsValues": "error",
-    "checkJs": true,
+    "checkJs": false,
     "allowJs": true,
     "declaration": true,
     "outDir": "lib",
     "typeRoots": ["node_modules/@types"]
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts", "scripts/**/*"]
+  "exclude": ["src/**/*.test.ts", "scripts/**/*", "root.js"]
 }
