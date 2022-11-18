@@ -100,15 +100,20 @@ v8::Local<v8::Value> CreateFrameGraph(const CpuProfileNode* node) {
 
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
 v8::Local<v8::Object> CreateFrameNode(
-  v8::Local<v8::String> name, v8::Local<v8::String> scriptName, v8::Local<v8::Integer> line,
-  v8::Local<v8::Integer> column, std::vector<v8::CpuProfileDeoptInfo> deoptInfos) {
+  v8::Local<v8::String> function, v8::Local<v8::String> abs_path, v8::Local<v8::Integer> lineno,
+  v8::Local<v8::Integer> colno, v8::CpuProfileNode::SourceType type, std::vector<v8::CpuProfileDeoptInfo> deopt_info) {
 
   v8::Local<v8::Object> js_node = Nan::New<v8::Object>();
 
-  Nan::Set(js_node, Nan::New<v8::String>("name").ToLocalChecked(), name);
-  Nan::Set(js_node, Nan::New<v8::String>("file").ToLocalChecked(), scriptName);
-  Nan::Set(js_node, Nan::New<v8::String>("line").ToLocalChecked(), line);
-  Nan::Set(js_node, Nan::New<v8::String>("column").ToLocalChecked(), column);
+  Nan::Set(js_node, Nan::New<v8::String>("function").ToLocalChecked(), function);
+  // @TODO file is currently reporting abs_path, but should be relative to the project root.
+  // Since I do not know what would be the best way to do this as of now, I'm leaving it open.
+  Nan::Set(js_node, Nan::New<v8::String>("abs_path").ToLocalChecked(), abs_path);
+  Nan::Set(js_node, Nan::New<v8::String>("filename").ToLocalChecked(), abs_path);
+  Nan::Set(js_node, Nan::New<v8::String>("lineno").ToLocalChecked(), lineno);
+  Nan::Set(js_node, Nan::New<v8::String>("colno").ToLocalChecked(), colno);
+  Nan::Set(js_node, Nan::New<v8::Boolean>("in_app"), 
+  Nan::New<v8::Boolean>(type == v8::CpuProfileNode::SourceType::kScript));
 
   // @TODO Deopt info needs to be added to backend
   // size_t size = deoptInfos.size();
@@ -213,6 +218,7 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
           node->GetScriptResourceName(),
           Nan::New<v8::Integer>(node->GetLineNumber()),
           Nan::New<v8::Integer>(node->GetColumnNumber()),
+          node->GetSourceType(),
           node->GetDeoptInfos()
         ));
         unique_frame_id++;
