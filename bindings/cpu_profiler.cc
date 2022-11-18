@@ -1,5 +1,6 @@
 
 #include <unordered_map>
+#include <iostream>
 
 #include "nan.h"
 #include "node.h"
@@ -110,21 +111,22 @@ void replace_in_place(std::string& subject, const std::string& search,
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
 v8::Local<v8::Object> CreateFrameNode(
   v8::Local<v8::String> function, v8::Local<v8::String> abs_path, v8::Local<v8::Integer> lineno,
-  v8::Local<v8::Integer> colno, v8::CpuProfileNode::SourceType type, std::vector<v8::CpuProfileDeoptInfo> deopt_info, char* app_root_dir) {
+  v8::Local<v8::Integer> colno, v8::CpuProfileNode::SourceType type, std::vector<v8::CpuProfileDeoptInfo> deopt_info, std::string app_root_dir) {
 
   v8::Local<v8::Object> js_node = Nan::New<v8::Object>();
 
   Nan::Set(js_node, Nan::New<v8::String>("function").ToLocalChecked(), function);
   Nan::Set(js_node, Nan::New<v8::String>("abs_path").ToLocalChecked(), abs_path);
-  if(app_root_dir != nullptr) {
+  if(!app_root_dir.empty()){
     std::string abs_path_str = *Nan::Utf8String(abs_path);
-    replace_in_place(abs_path_str, app_root_dir, "");
-    Nan::Set(js_node, Nan::New<v8::String>("filename").ToLocalChecked(), Nan::New<v8::String>(abs_path_str).ToLocalChecked());
+
+    if(abs_path_str.starts_with(app_root_dir)){
+      Nan::Set(js_node, Nan::New<v8::String>("filename").ToLocalChecked(), Nan::New<v8::String>(abs_path_str.substr(app_root_dir.size())).ToLocalChecked());
+    }
   }
   Nan::Set(js_node, Nan::New<v8::String>("lineno").ToLocalChecked(), lineno);
   Nan::Set(js_node, Nan::New<v8::String>("colno").ToLocalChecked(), colno);
-  Nan::Set(js_node, Nan::New<v8::Boolean>("in_app"), 
-  Nan::New<v8::Boolean>(type == v8::CpuProfileNode::SourceType::kScript));
+  Nan::Set(js_node, Nan::New<v8::String>("in_app").ToLocalChecked(), Nan::New<v8::Boolean>(type == v8::CpuProfileNode::SourceType::kScript));
 
   // @TODO Deopt info needs to be added to backend
   // size_t size = deoptInfos.size();
@@ -166,7 +168,7 @@ std::string hashCpuProfilerNodeByPath(const v8::CpuProfileNode* node) {
   return path;
 }
 
-std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> GetSamples(const v8::CpuProfile* profile, uint32_t thread_id, char* app_root_dir) {
+std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> GetSamples(const v8::CpuProfile* profile, uint32_t thread_id, std::string app_root_dir) {
   const int64_t profile_start_time_us = profile->GetStartTime();
   const int sampleCount = profile->GetSamplesCount();
 
@@ -254,7 +256,7 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
 };
 #endif
 
-v8::Local<v8::Value> CreateProfile(const v8::CpuProfile* profile, uint32_t thread_id, char* app_root_directory) {
+v8::Local<v8::Value> CreateProfile(const v8::CpuProfile* profile, uint32_t thread_id, std::string app_root_directory) {
   v8::Local<v8::Object> js_profile = Nan::New<v8::Object>();
 
   Nan::Set(js_profile, Nan::New<v8::String>("profile_relative_started_at_ns").ToLocalChecked(), Nan::New<v8::Number>(profile->GetStartTime() * 1000));
@@ -299,6 +301,7 @@ static void StartProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
 // StopProfiling(string title)
 // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#a40ca4c8a8aa4c9233aa2a2706457cc80
 static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
+
   if (args[0].IsEmpty()) {
     return Nan::ThrowError("StopProfiling expects a string as first argument.");
   };
@@ -326,7 +329,7 @@ static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
     return;
   };
 
-  char* app_root_directory = args[2].IsEmpty() ? nullptr : *Nan::Utf8String(args[2]);
+  std::string app_root_directory = args[2].IsEmpty() ? std::string() : std::string(*Nan::Utf8String(args[2]));
   
   args.GetReturnValue().Set(CreateProfile(profile, Nan::To<uint32_t>(args[1]).FromJust(), app_root_directory));
   profile->Delete();
