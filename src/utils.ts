@@ -1,4 +1,5 @@
 import os from 'os';
+import path from 'path';
 import { isMainThread, threadId } from 'worker_threads';
 import type {
   SdkInfo,
@@ -17,9 +18,6 @@ import type { ThreadCpuProfile, RawThreadCpuProfile } from './cpu_profiler';
 // I guess tsc does not check file contents when it's imported.
 // eslint-disable-next-line
 const { root_directory } = require('./../root.js');
-
-import path from 'path';
-import { path as appRootPath } from 'app-root-path';
 
 const THREAD_ID_STRING = String(threadId);
 const THREAD_NAME = isMainThread ? 'main' : 'worker';
