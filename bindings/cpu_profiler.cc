@@ -1,6 +1,5 @@
 
 #include <unordered_map>
-#include <iostream>
 
 #include "nan.h"
 #include "node.h"
@@ -99,15 +98,6 @@ v8::Local<v8::Value> CreateFrameGraph(const CpuProfileNode* node) {
 };
 #endif
 
-void replace_in_place(std::string& subject, const std::string& search,
-                          const std::string& replace) {
-    size_t pos = 0;
-    while ((pos = subject.find(search, pos)) != std::string::npos) {
-         subject.replace(pos, search.length(), replace);
-         pos += replace.length();
-    }
-}
-
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
 v8::Local<v8::Object> CreateFrameNode(
   v8::Local<v8::String> function, v8::Local<v8::String> abs_path, v8::Local<v8::Integer> lineno,
@@ -119,9 +109,8 @@ v8::Local<v8::Object> CreateFrameNode(
   Nan::Set(js_node, Nan::New<v8::String>("abs_path").ToLocalChecked(), abs_path);
   if(!app_root_dir.empty()){
     std::string abs_path_str = *Nan::Utf8String(abs_path);
-
-    if(abs_path_str.starts_with(app_root_dir)){
-      Nan::Set(js_node, Nan::New<v8::String>("filename").ToLocalChecked(), Nan::New<v8::String>(abs_path_str.substr(app_root_dir.size())).ToLocalChecked());
+    if(abs_path_str.compare(0, app_root_dir.size(), app_root_dir) == 0){
+      Nan::Set(js_node, Nan::New<v8::String>("filename").ToLocalChecked(), Nan::New<v8::String>(abs_path_str.substr(app_root_dir.length())).ToLocalChecked());
     }
   }
   Nan::Set(js_node, Nan::New<v8::String>("lineno").ToLocalChecked(), lineno);
