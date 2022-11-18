@@ -98,18 +98,29 @@ v8::Local<v8::Value> CreateFrameGraph(const CpuProfileNode* node) {
 };
 #endif
 
+void replace_in_place(std::string& subject, const std::string& search,
+                          const std::string& replace) {
+    size_t pos = 0;
+    while ((pos = subject.find(search, pos)) != std::string::npos) {
+         subject.replace(pos, search.length(), replace);
+         pos += replace.length();
+    }
+}
+
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
 v8::Local<v8::Object> CreateFrameNode(
   v8::Local<v8::String> function, v8::Local<v8::String> abs_path, v8::Local<v8::Integer> lineno,
-  v8::Local<v8::Integer> colno, v8::CpuProfileNode::SourceType type, std::vector<v8::CpuProfileDeoptInfo> deopt_info) {
+  v8::Local<v8::Integer> colno, v8::CpuProfileNode::SourceType type, std::vector<v8::CpuProfileDeoptInfo> deopt_info, char* app_root_dir) {
 
   v8::Local<v8::Object> js_node = Nan::New<v8::Object>();
 
   Nan::Set(js_node, Nan::New<v8::String>("function").ToLocalChecked(), function);
-  // @TODO file is currently reporting abs_path, but should be relative to the project root.
-  // Since I do not know what would be the best way to do this as of now, I'm leaving it open.
   Nan::Set(js_node, Nan::New<v8::String>("abs_path").ToLocalChecked(), abs_path);
-  Nan::Set(js_node, Nan::New<v8::String>("filename").ToLocalChecked(), abs_path);
+  if(app_root_dir != nullptr) {
+    std::string abs_path_str = *Nan::Utf8String(abs_path);
+    replace_in_place(abs_path_str, app_root_dir, "");
+    Nan::Set(js_node, Nan::New<v8::String>("filename").ToLocalChecked(), Nan::New<v8::String>(abs_path_str).ToLocalChecked());
+  }
   Nan::Set(js_node, Nan::New<v8::String>("lineno").ToLocalChecked(), lineno);
   Nan::Set(js_node, Nan::New<v8::String>("colno").ToLocalChecked(), colno);
   Nan::Set(js_node, Nan::New<v8::Boolean>("in_app"), 
@@ -155,7 +166,7 @@ std::string hashCpuProfilerNodeByPath(const v8::CpuProfileNode* node) {
   return path;
 }
 
-std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> GetSamples(const v8::CpuProfile* profile, uint32_t thread_id) {
+std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> GetSamples(const v8::CpuProfile* profile, uint32_t thread_id, char* app_root_dir) {
   const int64_t profile_start_time_us = profile->GetStartTime();
   const int sampleCount = profile->GetSamplesCount();
 
@@ -219,7 +230,8 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
           Nan::New<v8::Integer>(node->GetLineNumber()),
           Nan::New<v8::Integer>(node->GetColumnNumber()),
           node->GetSourceType(),
-          node->GetDeoptInfos()
+          node->GetDeoptInfos(),
+          app_root_dir
         ));
         unique_frame_id++;
       }
@@ -242,7 +254,7 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
 };
 #endif
 
-v8::Local<v8::Value> CreateProfile(const v8::CpuProfile* profile, uint32_t thread_id) {
+v8::Local<v8::Value> CreateProfile(const v8::CpuProfile* profile, uint32_t thread_id, char* app_root_directory) {
   v8::Local<v8::Object> js_profile = Nan::New<v8::Object>();
 
   Nan::Set(js_profile, Nan::New<v8::String>("profile_relative_started_at_ns").ToLocalChecked(), Nan::New<v8::Number>(profile->GetStartTime() * 1000));
@@ -252,7 +264,7 @@ v8::Local<v8::Value> CreateProfile(const v8::CpuProfile* profile, uint32_t threa
 
 
 #if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
-  std::tuple<v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> samples = GetSamples(profile, thread_id);
+  std::tuple<v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> samples = GetSamples(profile, thread_id, app_root_directory);
   Nan::Set(js_profile, Nan::New<v8::String>("stacks").ToLocalChecked(), std::get<0>(samples));
   Nan::Set(js_profile, Nan::New<v8::String>("samples").ToLocalChecked(), std::get<1>(samples));
   Nan::Set(js_profile, Nan::New<v8::String>("frames").ToLocalChecked(), std::get<2>(samples));
@@ -314,7 +326,9 @@ static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
     return;
   };
 
-  args.GetReturnValue().Set(CreateProfile(profile, Nan::To<uint32_t>(args[1]).FromJust()));
+  char* app_root_directory = args[2].IsEmpty() ? nullptr : *Nan::Utf8String(args[2]);
+  
+  args.GetReturnValue().Set(CreateProfile(profile, Nan::To<uint32_t>(args[1]).FromJust(), app_root_directory));
   profile->Delete();
 };
 

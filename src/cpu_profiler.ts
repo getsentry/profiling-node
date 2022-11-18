@@ -3,10 +3,16 @@ import path from 'path';
 import abi from 'node-abi';
 import { threadId } from 'worker_threads';
 
+import { getProjectRootDirectory } from './utils';
+
 export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   const name = `sentry_cpu_profiler-v${abi.getAbi(process.versions.node, 'node')}-${os.platform()}-${os.arch()}.node`;
   return require(path.join(__dirname, '..', 'binaries', name));
 }
+
+// Resolve the project root dir so we can try and compute a filename relative to it.
+// We forward this to C++ code so we dont end up post-processing frames in JS.
+const projectRootDirectory = getProjectRootDirectory();
 
 interface Sample {
   stack_id: number;
@@ -42,7 +48,7 @@ export interface ThreadCpuProfile {
 
 interface PrivateV8CpuProfilerBindings {
   startProfiling(name: string): void;
-  stopProfiling(name: string, threadId: number): RawThreadCpuProfile | null;
+  stopProfiling(name: string, threadId: number, projectRootDir: string | null): RawThreadCpuProfile | null;
 }
 
 interface V8CpuProfilerBindings {
@@ -56,7 +62,7 @@ const CpuProfilerBindings: V8CpuProfilerBindings = {
     return privateBindings.startProfiling(name);
   },
   stopProfiling(name: string) {
-    return privateBindings.stopProfiling(name, threadId);
+    return privateBindings.stopProfiling(name, threadId, projectRootDirectory);
   }
 };
 export { CpuProfilerBindings };

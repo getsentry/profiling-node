@@ -13,6 +13,7 @@ import type {
 
 import { createEnvelope, dropUndefinedKeys, dsnToString, uuid4 } from '@sentry/utils';
 import type { ThreadCpuProfile, RawThreadCpuProfile } from './cpu_profiler';
+import path from 'path';
 
 const THREAD_ID_STRING = String(threadId);
 const THREAD_NAME = isMainThread ? 'main' : 'worker';
@@ -234,4 +235,13 @@ export function maybeRemoveProfileFromSdkMetadata(event: Event | ProfiledEvent):
 
   delete event.sdkProcessingMetadata['profile'];
   return event;
+}
+
+export function getProjectRootDirectory(): string | null {
+  const root = path.resolve(__dirname).split('/node_modules')[0];
+  if (root) {
+    return root;
+  }
+
+  return null;
 }
