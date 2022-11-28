@@ -29,7 +29,6 @@ const VERSION = os.version();
 const TYPE = os.type();
 const MODEL = os.machine ? os.machine() : os.arch();
 const ARCH = os.arch();
-
 export interface Profile {
   event_id: string;
   version: string;
@@ -181,10 +180,10 @@ export function createProfilingEventEnvelope(
     timestamp: new Date(transactionStartMs).toISOString(),
     platform: 'node',
     version: '1',
-    release: event.sdk?.version || 'unknown',
+    release: event.release || '',
     runtime: {
       name: 'node',
-      version: process.versions.node || 'unknown'
+      version: process.versions.node || ''
     },
     os: {
       name: PLATFORM,
@@ -193,8 +192,7 @@ export function createProfilingEventEnvelope(
     },
     device: {
       locale:
-        (process.env['LC_ALL'] || process.env['LC_MESSAGES'] || process.env['LANG'] || process.env['LANGUAGE']) ??
-        'unknown locale',
+        (process.env['LC_ALL'] || process.env['LC_MESSAGES'] || process.env['LANG'] || process.env['LANGUAGE']) ?? '',
       model: MODEL,
       manufacturer: TYPE,
       architecture: ARCH,
