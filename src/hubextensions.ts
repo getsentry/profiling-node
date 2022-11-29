@@ -32,6 +32,11 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     // calling the profiler methods. Note: we log the original name to the user to avoid confusion.
     const uniqueTransactionName = `${transactionContext.name} ${uuid4()}`;
 
+    // profilesSampleRate is multiplied with tracesSampleRate to get the final sampling rate.
+    if (!transaction.sampled) {
+      return transaction;
+    }
+
     if (profilesSampleRate === undefined) {
       if (isDebugBuild()) {
         logger.log(
