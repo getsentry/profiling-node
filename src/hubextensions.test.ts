@@ -5,10 +5,11 @@ import { importCppBindingsModule } from './cpu_profiler';
 
 const profiler = importCppBindingsModule();
 
-function makeTransactionMock(): Transaction {
+function makeTransactionMock(options = {}): Transaction {
   return {
     metadata: {},
     tags: {},
+    sampled: true,
     startChild: () => ({ finish: () => void 0 }),
     finish() {
       return;
@@ -18,7 +19,8 @@ function makeTransactionMock(): Transaction {
     },
     setMetadata(metadata: Partial<TransactionMetadata>) {
       this.metadata = { ...metadata } as TransactionMetadata;
-    }
+    },
+    ...options
   } as Transaction;
 }
 
@@ -100,5 +102,21 @@ describe('hubextensions', () => {
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
     // @ts-expect-error profile is not part of SDK metadata
     expect(transaction.metadata?.profile).toBeDefined();
+  });
+
+  it('does not start the profiler if transaction is sampled', () => {
+    const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
+    const stopProfilingSpy = jest.spyOn(profiler, 'stopProfiling');
+
+    const hub = makeHubMock({ profilesSampleRate: 1 });
+    const startTransaction = jest.fn().mockImplementation(() => makeTransactionMock({ sampled: false }));
+
+    const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);
+    const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, {});
+    transaction.finish();
+
+    expect(startTransaction).toHaveBeenCalledTimes(1);
+    expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
+    expect(stopProfilingSpy).not.toHaveBeenCalledTimes(1);
   });
 });
