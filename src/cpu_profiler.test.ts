@@ -1,5 +1,7 @@
-import { CpuProfilerBindings } from './cpu_profiler';
+import { CpuProfilerBindings, importCppBindingsModule } from './cpu_profiler';
 import type { ThreadCpuProfile } from './cpu_profiler';
+
+const privateBindings = importCppBindingsModule();
 
 function fail(message: string): never {
   throw new Error(message);
@@ -35,6 +37,17 @@ const assertValidSamplesAndStacks = (stacks: ThreadCpuProfile['stacks'], samples
     expect(stack).not.toBe(undefined);
   }
 };
+
+describe('Private bindings', () => {
+  it('does not crash if project root is null', async () => {
+    privateBindings.startProfiling('profiled-program');
+    await wait(100);
+    expect(() => {
+      const profile = privateBindings.stopProfiling('profiled-program', 0, null);
+      if (!profile) throw new Error('No profile');
+    }).not.toThrow();
+  });
+});
 
 describe('Profiler bindings', () => {
   it('exports profiler binding methods', () => {

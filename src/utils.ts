@@ -1,4 +1,5 @@
 import os from 'os';
+import path from 'path';
 import { isMainThread, threadId } from 'worker_threads';
 import type {
   SdkInfo,
@@ -15,6 +16,11 @@ import { createEnvelope, dropUndefinedKeys, dsnToString, uuid4, logger } from '@
 import type { ThreadCpuProfile, RawThreadCpuProfile } from './cpu_profiler';
 import { isDebugBuild } from './env';
 
+// We require the file because if we import it, it will be included in the bundle.
+// I guess tsc does not check file contents when it's imported.
+// eslint-disable-next-line
+const { root_directory } = require('./../root.js');
+
 const THREAD_ID_STRING = String(threadId);
 const THREAD_NAME = isMainThread ? 'main' : 'worker';
 
@@ -25,7 +31,6 @@ const VERSION = os.version();
 const TYPE = os.type();
 const MODEL = os.machine ? os.machine() : os.arch();
 const ARCH = os.arch();
-
 export interface Profile {
   event_id: string;
   version: string;
@@ -197,10 +202,10 @@ export function createProfilingEventEnvelope(
     timestamp: new Date(transactionStartMs).toISOString(),
     platform: 'node',
     version: '1',
-    release: event.sdk?.version || 'unknown',
+    release: event.release || '',
     runtime: {
       name: 'node',
-      version: process.versions.node || 'unknown'
+      version: process.versions.node || ''
     },
     os: {
       name: PLATFORM,
@@ -209,8 +214,7 @@ export function createProfilingEventEnvelope(
     },
     device: {
       locale:
-        (process.env['LC_ALL'] || process.env['LC_MESSAGES'] || process.env['LANG'] || process.env['LANGUAGE']) ??
-        'unknown locale',
+        (process.env['LC_ALL'] || process.env['LC_MESSAGES'] || process.env['LANG'] || process.env['LANGUAGE']) ?? '',
       model: MODEL,
       manufacturer: TYPE,
       architecture: ARCH,
@@ -255,4 +259,11 @@ export function maybeRemoveProfileFromSdkMetadata(event: Event | ProfiledEvent):
 
   delete event.sdkProcessingMetadata['profile'];
   return event;
+}
+
+// Requires the root.js file which exports __dirname, this is then forwarded to our native
+// addon where we remove the absolute path from each frame to generate a project relatvie filename
+export function getProjectRootDirectory(): string | null {
+  const components = path.resolve(root_directory).split('/node_modules');
+  return components?.[0] ?? null;
 }
