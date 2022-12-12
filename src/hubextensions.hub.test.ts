@@ -71,6 +71,23 @@ describe('hubextensions', () => {
     const logSpy = jest.spyOn(logger, 'log');
     const transport = Sentry.getCurrentHub().getClient()?.getTransport();
 
+    jest.spyOn(profiler, 'stopProfiling').mockImplementation(() => {
+      return {
+        samples: [
+          {
+            stack_id: 0,
+            thread_id: '0',
+            elapsed_since_start_ns: '10'
+          }
+        ],
+        stacks: [[0]],
+        frames: [],
+        profile_relative_ended_at_ns: 0,
+        profile_relative_started_at_ns: 0,
+        profiler_logging_mode: 'lazy'
+      };
+    });
+
     if (!transport) {
       throw new Error('Sentry getCurrentHub()->getClient()->getTransport() did not return a transport');
     }
