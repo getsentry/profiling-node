@@ -2,10 +2,11 @@ import * as Sentry from '@sentry/node';
 import '@sentry/tracing'; // this has a addExtensionMethods side effect
 import { ProfilingIntegration } from './index'; // this has a addExtensionMethods side effect
 import { importCppBindingsModule } from './cpu_profiler';
+import { logger } from '@sentry/utils';
 
 Sentry.init({
   dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
-  debug: false,
+  debug: true,
   tracesSampleRate: 1,
   // @ts-expect-error profilingSampleRate is not part of the options type yet
   profilesSampleRate: 1,
@@ -17,6 +18,7 @@ const profiler = importCppBindingsModule();
 describe('hubextensions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.useRealTimers();
   });
   it('calls profiler when startTransaction is invoked on hub', async () => {
     const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
@@ -63,5 +65,45 @@ describe('hubextensions', () => {
 
     transaction.finish();
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('logger warns user if there are invalid samples', async () => {
+    const logSpy = jest.spyOn(logger, 'log');
+    const transport = Sentry.getCurrentHub().getClient()?.getTransport();
+
+    if (!transport) {
+      throw new Error('Sentry getCurrentHub()->getClient()->getTransport() did not return a transport');
+    }
+
+    jest.spyOn(transport, 'send').mockImplementation(() => {
+      // Do nothing so we don't send events to Sentry
+      return Promise.resolve();
+    });
+
+    const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub' });
+    transaction.finish();
+
+    await Sentry.flush(1000);
+    expect(logSpy.mock?.lastCall?.[0]).toBe('[Profiling] Profile has less than 2 samples');
+  });
+
+  it('logger warns user if traceId is invalid', async () => {
+    const logSpy = jest.spyOn(logger, 'log');
+    const transport = Sentry.getCurrentHub().getClient()?.getTransport();
+
+    if (!transport) {
+      throw new Error('Sentry getCurrentHub()->getClient()->getTransport() did not return a transport');
+    }
+
+    jest.spyOn(transport, 'send').mockImplementation(() => {
+      // Do nothing so we don't send events to Sentry
+      return Promise.resolve();
+    });
+
+    const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub', traceId: 'boop' });
+    transaction.finish();
+
+    await Sentry.flush(1000);
+    expect(logSpy.mock?.calls?.[5]?.[0]).toBe('[Profiling] Invalid traceId: ' + 'boop' + ' on profiled event');
   });
 });
