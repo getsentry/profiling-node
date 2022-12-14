@@ -11,8 +11,10 @@ import type {
   EventEnvelope,
   EventEnvelopeHeaders
 } from '@sentry/types';
-import { createEnvelope, dropUndefinedKeys, dsnToString, uuid4 } from '@sentry/utils';
+
+import { createEnvelope, dropUndefinedKeys, dsnToString, uuid4, logger } from '@sentry/utils';
 import type { ThreadCpuProfile, RawThreadCpuProfile } from './cpu_profiler';
+import { isDebugBuild } from './env';
 
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.
@@ -175,6 +177,26 @@ export function createProfilingEventEnvelope(
   const transactionStartMs = typeof event.start_timestamp === 'number' ? event.start_timestamp * 1000 : Date.now();
   const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : Date.now();
 
+  const traceId = (event?.contexts?.['trace']?.['trace_id'] as string) ?? '';
+
+  // Log a warning if the profile has an invalid traceId (should be uuidv4).
+  // All profiles and transactions are rejected if this is the case and we want to
+  // warn users that this is happening if they enable debug flag
+  if (isDebugBuild()) {
+    if (traceId.length !== 36) {
+      logger.log('[Profiling] Invalid traceId: ' + traceId + ' on profiled event');
+    }
+  }
+
+  // Log a warning if the profile has less than 2 samples so users can know why
+  // they are not seeing any profiling data and we cant avoid the back and forth
+  // of asking them to provide us with a dump of the profile data.
+  if (isDebugBuild()) {
+    if (enrichedThreadProfile.samples.length <= 1) {
+      logger.log('[Profiling] Profile has less than 2 samples');
+    }
+  }
+
   const profile: Profile = {
     event_id: uuid4(),
     timestamp: new Date(transactionStartMs).toISOString(),
@@ -203,7 +225,7 @@ export function createProfilingEventEnvelope(
       {
         name: event.transaction || '',
         id: event.event_id || uuid4(),
-        trace_id: (event?.contexts?.['trace']?.['trace_id'] as string) ?? '',
+        trace_id: traceId,
         active_thread_id: THREAD_ID_STRING,
         relative_start_ns: '0',
         relative_end_ns: ((transactionEndMs - transactionStartMs) * 1e6).toFixed(0)
