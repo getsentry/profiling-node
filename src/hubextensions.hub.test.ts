@@ -67,7 +67,7 @@ describe('hubextensions', () => {
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('logger warns user if there are invalid samples', async () => {
+  it('logger warns user if there are insufficient samples', async () => {
     const logSpy = jest.spyOn(logger, 'log');
     const transport = Sentry.getCurrentHub().getClient()?.getTransport();
 
