@@ -47,6 +47,9 @@ describe('hubextensions', () => {
   });
 
   it('respect max profile duration timeout', async () => {
+    // it seems that in node 19 globals (or least part of them) are a readonly object
+    // so when useFakeTimers is called it throws an error because it cannot override
+    // a readonly property of performance on global object. Use legacyFakeTimers for now
     jest.useFakeTimers({ legacyFakeTimers: true });
     const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
     const stopProfilingSpy = jest.spyOn(profiler, 'stopProfiling');
