@@ -279,12 +279,10 @@ static void StartProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
   v8::Local<v8::String> title = Nan::To<v8::String>(args[0]).ToLocalChecked();
 
-  v8::CpuProfilingOptions options = v8::CpuProfilingOptions{
-    v8::CpuProfilingMode::kCallerLineNumbers, v8::CpuProfilingOptions::kNoSampleLimit,
-    SAMPLING_INTERVAL_US };
-
   Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<v8::External>()->Value());
-  profiler->cpu_profiler->StartProfiling(title, options);
+  profiler->cpu_profiler->StartProfiling(title, {
+    v8::CpuProfilingMode::kCallerLineNumbers, v8::CpuProfilingOptions::kNoSampleLimit,
+    SAMPLING_INTERVAL_US });
 };
 
 // StopProfiling(string title)
