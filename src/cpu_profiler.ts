@@ -56,7 +56,6 @@ interface V8CpuProfilerBindings {
   stopProfiling(name: string): RawThreadCpuProfile | null;
 }
 
-console.log(projectRootDirectory);
 const privateBindings: PrivateV8CpuProfilerBindings = importCppBindingsModule();
 const CpuProfilerBindings: V8CpuProfilerBindings = {
   startProfiling(name: string) {

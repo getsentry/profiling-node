@@ -47,7 +47,7 @@ describe('hubextensions', () => {
   });
 
   it('respect max profile duration timeout', async () => {
-    jest.useFakeTimers();
+    jest.useFakeTimers({ legacyFakeTimers: true });
     const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
     const stopProfilingSpy = jest.spyOn(profiler, 'stopProfiling');
     const transport = Sentry.getCurrentHub().getClient()?.getTransport();
