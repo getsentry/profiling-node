@@ -16,14 +16,12 @@
 #define FORMAT_BENCHMARK 0
 #endif
 
-// Isolate represents an instance of the v8 engine and can be entered at most by 1 thread at a 
-// given time. The Profiler is a context aware class that is bound to an isolate. 
 static const uint8_t MAX_STACK_DEPTH = 128;
 static const float SAMPLING_FREQUENCY = 99.0; // 99 to avoid lockstep sampling
 static const float SAMPLING_HZ = 1 / SAMPLING_FREQUENCY;
-static const int SAMPLING_INTERVAL_US = static_cast<int>(SAMPLING_HZ * 1e6);
+static const int SAMPLING_INTERVAL_US = SAMPLING_HZ * 1e6;
 static const v8::CpuProfilingNamingMode NAMING_MODE = v8::CpuProfilingNamingMode::kDebugNaming;
-v8::CpuProfilingLoggingMode LOGGING_MODE = v8::CpuProfilingLoggingMode::kLazyLogging;
+static const v8::CpuProfilingLoggingMode LOGGING_MODE = v8::CpuProfilingLoggingMode::kLazyLogging;
 
 // Allow users to override the default logging mode via env variable. This is useful 
 // because sometimes the flow of the profiled program can be to execute many sequential 
@@ -278,7 +276,6 @@ static void StartProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
   };
 
   v8::Local<v8::String> title = Nan::To<v8::String>(args[0]).ToLocalChecked();
-
   Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<v8::External>()->Value());
   profiler->cpu_profiler->StartProfiling(title, {
     v8::CpuProfilingMode::kCallerLineNumbers, v8::CpuProfilingOptions::kNoSampleLimit,
@@ -288,7 +285,6 @@ static void StartProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
 // StopProfiling(string title)
 // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#a40ca4c8a8aa4c9233aa2a2706457cc80
 static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
-
   if (args[0].IsEmpty()) {
     return Nan::ThrowError("StopProfiling expects a string as first argument.");
   };
@@ -305,7 +301,6 @@ static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
     return Nan::ThrowError("StopProfiling expects a thread_id of type number as second argument.");
   };
 
-
   Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<v8::External>()->Value());
   v8::CpuProfile* profile = profiler->cpu_profiler->StopProfiling(Nan::To<v8::String>(args[0]).ToLocalChecked());
 
@@ -316,14 +311,23 @@ static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
     return;
   };
 
+
   std::string app_root_directory = args[2].IsEmpty() ? std::string() : std::string(*Nan::Utf8String(args[2]));
-  
-  args.GetReturnValue().Set(CreateProfile(profile, Nan::To<uint32_t>(args[1]).FromJust(), app_root_directory));
+  uint32_t thread_id = Nan::To<uint32_t>(args[1]).FromJust();
+
+  v8::Local<v8::Value> js_profile = CreateProfile(profile, thread_id, app_root_directory);
   profile->Delete();
+
+  args.GetReturnValue().Set(js_profile);
 };
 
 NODE_MODULE_INIT(/* exports, module, context */) {
   v8::Isolate* isolate = context->GetIsolate();
+
+  if(isolate == nullptr){
+    return Nan::ThrowError("Failed to initialize Sentry profiler: isolate is null.");
+  }
+
   Profiler* profiler = new Profiler(isolate);
   v8::Local<v8::External> external = v8::External::New(isolate, profiler);
 
