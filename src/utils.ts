@@ -183,7 +183,7 @@ export function createProfilingEventEnvelope(
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
   if (isDebugBuild()) {
-    if (traceId.length !== 36) {
+    if (traceId.length !== 32) {
       logger.log('[Profiling] Invalid traceId: ' + traceId + ' on profiled event');
     }
   }
