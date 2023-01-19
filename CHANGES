@@ -1,3 +1,17 @@
+## 0.0.13
+
+### Various fixes & improvements
+
+- fix(segfault): fix return value order (#89) by @JonasBa
+- fix(uuid): uuid is 32hex in sentry (#91) by @JonasBa
+- test(build): add node 19 to build matrix (#87) by @JonasBa
+- build(deps): bump json5 from 2.2.1 to 2.2.3 (#86) by @dependabot
+- feat(profiling): add debug logs (#82) by @JonasBa
+- fix(sampleRate): profilesSampleRate and tracesSampleRate are multiplied (#77) by @JonasBa
+- fix(sdk): use release instead of sdk release (#76) by @JonasBa
+- feat(filename): generate filename from abs path (#75) by @JonasBa
+- fix: path -> absPath (#72) by @JonasBa
+
 ## 0.0.12
 
 ### Various fixes & improvements
