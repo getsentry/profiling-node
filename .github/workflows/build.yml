@@ -4,7 +4,7 @@ on:
     branches:
       - main
       - release/**
-  pull_request:
+      - jb/build/add-prebuild-arch
   workflow_dispatch:
     inputs:
       commit:
@@ -12,25 +12,62 @@ on:
         required: false
 jobs:
   precompile-bindings:
+    name: ${{ matrix.os }} (node=${{ matrix.node || matrix.container }}, arch=${{ matrix.arch || matrix.container }})
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-2019, ubuntu-latest]
-        node-version: [14.x, 16.x, 18.x, 19.x]
-        target: [x64]
-        host: [x64]
-        # arm64 is not supported by gh runners yet
-        # include: 
-        #   - os: macos-latest
-        #     node-version: 18.x
-        #     target: arm64
-        #     host: arm64
-
-    runs-on: ${{ matrix.os }}
+        include:
+          # linux x64
+          - os: ubuntu-22.04
+            container: node:14-alpine3.17
+          - os: ubuntu-22.04
+            container: node:16-alpine3.17
+          - os: ubuntu-22.04
+            container: node:18-alpine3.17
+            # macos x64
+          - os: macos-11
+            node: 14
+            arch: x64
+          - os: macos-11
+            node: 16
+            arch: x64
+          - os: macos-11
+            node: 18
+            arch: x64
+            # windows x86 
+            # We are not precompiling binaries for node v14 on windows x86 and x64
+            # because the combined size of those two binaries is 2x the size of all the
+            # other binaries combined.
+          - os: windows-2019
+            node: 16
+            arch: x86
+          - os: windows-2019
+            node: 18
+            arch: x86
+            # windows x64
+          - os: windows-2019
+            node: 16
+            arch: x64
+          - os: windows-2019
+            node: 18
+            arch: x64
+          # For some reason it seems like it takes forever for 
+          # the macos-m1 runners to start up, so we'll just skip it
+          # - os: macos-m1
+          #   node: 18
+          #   arch: arm64
     # Build artifacts are only needed for releasing workflow.
-    if: startsWith(github.ref, 'refs/heads/release/')
-    name: ${{ matrix.os }} (node=${{ matrix.node-version }}, host=${{ matrix.host }}, target=${{ matrix.target }})
+    # if: startsWith(github.ref, 'refs/heads/release/')
+    # alpine build dependencies
     steps:
+      - name: build_dependencies (alpine)
+        if: contains(matrix.container, 'alpine')
+        run: |
+          apk add build-base python3
+          echo $(ldd --version)
+
       - name: Check out current commit
         uses: actions/checkout@v3
         with:
@@ -38,23 +75,17 @@ jobs:
 
       - uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node-version }}
-          architecture: ${{ matrix.host }}
-
-      - name: Setup windows build tools
-        uses: microsoft/setup-msbuild@v1.1
-        if: ${{ runner.os == 'Windows' }}
-        with:
-          msbuild-architecture: ${{ matrix.target }}
+          node-version: ${{ matrix.node }}
+          architecture: ${{ matrix.arch }}
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --unsafe-perm
 
       - name: Configure gyp
-        run: npm run build:configure --arch=${{ matrix.target }}
+        run: npm run build:configure
 
       - name: Build bindings
-        run: npm run build:bindings --arch=${{ matrix.target }}
+        run: npm run build:bindings
 
       - name: Test
         run: npm run test

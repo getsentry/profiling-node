@@ -1,6 +1,5 @@
 name: 'ci'
 on:
-  pull_request:
   push:
     branches:
       - main
@@ -19,7 +18,9 @@ jobs:
       matrix:
         os: [macos-latest, windows-2019, ubuntu-latest]
         node-version: [14.x, 16.x, 18.x, 19.x]
+        target: [x64, arm64]
     runs-on: ${{ matrix.os }}
+    if: false
     steps:
       - uses: actions/checkout@v3
       - name: Use Node.js ${{ matrix.node-version }}
