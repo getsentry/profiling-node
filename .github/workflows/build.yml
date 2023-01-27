@@ -21,11 +21,11 @@ jobs:
         include:
           # linux x64
           - os: ubuntu-22.04
-            container: node:14-alpine3.17
+            node: 14
           - os: ubuntu-22.04
-            container: node:16-alpine3.17
+            node: 16
           - os: ubuntu-22.04
-            container: node:18-alpine3.17
+            node: 18
             # macos x64
           - os: macos-11
             node: 14
@@ -66,7 +66,6 @@ jobs:
         if: contains(matrix.container, 'alpine')
         run: |
           apk add build-base python3
-          echo $(ldd --version)
 
       - name: Check out current commit
         uses: actions/checkout@v3
