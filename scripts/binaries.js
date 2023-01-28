@@ -2,9 +2,19 @@
 const os = require('os');
 const path = require('path');
 const abi = require('node-abi');
+const { familySync, versionSync } = require('detect-libc');
 
 function getModuleName() {
-  return `sentry_cpu_profiler-v${abi.getAbi(process.versions.node, 'node')}-${os.platform()}-${os.arch()}.node`;
+  const family = familySync();
+
+  if (!family) {
+    throw new Error('Could not detect libc or musl family');
+  }
+
+  return `sentry_cpu_profiler-v${abi.getAbi(
+    process.versions.node,
+    'node'
+  )}-${os.platform()}-${os.arch()}-${family}-${versionSync()}.node`;
 }
 
 const source = path.join(__dirname, '..', 'build', 'Release', 'sentry_cpu_profiler.node');

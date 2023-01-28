@@ -53,8 +53,10 @@
     "node",
     "performance"
   ],
-  "binary":{
-    "napi_versions": [7]
+  "binary": {
+    "napi_versions": [
+      7
+    ]
   },
   "author": "jonas.badalic@sentry.io",
   "license": "MIT",
@@ -64,6 +66,7 @@
     "@sentry/tracing": "^7.16.0",
     "@sentry/types": "^7.31.1",
     "@sentry/utils": "^7.31.1",
+    "detect-libc": "^2.0.1",
     "nan": "^2.17.0",
     "node-abi": "^3.28.0",
     "node-gyp": "^9.3.0"
