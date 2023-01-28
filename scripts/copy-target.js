@@ -1,17 +1,16 @@
+/* eslint-env node */
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 
-const abi = require('node-abi');
+const { getModuleName } = require('./binaries');
 
 const binaries = path.resolve(__dirname, '..', 'binaries');
 if (!fs.existsSync(binaries)) {
   fs.mkdirSync(binaries);
 }
 
-const moduleName = `sentry_cpu_profiler-v${abi.getAbi()}-${os.platform()}-${os.arch()}.node`;
-
 const source = path.join(__dirname, '..', 'build', 'Release', 'sentry_cpu_profiler.node');
-const target = path.join(__dirname, '..', 'binaries', moduleName);
+const target = path.join(__dirname, '..', 'binaries', getModuleName());
 
+console.log('Renaming', source, 'to', target);
 fs.renameSync(source, target);

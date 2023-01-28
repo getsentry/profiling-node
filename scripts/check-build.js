@@ -1,15 +1,14 @@
 /* eslint-env node */
 const cp = require('child_process');
-const os = require('os');
 
 const { target } = require('./binaries');
 
 function recompileFromSource() {
   try {
     console.log('@sentry/profiling-node: Precompiled binary not found, compiling from source...');
-    cp.execSync(`npm run build:configure --arch=${os.arch()}`);
-    cp.execSync(`npm run build:bindings`);
-    cp.execSync('node scripts/copy-target.js');
+    cp.execSync(`npm run build:configure`, { env: process.env });
+    cp.execSync(`npm run build:bindings`, { env: process.env });
+    cp.execSync('node scripts/copy-target.js', { env: process.env });
     return true;
   } catch (e) {
     console.error(
