@@ -1,13 +1,10 @@
-import os from 'os';
-import path from 'path';
-import abi from 'node-abi';
 import { threadId } from 'worker_threads';
 
 import { getProjectRootDirectory } from './utils';
+import { target } from './../scripts/binaries';
 
 export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
-  const name = `sentry_cpu_profiler-v${abi.getAbi(process.versions.node, 'node')}-${os.platform()}-${os.arch()}.node`;
-  return require(path.join(__dirname, '..', 'binaries', name));
+  return require(target);
 }
 
 // Resolve the project root dir so we can try and compute a filename relative to it.

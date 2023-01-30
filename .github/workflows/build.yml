@@ -1,10 +1,10 @@
 name: Upload build artifacts
 on:
+  pull_request:
   push:
     branches:
       - main
       - release/**
-  pull_request:
   workflow_dispatch:
     inputs:
       commit:
@@ -12,25 +12,100 @@ on:
         required: false
 jobs:
   precompile-bindings:
+    name: ${{ matrix.os }} (node=${{ matrix.node || matrix.container }}, arch=${{ matrix.arch || matrix.container }})
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-2019, ubuntu-latest]
-        node-version: [14.x, 16.x, 18.x, 19.x]
-        target: [x64]
-        host: [x64]
-        # arm64 is not supported by gh runners yet
-        # include: 
-        #   - os: macos-latest
-        #     node-version: 18.x
-        #     target: arm64
-        #     host: arm64
+        include:
+          # We will prebuild binaries for node v18 on linux
+          # with different versions of glibc to ensure that
+          # the binaries are compatible with a wide range of
+          # distributions and container images.
 
-    runs-on: ${{ matrix.os }}
+          # linux x64 glibc
+          - os: ubuntu-22.04
+            node: 14
+          - os: ubuntu-22.04
+            node: 16
+          - os: ubuntu-22.04
+            node: 18
+
+          # linux x64 musl
+          - os: ubuntu-22.04
+            container: node:14-alpine
+            node: 14
+          - os: ubuntu-22.04
+            container: node:16-alpine
+            node: 16
+          - os: ubuntu-22.04
+            container: node:18-alpine
+            node: 18
+
+          # linux aarch64 glibc
+          - os: ubuntu-22.04
+            arch: arm64
+            node: 14
+          - os: ubuntu-22.04
+            arch: arm64
+            node: 16
+          - os: ubuntu-22.04
+            arch: arm64
+            node: 18
+
+          # linux aarch64 musl
+          - os: ubuntu-22.04
+            container: node:14-alpine
+            arch: arm64
+            node: 14
+          - os: ubuntu-22.04
+            container: node:16-alpine
+            arch: arm64
+            node: 16
+          - os: ubuntu-22.04
+            arch: arm64
+            container: node:18-alpine
+            node: 18
+
+            # macos x64
+          - os: macos-11
+            node: 16
+            arch: x64
+          - os: macos-11
+            node: 18
+            arch: x64
+            # windows x86 
+            # We are not precompiling binaries for node v14 on windows x86 and x64
+            # because the combined size of those two binaries is 2x the size of all the
+            # other binaries combined.
+          - os: windows-2019
+            node: 16
+            arch: x86
+          - os: windows-2019
+            node: 18
+            arch: x86
+            # windows x64
+          - os: windows-2019
+            node: 16
+            arch: x64
+          - os: windows-2019
+            node: 18
+            arch: x64
+          # For some reason it seems like it takes forever for 
+          # the macos-m1 runners to start up, so we'll just skip it
+          # - os: macos-m1
+          #   node: 18
+          #   arch: arm64
     # Build artifacts are only needed for releasing workflow.
-    if: startsWith(github.ref, 'refs/heads/release/')
-    name: ${{ matrix.os }} (node=${{ matrix.node-version }}, host=${{ matrix.host }}, target=${{ matrix.target }})
+    # if: startsWith(github.ref, 'refs/heads/release/')
+    # alpine build dependencies
     steps:
+      - name: setup (alpine)
+        if: contains(matrix.container, 'alpine')
+        run: |
+          apk add --no-cache build-base python3 g++ make curl
+
       - name: Check out current commit
         uses: actions/checkout@v3
         with:
@@ -38,30 +113,68 @@ jobs:
 
       - uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node-version }}
-          architecture: ${{ matrix.host }}
-
-      - name: Setup windows build tools
-        uses: microsoft/setup-msbuild@v1.1
-        if: ${{ runner.os == 'Windows' }}
-        with:
-          msbuild-architecture: ${{ matrix.target }}
+          node-version: ${{ matrix.node }}
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --unsafe-perm --build-from-source
 
+      # configure build test copy x64
       - name: Configure gyp
-        run: npm run build:configure --arch=${{ matrix.target }}
+        if: matrix.arch != 'arm64'
+        run: npm run build:configure
 
       - name: Build bindings
-        run: npm run build:bindings --arch=${{ matrix.target }}
+        if: matrix.arch != 'arm64'
+        run: npm run build:bindings
+
+      - name: Copy Binary
+        if: matrix.arch != 'arm64'
+        run: node scripts/copy-target.js
 
       - name: Test
+        if: matrix.arch != 'arm64'
         run: npm run test
       
-      - name: Copy Binary
-        run: node scripts/copy-target.js
-      
+      # configure build test copy aarch64
+      - name: setup (aarch64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
+        if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine')
+        run: |
+          sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          
+      - name: "Configure gyp (aarch64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
+        if: matrix.arch == 'arm64'
+        run: npm run build:configure:arm64
+
+      - name: Setup musl cross compiler
+        if: contains(matrix.container, 'alpine')
+        run: |
+          curl -OL https://musl.cc/aarch64-linux-musl-cross.tgz
+          tar -xzvf aarch64-linux-musl-cross.tgz
+          $(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc --version
+
+      - name: "Build bindings (aarch64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
+        if: matrix.arch == 'arm64' && contains(matrix.container, 'alpine')
+        run: |
+          CC=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc \
+          CXX=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-g++ \
+          npm run build:bindings
+
+      - name: "Build bindings (aarch64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
+        if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine')
+        run: |
+          npm run build:bindings:arm64
+
+      - name: Copy Binary (aarch64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
+        if: matrix.arch == 'arm64'
+        run: BUILD_ARCH=arm64 node scripts/copy-target.js
+
+      # This will obviously not work as we run on x64, but we should
+      # investigate into adding qemu or equiv to run tests on compiled binaries
+      # - name: Test (aarch64)
+      #   if: matrix.arch == 'arm64'
+      #   run: BUILD_ARCH=arm64 npm run test
+
+      # continue with common steps
       - name: Log binary
         run: du -sh binaries/*
 
@@ -78,9 +191,9 @@ jobs:
     # Build artifacts are only needed for releasing workflow.
     if: startsWith(github.ref, 'refs/heads/release/')
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
           node-version: 18
 

@@ -34,7 +34,9 @@
     "build": "npm run build:bindings && npm run build:lib",
     "build:lib": "tsc -p ./tsconfig.json",
     "build:configure": "node-gyp configure",
+    "build:configure:arm64": "node-gyp configure --arch=arm64",
     "build:bindings": "node-gyp build",
+    "build:bindings:arm64": "node-gyp build --arch=arm64",
     "build:benchmark:format": "node-gyp -DFORMAT_BENCHMARK=1 build",
     "benchmark": "npm run benchmark:methods && npm run benchmark:profiler && npm run benchmark:server && npm run benchmark:format",
     "benchmark:methods": "node benchmarks/cpu/benchmark.methods.js",
@@ -53,6 +55,11 @@
     "node",
     "performance"
   ],
+  "binary": {
+    "napi_versions": [
+      7
+    ]
+  },
   "author": "jonas.badalic@sentry.io",
   "license": "MIT",
   "dependencies": {
@@ -61,6 +68,7 @@
     "@sentry/tracing": "^7.16.0",
     "@sentry/types": "^7.31.1",
     "@sentry/utils": "^7.31.1",
+    "detect-libc": "^2.0.1",
     "nan": "^2.17.0",
     "node-abi": "^3.28.0",
     "node-gyp": "^9.3.0"
