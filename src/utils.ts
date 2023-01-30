@@ -172,10 +172,15 @@ export function createProfilingEventEnvelope(
   }
 
   const rawProfile = event.sdkProcessingMetadata['profile'];
+
   if (rawProfile === undefined || rawProfile === null) {
     throw new TypeError(
       `Cannot construct profiling event envelope without a valid profile. Got ${rawProfile} instead.`
     );
+  }
+
+  if (!rawProfile.profile_id) {
+    throw new TypeError('Profile is missing profile_id');
   }
 
   if (rawProfile.samples.length <= 1) {
@@ -206,7 +211,7 @@ export function createProfilingEventEnvelope(
   }
 
   const profile: Profile = {
-    event_id: uuid4(),
+    event_id: rawProfile.profile_id,
     timestamp: new Date(transactionStartMs).toISOString(),
     platform: 'node',
     version: '1',

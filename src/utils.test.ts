@@ -36,6 +36,7 @@ function makeProfile(
   props: Partial<ProfiledEvent['sdkProcessingMetadata']['profile']>
 ): NonNullable<ProfiledEvent['sdkProcessingMetadata']['profile']> {
   return {
+    profile_id: '1',
     profile_relative_ended_at_ns: 1,
     profile_relative_started_at_ns: 0,
     profiler_logging_mode: 'lazy',
@@ -73,6 +74,14 @@ describe('maybeRemoveProfileFromSdkMetadata', () => {
 });
 
 describe('createProfilingEventEnvelope', () => {
+  it('throws if profile_id is set', () => {
+    const profile = makeProfile({});
+    delete profile.profile_id;
+
+    expect(() =>
+      createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, profile), makeDsn({}), makeSdkMetadata({}))
+    ).toThrowError('Profile is missing profile_id');
+  });
   it('throws if profile is undefined', () => {
     expect(() =>
       // @ts-expect-error undefined is not a valid profile, we are forcing it here for some defensive programming

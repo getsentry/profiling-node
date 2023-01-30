@@ -1,4 +1,11 @@
-import type { BaseTransportOptions, ClientOptions, Hub, Transaction, TransactionMetadata } from '@sentry/types';
+import type {
+  BaseTransportOptions,
+  ClientOptions,
+  Hub,
+  Context,
+  Transaction,
+  TransactionMetadata
+} from '@sentry/types';
 
 import { __PRIVATE__wrapStartTransactionWithProfiling } from './hubextensions';
 import { importCppBindingsModule } from './cpu_profiler';
@@ -10,18 +17,23 @@ function makeTransactionMock(options = {}): Transaction {
     metadata: {},
     tags: {},
     sampled: true,
+    contexts: {},
     startChild: () => ({ finish: () => void 0 }),
     finish() {
       return;
     },
-    setTag(key: string, value: any) {
+    setContext(this: Transaction, key: string, context: Context) {
+      // @ts-expect-error mock this
+      this.contexts[key] = context;
+    },
+    setTag(this: Transaction, key: string, value: any) {
       this.tags[key] = value;
     },
-    setMetadata(metadata: Partial<TransactionMetadata>) {
+    setMetadata(this: Transaction, metadata: Partial<TransactionMetadata>) {
       this.metadata = { ...metadata } as TransactionMetadata;
     },
     ...options
-  } as Transaction;
+  } as unknown as Transaction;
 }
 
 function makeHubMock({ profilesSampleRate }: { profilesSampleRate: number | undefined }): Hub {
