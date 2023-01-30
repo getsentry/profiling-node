@@ -16,7 +16,18 @@ function makeProfiledEvent(): ProfiledEvent {
         profiler_logging_mode: 'lazy',
         profile_relative_ended_at_ns: 1,
         profile_relative_started_at_ns: 0,
-        samples: [],
+        samples: [
+          {
+            elapsed_since_start_ns: '0',
+            thread_id: '0',
+            stack_id: 0
+          },
+          {
+            elapsed_since_start_ns: '1',
+            thread_id: '0',
+            stack_id: 0
+          }
+        ],
         frames: [],
         stacks: []
       }
@@ -27,6 +38,42 @@ function makeProfiledEvent(): ProfiledEvent {
 describe('ProfilingIntegration', () => {
   it('has a name', () => {
     expect(new ProfilingIntegration().name).toBe('ProfilingIntegration');
+  });
+
+  it('does not call transporter if null profile is received', () => {
+    const transport: Transport = {
+      send: jest.fn().mockImplementation(() => Promise.resolve()),
+      flush: jest.fn().mockImplementation(() => Promise.resolve())
+    };
+    const integration = new ProfilingIntegration();
+
+    const getCurrentHub = jest.fn((): Hub => {
+      return {
+        getClient: () => {
+          return {
+            getOptions: () => {
+              return {
+                _metadata: {}
+              };
+            },
+            getDsn: () => {
+              return {};
+            },
+            getTransport: () => transport
+          };
+        }
+      } as Hub;
+    });
+    const addGlobalEventProcessor = () => void 0;
+    integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
+
+    integration.handleGlobalEvent({
+      type: 'transaction',
+      sdkProcessingMetadata: {
+        profile: null
+      }
+    });
+    expect(transport.send).not.toHaveBeenCalled();
   });
 
   it('keeps a reference to getCurrentHub', () => {
@@ -129,6 +176,6 @@ describe('ProfilingIntegration', () => {
     integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
 
     assertCleanProfile(integration.handleGlobalEvent(makeProfiledEvent()));
-    expect(logSpy).toHaveBeenCalledWith('[Profiling] Preparing envelope and sending a profiling event.');
+    expect(logSpy.mock.calls?.[0]?.[0]).toBe('[Profiling] Preparing envelope and sending a profiling event');
   });
 });

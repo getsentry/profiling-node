@@ -40,7 +40,10 @@ function makeProfile(
     profile_relative_started_at_ns: 0,
     profiler_logging_mode: 'lazy',
     stacks: [],
-    samples: [],
+    samples: [
+      { elapsed_since_start_ns: '0', thread_id: '0', stack_id: 0 },
+      { elapsed_since_start_ns: '10', thread_id: '0', stack_id: 0 }
+    ],
     frames: [],
     ...props
   };
@@ -83,7 +86,15 @@ describe('createProfilingEventEnvelope', () => {
 
   it('envelope header is of type: profile', () => {
     const envelope = createProfilingEventEnvelope(
-      makeEvent({ type: 'transaction' }, makeProfile({})),
+      makeEvent(
+        { type: 'transaction' },
+        makeProfile({
+          samples: [
+            { elapsed_since_start_ns: '0', thread_id: '0', stack_id: 0 },
+            { elapsed_since_start_ns: '0', thread_id: '0', stack_id: 0 }
+          ]
+        })
+      ),
       makeDsn({}),
       makeSdkMetadata({
         name: 'sentry.javascript.node',
@@ -95,8 +106,31 @@ describe('createProfilingEventEnvelope', () => {
         ]
       })
     );
-    expect(envelope[1][0]?.[0].type).toBe('profile');
+    expect(envelope?.[1][0]?.[0].type).toBe('profile');
   });
+
+  it('returns if samples.length <= 1', () => {
+    const envelope = createProfilingEventEnvelope(
+      makeEvent(
+        { type: 'transaction' },
+        makeProfile({
+          samples: [{ elapsed_since_start_ns: '0', thread_id: '0', stack_id: 0 }]
+        })
+      ),
+      makeDsn({}),
+      makeSdkMetadata({
+        name: 'sentry.javascript.node',
+        version: '1.2.3',
+        integrations: ['integration1', 'integration2'],
+        packages: [
+          { name: 'package1', version: '1.2.3' },
+          { name: 'package2', version: '4.5.6' }
+        ]
+      })
+    );
+    expect(envelope).toBe(null);
+  });
+
   it('enriches envelope with sdk metadata', () => {
     const envelope = createProfilingEventEnvelope(
       makeEvent({ type: 'transaction' }, makeProfile({})),
@@ -120,7 +154,7 @@ describe('createProfilingEventEnvelope', () => {
       undefined
     );
 
-    expect(envelope[0].sdk).toBe(undefined);
+    expect(envelope?.[0].sdk).toBe(undefined);
   });
 
   it('enriches envelope with dsn metadata', () => {
@@ -138,7 +172,7 @@ describe('createProfilingEventEnvelope', () => {
       'tunnel'
     );
 
-    expect(envelope[0].dsn).toBe('https://publicKey@sentry.io:9000/path/123');
+    expect(envelope?.[0].dsn).toBe('https://publicKey@sentry.io:9000/path/123');
   });
 
   it('enriches profile with device info', () => {
@@ -147,7 +181,7 @@ describe('createProfilingEventEnvelope', () => {
       makeDsn({}),
       makeSdkMetadata({})
     );
-    const profile = envelope[1][0]?.[1] as unknown as Profile;
+    const profile = envelope?.[1][0]?.[1] as unknown as Profile;
 
     expect(typeof profile.device.manufacturer).toBe('string');
     expect(typeof profile.device.model).toBe('string');
@@ -193,14 +227,20 @@ describe('createProfilingEventEnvelope', () => {
             }
           }
         },
-        // @ts-expect-error thread_id is forced to undefined and we assert that it is enriched
-        makeProfile({ samples: [{ stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }] })
+        makeProfile({
+          samples: [
+            // @ts-expect-error thread_id is forced to undefined and we assert that it is enriched
+            { stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' },
+            // @ts-expect-error thread_id is forced to undefined and we assert that it is enriched
+            { stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }
+          ]
+        })
       ),
       makeDsn({}),
       makeSdkMetadata({})
     );
 
-    const profile = envelope[1][0]?.[1] as unknown as Profile;
+    const profile = envelope?.[1][0]?.[1] as unknown as Profile;
 
     expect(profile.transactions?.[0]?.name).toBe('transaction-name');
     expect(typeof profile.transactions?.[0]?.id).toBe('string');

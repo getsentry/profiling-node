@@ -150,27 +150,45 @@ function createEventEnvelopeHeaders(
   };
 }
 
+/**
+ * Creates a profiling event envelope from a Sentry event. If profile does not pass
+ * validation, returns null.
+ * @param event
+ * @param dsn
+ * @param metadata
+ * @param tunnel
+ * @returns {EventEnvelope | null}
+ */
 export function createProfilingEventEnvelope(
   event: ProfiledEvent,
   dsn: DsnComponents,
   metadata?: SdkMetadata,
   tunnel?: string
-): EventEnvelope {
-  const sdkInfo = getSdkMetadataForEnvelopeHeader(metadata);
-  const rawProfile = event.sdkProcessingMetadata['profile'];
-
+): EventEnvelope | null {
   if (event.type !== 'transaction') {
     // createProfilingEventEnvelope should only be called for transactions,
     // we type guard this behavior with isProfiledTransactionEvent.
     throw new TypeError('Profiling events may only be attached to transactions, this should never occur.');
   }
 
+  const rawProfile = event.sdkProcessingMetadata['profile'];
   if (rawProfile === undefined || rawProfile === null) {
     throw new TypeError(
       `Cannot construct profiling event envelope without a valid profile. Got ${rawProfile} instead.`
     );
   }
 
+  if (rawProfile.samples.length <= 1) {
+    if (isDebugBuild()) {
+      // Log a warning if the profile has less than 2 samples so users can know why
+      // they are not seeing any profiling data and we cant avoid the back and forth
+      // of asking them to provide us with a dump of the profile data.
+      logger.log('[Profiling] Discarding profile because it contains less than 2 samples');
+    }
+    return null;
+  }
+
+  const sdkInfo = getSdkMetadataForEnvelopeHeader(metadata);
   enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
   const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
   const enrichedThreadProfile = enrichWithThreadInformation(rawProfile);
@@ -178,22 +196,12 @@ export function createProfilingEventEnvelope(
   const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : Date.now();
 
   const traceId = (event?.contexts?.['trace']?.['trace_id'] as string) ?? '';
-
   // Log a warning if the profile has an invalid traceId (should be uuidv4).
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
-  if (isDebugBuild()) {
-    if (traceId.length !== 32) {
+  if (traceId.length !== 32) {
+    if (isDebugBuild()) {
       logger.log('[Profiling] Invalid traceId: ' + traceId + ' on profiled event');
-    }
-  }
-
-  // Log a warning if the profile has less than 2 samples so users can know why
-  // they are not seeing any profiling data and we cant avoid the back and forth
-  // of asking them to provide us with a dump of the profile data.
-  if (isDebugBuild()) {
-    if (enrichedThreadProfile.samples.length <= 1) {
-      logger.log('[Profiling] Profile has less than 2 samples');
     }
   }
 
