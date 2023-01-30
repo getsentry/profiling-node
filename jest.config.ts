@@ -6,7 +6,9 @@ const config: Config = {
   preset: 'ts-jest',
   collectCoverage: true,
   testMatch: ['**/*.test.ts'],
-  testPathIgnorePatterns: ['benchmarks/']
+  testPathIgnorePatterns: ['benchmarks/'],
+  resetMocks: true,
+  restoreMocks: true
 };
 
 export default config;

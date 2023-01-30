@@ -60,9 +60,13 @@ export class ProfilingIntegration implements Integration {
 
       // If all required components are available, we construct a profiling event envelope and send it to Sentry.
       if (isDebugBuild()) {
-        logger.log('[Profiling] Preparing envelope and sending a profiling event.');
+        logger.log('[Profiling] Preparing envelope and sending a profiling event');
       }
-      transport.send(createProfilingEventEnvelope(event, dsn, client.getOptions()._metadata));
+      const envelope = createProfilingEventEnvelope(event, dsn);
+
+      if (envelope) {
+        transport.send(envelope);
+      }
     }
 
     // Ensure sdkProcessingMetadata["profile"] is removed from the event before forwarding it to the next event processor.

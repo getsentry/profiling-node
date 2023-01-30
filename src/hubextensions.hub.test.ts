@@ -14,6 +14,8 @@ Sentry.init({
 
 const profiler = importCppBindingsModule();
 
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 describe('hubextensions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -34,6 +36,7 @@ describe('hubextensions', () => {
     });
 
     const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub' });
+    await wait(500);
     transaction.finish();
 
     await Sentry.flush(1000);
@@ -69,7 +72,7 @@ describe('hubextensions', () => {
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('logger warns user if there are insufficient samples', async () => {
+  it('logger warns user if there are insufficient samples and discards the profile', async () => {
     const logSpy = jest.spyOn(logger, 'log');
     const transport = Sentry.getCurrentHub().getClient()?.getTransport();
 
@@ -103,7 +106,10 @@ describe('hubextensions', () => {
     transaction.finish();
 
     await Sentry.flush(1000);
-    expect(logSpy.mock?.lastCall?.[0]).toBe('[Profiling] Profile has less than 2 samples');
+    expect(logSpy.mock?.lastCall?.[0]).toBe('[Profiling] Discarding profile because it contains less than 2 samples');
+
+    expect((transport.send as any).mock.calls[0][0][1][0][0].type).toBe('transaction');
+    expect(transport.send).toHaveBeenCalledTimes(1);
   });
 
   it('logger warns user if traceId is invalid', async () => {
@@ -114,12 +120,35 @@ describe('hubextensions', () => {
       throw new Error('Sentry getCurrentHub()->getClient()->getTransport() did not return a transport');
     }
 
+    jest.spyOn(profiler, 'stopProfiling').mockImplementation(() => {
+      return {
+        samples: [
+          {
+            stack_id: 0,
+            thread_id: '0',
+            elapsed_since_start_ns: '10'
+          },
+          {
+            stack_id: 0,
+            thread_id: '0',
+            elapsed_since_start_ns: '10'
+          }
+        ],
+        stacks: [[0]],
+        frames: [],
+        profile_relative_ended_at_ns: 0,
+        profile_relative_started_at_ns: 0,
+        profiler_logging_mode: 'lazy'
+      };
+    });
+
     jest.spyOn(transport, 'send').mockImplementation(() => {
       // Do nothing so we don't send events to Sentry
       return Promise.resolve();
     });
 
     const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub', traceId: 'boop' });
+    await wait(500);
     transaction.finish();
 
     await Sentry.flush(1000);
