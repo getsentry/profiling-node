@@ -22,21 +22,21 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     transactionContext: TransactionContext,
     customSamplingContext?: CustomSamplingContext
   ): Transaction {
-    const client = this.getClient();
-    // @ts-expect-error profilesSampleRate is not part of the options type yet
-    const profilesSampleRate = client?.getOptions().profilesSampleRate ?? undefined;
     const transaction = startTransaction.call(this, transactionContext, customSamplingContext);
 
     // We create "unique" transaction names to avoid concurrent transactions with same names
     // from being ignored by the profiler. From here on, only this transaction name should be used when
     // calling the profiler methods. Note: we log the original name to the user to avoid confusion.
-    const uniqueTransactionName = `${transactionContext.name} ${uuid4()}`;
+    const profile_id = uuid4();
+    const uniqueTransactionName = `${transactionContext.name} ${profile_id}`;
 
     // profilesSampleRate is multiplied with tracesSampleRate to get the final sampling rate.
     if (!transaction.sampled) {
       return transaction;
     }
 
+    // @ts-expect-error profilesSampleRate is not part of the options type yet
+    const profilesSampleRate = this.getClient()?.getOptions?.()?.profilesSampleRate;
     if (profilesSampleRate === undefined) {
       if (isDebugBuild()) {
         logger.log(
@@ -46,6 +46,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
       return transaction;
     }
 
+    // Check if we should sample this profile
     if (Math.random() > profilesSampleRate) {
       if (isDebugBuild()) {
         logger.log('[Profiling] Skip profiling transaction due to sampling.');
@@ -53,10 +54,8 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
       return transaction;
     }
 
-    // We need to reference the original finish call to avoid creating an infinite loop
-    const originalFinish = transaction.finish.bind(transaction);
+    // Start the profiler
     CpuProfilerBindings.startProfiling(uniqueTransactionName);
-
     if (isDebugBuild()) {
       logger.log('[Profiling] started profiling transaction: ' + transactionContext.name);
     }
@@ -101,6 +100,8 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
         return null;
       }
 
+      // Assign profile_id to the profile
+      profile.profile_id = profile_id;
       return profile;
     }
 
@@ -112,12 +113,19 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
       onProfileHandler();
     }, MAX_PROFILE_DURATION_MS);
 
+    // We need to reference the original finish call to avoid creating an infinite loop
+    const originalFinish = transaction.finish.bind(transaction);
+
     function profilingWrappedTransactionFinish() {
       // onProfileHandler should always return the same profile even if this is called multiple times.
       // Always call onProfileHandler to ensure stopProfiling is called and the timeout is cleared.
       const profile = onProfileHandler();
+
       // @ts-expect-error profile is not a part of sdk metadata so we expect error until it becomes part of the official SDK.
       transaction.setMetadata({ profile });
+      // Set profile context
+      transaction.setContext('profile', { profile_id });
+
       return originalFinish();
     }
 

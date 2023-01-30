@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/node';
 import '@sentry/tracing';
 import type { Transport } from '@sentry/types';
+
 import { ProfilingIntegration } from './index';
 import type { Profile } from './utils';
 

@@ -27,6 +27,7 @@ type Frame = {
 };
 
 export interface RawThreadCpuProfile {
+  profile_id?: string;
   stacks: Stack[];
   samples: Sample[];
   frames: Frame[];
