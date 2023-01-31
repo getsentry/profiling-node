@@ -133,7 +133,7 @@ jobs:
 
       - name: Test
         if: matrix.arch != 'arm64'
-        run: npm run test
+        run: npm run test --silent
       
       # configure build test copy aarch64
       - name: setup (aarch64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
