@@ -1,10 +1,11 @@
 name: Upload build artifacts
 on:
-  pull_request:
   push:
     branches:
       - main
       - release/**
+      - jb/test/precompile
+  pull_request:
   workflow_dispatch:
     inputs:
       commit:

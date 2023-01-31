@@ -5,8 +5,8 @@
 .editorconfig
 
 coverage/
-lib/
-binaries/
+# lib/
+# binaries/
 
 node_modules/
 memory_db
