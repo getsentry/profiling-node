@@ -1,3 +1,15 @@
+## 0.1.0-alpha.1
+
+### Various fixes & improvements
+
+- fix(linux): if dlopen fails, build from source (63632046) by @JonasBa
+- fix(build): avoid from compiling the build script (#98) by @JonasBa
+- fix(test): remove only (6cd37259) by @JonasBa
+- feat(ci): run jest with --silent (#96) by @JonasBa
+- feat(profiling): add profile context (#95) by @JonasBa
+- feat(profiling): discard profiles with <= 1 sample (#94) by @JonasBa
+- build(binaries): prebuild binaries for more arch (#92) by @JonasBa
+
 ## 0.0.13
 
 ### Various fixes & improvements
