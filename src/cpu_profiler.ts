@@ -1,10 +1,30 @@
-import { threadId } from 'worker_threads';
+import { getAbi } from 'node-abi';
+import path from 'path';
+import os from 'os';
+import { familySync } from 'detect-libc';
 
+import { threadId } from 'worker_threads';
 import { getProjectRootDirectory } from './utils';
-import { target } from './../scripts/binaries';
 
 export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
-  return require(target);
+  const family = familySync();
+  const arch = process.env['BUILD_ARCH'] || os.arch();
+
+  if (family === null) {
+    // If we did not find libc or musl, we may be on Windows or some other platform.
+    return require(path.join(
+      __dirname,
+      '..',
+      'binaries',
+      `sentry_cpu_profiler-v${getAbi(process.versions.node, 'node')}-${os.platform()}-${arch}.node`
+    ));
+  }
+  return require(path.join(
+    __dirname,
+    '..',
+    'binaries',
+    `sentry_cpu_profiler-v${getAbi(process.versions.node, 'node')}-${os.platform()}-${arch}-${family}.node`
+  ));
 }
 
 // Resolve the project root dir so we can try and compute a filename relative to it.

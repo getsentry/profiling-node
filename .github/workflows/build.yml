@@ -12,7 +12,7 @@ on:
         required: false
 jobs:
   precompile-bindings:
-    name: ${{ matrix.os }} (node=${{ matrix.node || matrix.container }}, arch=${{ matrix.arch || matrix.container }})
+    name: ${{ matrix.os }} (node=${{ matrix.node || matrix.container }}, arch=${{ matrix.arch || matrix.container }}, compiler=${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     strategy:
