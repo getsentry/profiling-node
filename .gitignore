@@ -5,7 +5,7 @@
 .editorconfig
 
 coverage/
-# lib/
+lib/
 # binaries/
 
 node_modules/
