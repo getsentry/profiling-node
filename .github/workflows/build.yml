@@ -25,45 +25,45 @@ jobs:
           # distributions and container images.
 
           # linux x64 glibc
-          - os: ubuntu-22.04
+          - os: ubuntu-20.04
             node: 14
-          - os: ubuntu-22.04
+          - os: ubuntu-20.04
             node: 16
-          - os: ubuntu-22.04
+          - os: ubuntu-20.04
             node: 18
 
           # linux x64 musl
-          - os: ubuntu-22.04
+          - os: ubuntu-20.04
             container: node:14-alpine
             node: 14
-          - os: ubuntu-22.04
+          - os: ubuntu-20.04
             container: node:16-alpine
             node: 16
-          - os: ubuntu-22.04
+          - os: ubuntu-20.04
             container: node:18-alpine
             node: 18
 
           # linux aarch64 glibc
-          - os: ubuntu-22.04
+          - os: ubuntu-20.04
             arch: arm64
             node: 14
-          - os: ubuntu-22.04
+          - os: ubuntu-20.04
             arch: arm64
             node: 16
-          - os: ubuntu-22.04
+          - os: ubuntu-20.04
             arch: arm64
             node: 18
 
           # linux aarch64 musl
-          - os: ubuntu-22.04
+          - os: ubuntu-20.04
             container: node:14-alpine
             arch: arm64
             node: 14
-          - os: ubuntu-22.04
+          - os: ubuntu-20.04
             container: node:16-alpine
             arch: arm64
             node: 16
-          - os: ubuntu-22.04
+          - os: ubuntu-20.04
             arch: arm64
             container: node:18-alpine
             node: 18
