@@ -1,11 +1,12 @@
 /* eslint-env node */
 const cp = require('child_process');
+const { existsSync } = require('fs');
 
 const { target } = require('./binaries');
 
 function recompileFromSource() {
   try {
-    console.log('@sentry/profiling-node: Precompiled binary not found, compiling from source...');
+    console.log('@sentry/profiling-node: Compiling from source...');
     cp.execSync(`npm run build:configure`, { env: process.env });
     cp.execSync(`npm run build:bindings`, { env: process.env });
     cp.execSync('node scripts/copy-target.js', { env: process.env });
@@ -19,6 +20,7 @@ function recompileFromSource() {
 }
 
 try {
+  console.log('@sentry/profiling-node: Precompiled binary found, attempting to load...');
   require(target);
   console.log('@sentry/profiling-node: Precompiled binary found, skipping build from source.');
 } catch (e) {
@@ -32,6 +34,13 @@ try {
   // Not sure if this could even happen, but just in case it somehow does,
   //  we can provide a better experience than just crashing with cannot find module message.
   if (/Cannot find module/.test(e.message)) {
+    const success = recompileFromSource();
+    if (success) {
+      process.exit(0);
+    }
+  }
+
+  if (/cannot open shared object file/.test(e.message)) {
     const success = recompileFromSource();
     if (success) {
       process.exit(0);
