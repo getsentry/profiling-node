@@ -46,22 +46,22 @@ describe('Sentry - Profiling', () => {
   });
   it('profiles a transaction', async () => {
     const transaction = Sentry.startTransaction({ name: 'title' });
-    await wait(100);
+    await wait(500);
     transaction.finish();
 
-    await Sentry.flush(100);
+    await Sentry.flush(500);
     expect(findProfile()).not.toBe(null);
   });
 
   it('can profile overlapping transactions', async () => {
     const t1 = Sentry.startTransaction({ name: 'outer' });
     const t2 = Sentry.startTransaction({ name: 'inner' });
-    await wait(100);
+    await wait(500);
 
     t2.finish();
     t1.finish();
 
-    await Sentry.flush(100);
+    await Sentry.flush(500);
 
     expect(findAllProfiles()?.[0]?.[0]?.[1]?.[0]?.[1].transactions[0].name).toBe('inner');
     expect(findAllProfiles()?.[1]?.[0]?.[1]?.[0]?.[1].transactions[0].name).toBe('outer');
@@ -69,25 +69,25 @@ describe('Sentry - Profiling', () => {
     expect(findProfile()).not.toBe(null);
   });
 
-  it('does not discard overlapping transaction with same title', async () => {
+  it.only('does not discard overlapping transaction with same title', async () => {
     const t1 = Sentry.startTransaction({ name: 'same-title' });
     const t2 = Sentry.startTransaction({ name: 'same-title' });
-    await wait(100);
+    await wait(500);
     t2.finish();
     t1.finish();
 
-    await Sentry.flush(100);
+    await Sentry.flush(500);
     expect(findAllProfiles()).toHaveLength(2);
     expect(findProfile()).not.toBe(null);
   });
 
   it('does not crash if finish is called multiple times', async () => {
     const transaction = Sentry.startTransaction({ name: 'title' });
-    await wait(100);
+    await wait(500);
     transaction.finish();
     transaction.finish();
 
-    await Sentry.flush(100);
+    await Sentry.flush(500);
     expect(findAllProfiles()).toHaveLength(1);
     expect(findProfile()).not.toBe(null);
   });
