@@ -1,3 +1,9 @@
+## 0.1.0-alpha.2
+
+### Various fixes & improvements
+
+- fix(bin): downgrade ubuntu to 20.04 (#99) by @JonasBa
+
 ## 0.1.0-alpha.1
 
 ### Various fixes & improvements
