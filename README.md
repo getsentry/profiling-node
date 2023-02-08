@@ -38,12 +38,12 @@ transaction.finish();
 
 ### Environment flags flags
 
-The default mode of the v8 CpuProfiler is kLazyLogging which disables logging when no profiles are active - this is good because it does not add any overhead to the runtime, but the tradeoff is that it results in slow calls to startProfiling (this can exceed couple hundred ms from our tests). You can switch to eager logging which decreases the startup cost for the tradeoff of CPU overhead. You can do so by defining a `SENTRY_PROFILER_LOGGING_MODE` environment variable `eager|lazy` before running your script.
+The default mode of the v8 CpuProfiler is kEagerLoggins which enables the profiler even when no profiles are active - this is good because it makes calls to startProfiling fast at the tradeoff for constant CPU overhead. The behavior can be controlled via the `SENTRY_PROFILER_LOGGING_MODE` environment variable with values of `eager|lazy`. Do not that if you do opt to use the lazy logging mode calls to startProfiling may be slow (depending on environment and node version, it can be in the order of a few hundred ms).
 
-Example of starting a server with eager logging mode.
+Example of starting a server with lazy logging mode.
 
 ```javascript
-SENTRY_PROFILER_LOGGING_MODE=eager node server.js
+SENTRY_PROFILER_LOGGING_MODE=lazy node server.js
 ```
 
 ## FAQ 💭
@@ -70,4 +70,5 @@ No. All instances of the profiler are scoped per thread (v8 isolate). In practic
 
 ### How much overhead will this profiler add?
 
-From our initial benchmark, it seems that most of the overhead is incurred from a call to startProfiling when no profiles are currently started - this is likely due to the fact that we use [kLazyLogging](https://v8docs.nodesource.com/node-18.2/d2/dc3/namespacev8.html#a7d16026419ddeaa475afc767a935c4cc) as the default option when we initialize the CpuProfiler. In our initial tests when benchmarking a simple express server, profiled requests would incur a performance penalty in the range of ~10ms. It is important to note that while the overhead is added, the majority of it is spent in startProfiling call and it seems that very little of it is actually added to the code executed between start and stop profiling calls.
+The profiler uses the kEagerLogging option by default which trades off fast calls to startProfiling for a small amount of constant CPU overhead.
+If you are using kEagerLogging then the tradeoff is reversed and there will be no CPU overhead while the profiler is not running, but calls to startProfiling could be slow (in our tests, this varies by environments and node versions, but could be in the order of 100s of ms).
