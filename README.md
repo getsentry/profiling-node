@@ -36,7 +36,7 @@ const transaction = Sentry.startTransaction({ name: 'I will do some work' });
 transaction.finish();
 ```
 
-### Environment flags flags
+### Environment flags
 
 The default mode of the v8 CpuProfiler is kLazyLogging which disables logging when no profiles are active - this is good because it does not add any overhead to the runtime, but the tradeoff is that it results in slow calls to startProfiling (this can exceed couple hundred ms from our tests). You can switch to eager logging which decreases the startup cost for the tradeoff of CPU overhead. You can do so by defining a `SENTRY_PROFILER_LOGGING_MODE` environment variable `eager|lazy` before running your script.
 
