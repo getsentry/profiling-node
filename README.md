@@ -38,7 +38,7 @@ transaction.finish();
 
 ### Environment flags flags
 
-The default mode of the v8 CpuProfiler is kEagerLoggins which enables the profiler even when no profiles are active - this is good because it makes calls to startProfiling fast at the tradeoff for constant CPU overhead. The behavior can be controlled via the `SENTRY_PROFILER_LOGGING_MODE` environment variable with values of `eager|lazy`. Do not that if you do opt to use the lazy logging mode calls to startProfiling may be slow (depending on environment and node version, it can be in the order of a few hundred ms).
+The default mode of the v8 CpuProfiler is kEagerLoggin which enables the profiler even when no profiles are active - this is good because it makes calls to startProfiling fast at the tradeoff for constant CPU overhead. The behavior can be controlled via the `SENTRY_PROFILER_LOGGING_MODE` environment variable with values of `eager|lazy`. If you opt to use the lazy logging mode, calls to startProfiling may be slow (depending on environment and node version, it can be in the order of a few hundred ms).
 
 Example of starting a server with lazy logging mode.
 
