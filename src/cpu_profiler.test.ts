@@ -117,13 +117,13 @@ describe('Profiler bindings', () => {
     expect(() => CpuProfilerBindings.stopProfiling('does not exist')).not.toThrow();
   });
 
-  it('compiles with lazy logging by default', async () => {
+  it('compiles with eager logging by default', async () => {
     const profile = await profiled('profiled-program', async () => {
       await wait(100);
     });
 
     if (!profile) fail('Profile is null');
-    expect(profile.profiler_logging_mode).toBe('lazy');
+    expect(profile.profiler_logging_mode).toBe('eager');
   });
 
   it('stacks are not null', async () => {

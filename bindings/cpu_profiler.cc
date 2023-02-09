@@ -21,7 +21,7 @@ static const float SAMPLING_FREQUENCY = 99.0; // 99 to avoid lockstep sampling
 static const float SAMPLING_HZ = 1 / SAMPLING_FREQUENCY;
 static const int SAMPLING_INTERVAL_US = SAMPLING_HZ * 1e6;
 static const v8::CpuProfilingNamingMode NAMING_MODE = v8::CpuProfilingNamingMode::kDebugNaming;
-static const v8::CpuProfilingLoggingMode LOGGING_MODE = v8::CpuProfilingLoggingMode::kLazyLogging;
+static const v8::CpuProfilingLoggingMode LOGGING_MODE = v8::CpuProfilingLoggingMode::kEagerLogging;
 
 // Allow users to override the default logging mode via env variable. This is useful 
 // because sometimes the flow of the profiled program can be to execute many sequential 
