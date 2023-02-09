@@ -4,7 +4,7 @@
   </a>
 </p>
 
-# Official Sentry Profiling SDK for NodeJS (beat)
+# Official Sentry Profiling SDK for NodeJS (beta)
 
 [![npm version](https://img.shields.io/npm/v/@sentry/profiling-node.svg)](https://www.npmjs.com/package/@sentry/profiling-node)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/profiling-node.svg)](https://www.npmjs.com/package/@sentry/profiling-node)
