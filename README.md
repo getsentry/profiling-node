@@ -54,7 +54,7 @@ The package is in beta stage, there is a possibility that adding this package ma
 
 ### Can the profiler leak PII to Sentry?
 
-The profiler does not collect function arguments so leaking any PII is unlikely unless. We only collect a subset of the values which may identify the device and os that the profiler is running on - this is a smaller subset of the values already collected by the @sentry/node SDK.
+The profiler does not collect function arguments so leaking any PII is unlikely. We only collect a subset of the values which may identify the device and os that the profiler is running on - this is a smaller subset of the values already collected by the @sentry/node SDK.
 
 The only way to leak PII would be if you are executing code like
 
