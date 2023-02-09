@@ -1,3 +1,12 @@
+## 0.2.1
+
+### Various fixes & improvements
+
+- Update README.md (a1e128c2) by @JonasBa
+- Update README.md (d0ad2379) by @JonasBa
+- Update README.md (d97aad6a) by @JonasBa
+- fix(env): read env from sdk (#103) by @JonasBa
+
 ## 0.2.0
 
 ### Various fixes & improvements
