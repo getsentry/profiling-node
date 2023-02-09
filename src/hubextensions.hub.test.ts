@@ -6,9 +6,10 @@ import { logger } from '@sentry/utils';
 
 Sentry.init({
   dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
-  debug: true,
+  debug: false,
   tracesSampleRate: 1,
   profilesSampleRate: 1,
+  environment: 'test-environment',
   integrations: [new ProfilingIntegration()]
 });
 
@@ -20,6 +21,26 @@ describe('hubextensions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useRealTimers();
+  });
+  it('pulls environment from sdk init', async () => {
+    const transport = Sentry.getCurrentHub().getClient()?.getTransport();
+
+    if (!transport) {
+      throw new Error('Sentry getCurrentHub()->getClient()->getTransport() did not return a transport');
+    }
+
+    const transportSpy = jest.spyOn(transport, 'send').mockImplementation(() => {
+      // Do nothing so we don't send events to Sentry
+      return Promise.resolve();
+    });
+
+    const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub' });
+    await wait(500);
+    transaction.finish();
+
+    await Sentry.flush(1000);
+
+    expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[1]).toMatchObject({ environment: 'test-environment' });
   });
   it('calls profiler when startTransaction is invoked on hub', async () => {
     const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');

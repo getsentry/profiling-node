@@ -52,6 +52,7 @@ export interface Profile {
   };
   timestamp: string;
   release: string;
+  environment: string;
   platform: string;
   profile: ThreadCpuProfile;
   debug_meta?: {
@@ -216,6 +217,7 @@ export function createProfilingEventEnvelope(
     platform: 'node',
     version: '1',
     release: event.release || '',
+    environment: event.environment || '',
     runtime: {
       name: 'node',
       version: process.versions.node || ''
