@@ -1,3 +1,11 @@
+## 0.2.0
+
+### Various fixes & improvements
+
+- feat(profiling): switch to eager logging by default (#102) by @JonasBa
+- Update README.md (2d8fd065) by @JonasBa
+- build(deps): bump http-cache-semantics from 4.1.0 to 4.1.1 (#100) by @dependabot
+
 ## 0.1.0
 
 - No documented changes.
