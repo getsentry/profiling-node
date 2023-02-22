@@ -1,3 +1,9 @@
+## 0.2.2
+
+### Various fixes & improvements
+
+- deps(sentry): bump sentry packages (22610c47) by @JonasBa
+
 ## 0.2.1
 
 ### Various fixes & improvements
