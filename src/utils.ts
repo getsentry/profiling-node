@@ -65,14 +65,12 @@ export interface Profile {
       image_vmaddr: string;
     }[];
   };
-  transactions: {
+  transaction: {
     name: string;
-    trace_id: string;
     id: string;
+    trace_id: string;
     active_thread_id: string;
-    relative_start_ns: string;
-    relative_end_ns: string;
-  }[];
+  };
 }
 
 function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile): profile is RawThreadCpuProfile {
@@ -199,7 +197,6 @@ export function createProfilingEventEnvelope(
   const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
   const enrichedThreadProfile = enrichWithThreadInformation(rawProfile);
   const transactionStartMs = typeof event.start_timestamp === 'number' ? event.start_timestamp * 1000 : Date.now();
-  const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : Date.now();
 
   const traceId = (event?.contexts?.['trace']?.['trace_id'] as string) ?? '';
   // Log a warning if the profile has an invalid traceId (should be uuidv4).
@@ -236,16 +233,12 @@ export function createProfilingEventEnvelope(
       is_emulator: false
     },
     profile: enrichedThreadProfile,
-    transactions: [
-      {
-        name: event.transaction || '',
-        id: event.event_id || uuid4(),
-        trace_id: traceId,
-        active_thread_id: THREAD_ID_STRING,
-        relative_start_ns: '0',
-        relative_end_ns: ((transactionEndMs - transactionStartMs) * 1e6).toFixed(0)
-      }
-    ]
+    transaction: {
+      name: event.transaction || '',
+      id: event.event_id || uuid4(),
+      trace_id: traceId,
+      active_thread_id: THREAD_ID_STRING
+    }
   };
 
   const envelopeItem: EventItem = [

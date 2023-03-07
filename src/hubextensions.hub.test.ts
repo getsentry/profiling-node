@@ -108,8 +108,6 @@ describe('hubextensions', () => {
         ],
         stacks: [[0]],
         frames: [],
-        profile_relative_ended_at_ns: 0,
-        profile_relative_started_at_ns: 0,
         profiler_logging_mode: 'lazy'
       };
     });
@@ -157,8 +155,6 @@ describe('hubextensions', () => {
         ],
         stacks: [[0]],
         frames: [],
-        profile_relative_ended_at_ns: 0,
-        profile_relative_started_at_ns: 0,
         profiler_logging_mode: 'lazy'
       };
     });

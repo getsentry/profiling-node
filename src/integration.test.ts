@@ -15,8 +15,6 @@ function makeProfiledEvent(): ProfiledEvent {
       profile: {
         profile_id: 'id',
         profiler_logging_mode: 'lazy',
-        profile_relative_ended_at_ns: 1,
-        profile_relative_started_at_ns: 0,
         samples: [
           {
             elapsed_since_start_ns: '0',
