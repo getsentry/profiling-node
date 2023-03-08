@@ -37,8 +37,6 @@ function makeProfile(
 ): NonNullable<ProfiledEvent['sdkProcessingMetadata']['profile']> {
   return {
     profile_id: '1',
-    profile_relative_ended_at_ns: 1,
-    profile_relative_started_at_ns: 0,
     profiler_logging_mode: 'lazy',
     stacks: [],
     samples: [
@@ -251,9 +249,9 @@ describe('createProfilingEventEnvelope', () => {
 
     const profile = envelope?.[1][0]?.[1] as unknown as Profile;
 
-    expect(profile.transactions?.[0]?.name).toBe('transaction-name');
-    expect(typeof profile.transactions?.[0]?.id).toBe('string');
-    expect(profile.transactions?.[0]?.id?.length).toBe(32);
-    expect(profile.transactions?.[0]?.trace_id).toBe('trace_id');
+    expect(profile.transaction.name).toBe('transaction-name');
+    expect(typeof profile.transaction.id).toBe('string');
+    expect(profile.transaction.id?.length).toBe(32);
+    expect(profile.transaction.trace_id).toBe('trace_id');
   });
 });

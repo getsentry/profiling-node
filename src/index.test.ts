@@ -63,8 +63,8 @@ describe('Sentry - Profiling', () => {
 
     await Sentry.flush(500);
 
-    expect(findAllProfiles()?.[0]?.[0]?.[1]?.[0]?.[1].transactions[0].name).toBe('inner');
-    expect(findAllProfiles()?.[1]?.[0]?.[1]?.[0]?.[1].transactions[0].name).toBe('outer');
+    expect(findAllProfiles()?.[0]?.[0]?.[1]?.[0]?.[1].transaction.name).toBe('inner');
+    expect(findAllProfiles()?.[1]?.[0]?.[1]?.[0]?.[1].transaction.name).toBe('outer');
     expect(findAllProfiles()).toHaveLength(2);
     expect(findProfile()).not.toBe(null);
   });
