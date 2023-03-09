@@ -1,5 +1,6 @@
 import type { SdkMetadata, DsnComponents } from '@sentry/types';
 import type { ProfiledEvent } from './utils';
+import { isValidSampleRate } from './utils';
 
 import {
   maybeRemoveProfileFromSdkMetadata,
@@ -253,5 +254,29 @@ describe('createProfilingEventEnvelope', () => {
     expect(typeof profile.transaction.id).toBe('string');
     expect(profile.transaction.id?.length).toBe(32);
     expect(profile.transaction.trace_id).toBe('trace_id');
+  });
+});
+
+describe('isValidSampleRate', () => {
+  it.each([
+    [0, true],
+    [0.1, true],
+    [1, true],
+    [true, true],
+    [false, true],
+    // invalid values
+    [1.1, false],
+    [-0.1, false],
+    [NaN, false],
+    [Infinity, false],
+    [null, false],
+    [undefined, false],
+    ['', false],
+    [' ', false],
+    [{}, false],
+    [[], false],
+    [() => null, false]
+  ])('value %s is %s', (input, expected) => {
+    expect(isValidSampleRate(input)).toBe(expected);
   });
 });

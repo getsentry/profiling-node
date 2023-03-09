@@ -274,3 +274,33 @@ export function getProjectRootDirectory(): string | null {
   const components = path.resolve(root_directory).split('/node_modules');
   return components?.[0] ?? null;
 }
+
+/**
+ * Checks the given sample rate to make sure it is valid type and value (a boolean, or a number between 0 and 1).
+ */
+export function isValidSampleRate(rate: unknown): boolean {
+  // we need to check NaN explicitly because it's of type 'number' and therefore wouldn't get caught by this typecheck
+  if ((typeof rate !== 'number' && typeof rate !== 'boolean') || (typeof rate === 'number' && isNaN(rate))) {
+    if (isDebugBuild()) {
+      logger.warn(
+        `[Profiling] Invalid sample rate. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(
+          rate
+        )} of type ${JSON.stringify(typeof rate)}.`
+      );
+    }
+    return false;
+  }
+
+  if (typeof rate === 'boolean') {
+    return true;
+  }
+
+  // in case sampleRate is a boolean, it will get automatically cast to 1 if it's true and 0 if it's false
+  if (rate < 0 || rate > 1) {
+    if (isDebugBuild()) {
+      logger.warn(`[Profiling] Invalid sample rate. Sample rate must be between 0 and 1. Got ${rate}.`);
+    }
+    return false;
+  }
+  return true;
+}

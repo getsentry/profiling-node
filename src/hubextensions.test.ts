@@ -3,6 +3,7 @@ import type {
   ClientOptions,
   Hub,
   Context,
+  Client,
   Transaction,
   TransactionMetadata
 } from '@sentry/types';
@@ -36,7 +37,13 @@ function makeTransactionMock(options = {}): Transaction {
   } as unknown as Transaction;
 }
 
-function makeHubMock({ profilesSampleRate }: { profilesSampleRate: number | undefined }): Hub {
+function makeHubMock({
+  profilesSampleRate,
+  client
+}: {
+  profilesSampleRate: number | undefined;
+  client?: Partial<Client<ClientOptions<BaseTransportOptions>>>;
+}): Hub {
   return {
     getClient: jest.fn().mockImplementation(() => {
       return {
@@ -44,7 +51,8 @@ function makeHubMock({ profilesSampleRate }: { profilesSampleRate: number | unde
           return {
             profilesSampleRate
           } as unknown as ClientOptions<BaseTransportOptions>;
-        })
+        }),
+        ...(client ?? {})
       };
     })
   } as unknown as Hub;
@@ -130,5 +138,114 @@ describe('hubextensions', () => {
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
     expect(stopProfilingSpy).not.toHaveBeenCalledTimes(1);
+  });
+
+  it('disabled if neither profilesSampler and profilesSampleRate are not set', () => {
+    const hub = makeHubMock({ profilesSampleRate: undefined });
+    const startTransaction = jest.fn().mockImplementation(() => makeTransactionMock());
+
+    const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);
+    const samplingContext = { beep: 'boop' };
+    const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, samplingContext);
+    transaction.finish();
+
+    const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
+    expect(startProfilingSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not call startProfiling if profilesSampler returns invalid rate', () => {
+    const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
+    const options = { profilesSampler: jest.fn().mockReturnValue(NaN) };
+    const hub = makeHubMock({
+      profilesSampleRate: undefined,
+      client: {
+        // @ts-expect-error mock this
+        getOptions: () => options
+      }
+    });
+    const startTransaction = jest.fn().mockImplementation(() => makeTransactionMock());
+
+    const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);
+    const samplingContext = { beep: 'boop' };
+    const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, samplingContext);
+    transaction.finish();
+
+    expect(options.profilesSampler).toHaveBeenCalledWith(samplingContext);
+    expect(startProfilingSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not call startProfiling if profilesSampleRate is invalid', () => {
+    const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
+    const options = { profilesSampler: jest.fn().mockReturnValue(NaN) };
+    const hub = makeHubMock({
+      profilesSampleRate: NaN,
+      client: {
+        // @ts-expect-error mock this
+        getOptions: () => options
+      }
+    });
+    const startTransaction = jest.fn().mockImplementation(() => makeTransactionMock());
+
+    const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);
+    const samplingContext = { beep: 'boop' };
+    const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, samplingContext);
+    transaction.finish();
+
+    expect(options.profilesSampler).toHaveBeenCalledWith(samplingContext);
+    expect(startProfilingSpy).not.toHaveBeenCalled();
+  });
+
+  it('calls profilesSampler with sampling context', () => {
+    const options = { profilesSampler: jest.fn() };
+    const hub = makeHubMock({
+      profilesSampleRate: undefined,
+      client: {
+        // @ts-expect-error mock this
+        getOptions: () => options
+      }
+    });
+    const startTransaction = jest.fn().mockImplementation(() => makeTransactionMock());
+
+    const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);
+    const samplingContext = { beep: 'boop' };
+    const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, samplingContext);
+    transaction.finish();
+
+    expect(options.profilesSampler).toHaveBeenCalledWith(samplingContext);
+  });
+
+  it('prioritizes profilesSampler outcome over profilesSampleRate', () => {
+    const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
+    const options = { profilesSampler: jest.fn().mockReturnValue(1) };
+    const hub = makeHubMock({
+      profilesSampleRate: 0,
+      client: {
+        // @ts-expect-error mock this
+        getOptions: () => options
+      }
+    });
+    const startTransaction = jest.fn().mockImplementation(() => makeTransactionMock());
+
+    const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);
+    const samplingContext = { beep: 'boop' };
+    const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, samplingContext);
+    transaction.finish();
+
+    expect(startProfilingSpy).toHaveBeenCalled();
+  });
+
+  it('infers sampling based off customSamplingContext.parentSampled', () => {
+    const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
+    const hub = makeHubMock({
+      profilesSampleRate: 1
+    });
+    const startTransaction = jest.fn().mockImplementation(() => makeTransactionMock());
+
+    const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);
+    const samplingContext = { parentSampled: 0 };
+    const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, samplingContext);
+    transaction.finish();
+
+    expect(startProfilingSpy).not.toHaveBeenCalled();
   });
 });

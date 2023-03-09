@@ -4,6 +4,7 @@ import { logger, uuid4 } from '@sentry/utils';
 
 import { isDebugBuild } from './env';
 import { CpuProfilerBindings } from './cpu_profiler';
+import { isValidSampleRate } from './utils';
 
 const MAX_PROFILE_DURATION_MS = 30 * 1000;
 
@@ -30,26 +31,74 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     const profile_id = uuid4();
     const uniqueTransactionName = `${transactionContext.name} ${profile_id}`;
 
-    // profilesSampleRate is multiplied with tracesSampleRate to get the final sampling rate.
+    // profilesSampleRate is multiplied with tracesSampleRate to get the final sampling rate. We dont perform
+    // the actual multiplication to get the final rate, but we discard the profile if the transaction was sampled,
+    // so anything after this block from here is based on the transaction sampling.
     if (!transaction.sampled) {
       return transaction;
     }
 
-    // @ts-expect-error profilesSampleRate is not part of the options type yet
-    const profilesSampleRate = this.getClient()?.getOptions?.()?.profilesSampleRate;
-    if (profilesSampleRate === undefined) {
+    const client = this.getClient();
+    if (!client) {
+      if (isDebugBuild()) {
+        logger.log('[Profiling] Profiling disabled, no client found.');
+      }
+      return transaction;
+    }
+    const options = client.getOptions();
+    if (!options) {
+      if (isDebugBuild()) {
+        logger.log('[Profiling] Profiling disabled, no options found.');
+      }
+      return transaction;
+    }
+
+    // @ts-expect-error sampler is not yer part of the sdk options
+    const profilesSampler = options.profilesSampler;
+    // @ts-expect-error sampler is not yer part of the sdk options
+    let profilesSampleRate: number | undefined = options.profilesSampleRate;
+
+    // Prefer sampler to sample rate if both are provided.
+    if (typeof profilesSampler === 'function') {
+      profilesSampleRate = profilesSampler(customSamplingContext);
+    } else if (customSamplingContext && customSamplingContext['parentSampled'] !== undefined) {
+      profilesSampleRate = customSamplingContext['parentSampled'];
+    }
+
+    // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
+    // only valid values are booleans or numbers between 0 and 1.)
+    if (!isValidSampleRate(profilesSampleRate)) {
+      if (isDebugBuild()) {
+        logger.warn('[Profiling] Discarding profile because of invalid sample rate.');
+      }
+      return transaction;
+    }
+
+    // if the function returned 0 (or false), or if `profileSampleRate` is 0, it's a sign the profile should be dropped
+    if (!profilesSampleRate) {
       if (isDebugBuild()) {
         logger.log(
-          '[Profiling] Profiling disabled, enable it by setting `profilesSampleRate` option to SDK init call.'
+          `[Profiling] Discarding profile because ${
+            typeof profilesSampler === 'function'
+              ? 'profileSampler returned 0 or false'
+              : 'a negative sampling decision was inherited or profileSampleRate is set to 0'
+          }`
         );
       }
       return transaction;
     }
 
+    // Now we roll the dice. Math.random is inclusive of 0, but not of 1, so strict < is safe here. In case sampleRate is
+    // a boolean, the < comparison will cause it to be automatically cast to 1 if it's true and 0 if it's false.
+    const sampled = Math.random() < (profilesSampleRate as number | boolean);
     // Check if we should sample this profile
-    if (Math.random() > profilesSampleRate) {
+    if (!sampled) {
       if (isDebugBuild()) {
-        logger.log('[Profiling] Skip profiling transaction due to sampling.');
+        logger.log(
+          `[Profiling] Discarding profile because it's not included in the random sample (sampling rate = ${Number(
+            profilesSampleRate
+          )})`
+        );
       }
       return transaction;
     }
