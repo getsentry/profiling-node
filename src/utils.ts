@@ -291,10 +291,6 @@ export function isValidSampleRate(rate: unknown): boolean {
     return false;
   }
 
-  if (typeof rate === 'boolean') {
-    return true;
-  }
-
   // in case sampleRate is a boolean, it will get automatically cast to 1 if it's true and 0 if it's false
   if (rate < 0 || rate > 1) {
     if (isDebugBuild()) {
