@@ -234,7 +234,9 @@ describe('hubextensions', () => {
     expect(startProfilingSpy).toHaveBeenCalled();
   });
 
-  it('infers sampling based off customSamplingContext.parentSampled', () => {
+  // This is for distributed tracing see
+  // https://github.com/getsentry/profiling-node/pull/109#discussion_r1132434757
+  it.skip('infers sampling based off customSamplingContext.parentSampled', () => {
     const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
     const hub = makeHubMock({
       profilesSampleRate: 1

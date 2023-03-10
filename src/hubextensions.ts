@@ -61,9 +61,12 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     // Prefer sampler to sample rate if both are provided.
     if (typeof profilesSampler === 'function') {
       profilesSampleRate = profilesSampler(customSamplingContext);
-    } else if (customSamplingContext && customSamplingContext['parentSampled'] !== undefined) {
-      profilesSampleRate = customSamplingContext['parentSampled'];
     }
+    // @TODO: enable this block if we want distributed tracing support
+    // see https://github.com/getsentry/profiling-node/pull/109#discussion_r1132434757
+    // else if (customSamplingContext && customSamplingContext['parentSampled'] !== undefined) {
+    //   profilesSampleRate = customSamplingContext['parentSampled'];
+    // }
 
     // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
     // only valid values are booleans or numbers between 0 and 1.)
