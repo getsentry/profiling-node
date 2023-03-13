@@ -9,7 +9,7 @@
     "url": "https://github.com/getsentry/profiling-node.git"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=8.0.0"
   },
   "files": [
     "lib",
