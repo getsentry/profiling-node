@@ -44,13 +44,12 @@ export function maybeProfileTransaction(
     return;
   }
 
-  // @ts-expect-error not part of the options yet
   const profilesSampler = options.profilesSampler;
-  let profilesSampleRate: number | undefined = options.profilesSampleRate;
+  let profilesSampleRate: number | boolean | undefined = options.profilesSampleRate;
 
   // Prefer sampler to sample rate if both are provided.
   if (typeof profilesSampler === 'function') {
-    profilesSampleRate = profilesSampler(customSamplingContext);
+    profilesSampleRate = profilesSampler({ ...transaction.toContext(), ...customSamplingContext });
   }
 
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
@@ -109,11 +108,11 @@ export function maybeProfileTransaction(
  * @param profile_id
  * @returns
  */
-export function stopProfile(
-  transaction: Transaction,
-  profile_id: string
+export function maybeStopTransactionProfile(
+  transaction: Transaction
 ): ReturnType<typeof CpuProfilerBindings['stopProfiling']> | null {
   // Should not happen, but satisfy the type checker and be safe regardless.
+  const profile_id = transaction.getContext('profile');
   if (!profile_id) {
     return null;
   }

@@ -156,14 +156,9 @@ function createEventEnvelopeHeaders(
  * @param dsn
  * @param metadata
  * @param tunnel
- * @returns {EventEnvelope | null}
+ * @returns {Profile | null}
  */
-export function createProfilingEventEnvelope(
-  event: ProfiledEvent,
-  dsn: DsnComponents,
-  metadata?: SdkMetadata,
-  tunnel?: string
-): EventEnvelope | null {
+export function createProfilingEvent(event: ProfiledEvent): Profile | null {
   if (event.type !== 'transaction') {
     // createProfilingEventEnvelope should only be called for transactions,
     // we type guard this behavior with isProfiledTransactionEvent.
@@ -192,9 +187,6 @@ export function createProfilingEventEnvelope(
     return null;
   }
 
-  const sdkInfo = getSdkMetadataForEnvelopeHeader(metadata);
-  enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
-  const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
   const enrichedThreadProfile = enrichWithThreadInformation(rawProfile);
   const transactionStartMs = typeof event.start_timestamp === 'number' ? event.start_timestamp * 1000 : Date.now();
 
@@ -241,6 +233,27 @@ export function createProfilingEventEnvelope(
     }
   };
 
+  return profile;
+}
+
+/**
+ * Creates an envelope from a profiling event.
+ * @param event Profile
+ * @param dsn
+ * @param metadata
+ * @param tunnel
+ * @returns
+ */
+export function createProfilingEventEnvelope(
+  event: ProfiledEvent,
+  dsn: DsnComponents,
+  metadata?: SdkMetadata,
+  tunnel?: string
+): EventEnvelope | null {
+  const sdkInfo = getSdkMetadataForEnvelopeHeader(metadata);
+  enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
+
+  const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
   const envelopeItem: EventItem = [
     {
       type: 'profile'

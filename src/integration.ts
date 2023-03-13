@@ -1,8 +1,9 @@
-import type { Integration, EventProcessor, Hub, Event } from '@sentry/types';
+import type { NodeClient } from '@sentry/node';
+import type { Integration, EventProcessor, Hub, Event, Transaction } from '@sentry/types';
 
-import { logger } from '@sentry/utils';
+import { addItemToEnvelope, logger } from '@sentry/utils';
 import { isDebugBuild } from './env';
-import { addProfilingExtensionMethods } from './hubextensions';
+import { addProfilingExtensionMethods, maybeProfileTransaction, maybeStopTransactionProfile } from './hubextensions';
 import { maybeRemoveProfileFromSdkMetadata, createProfilingEventEnvelope, isProfiledTransactionEvent } from './utils';
 
 // We need this integration in order to actually send data to Sentry. We hook into the event processor
@@ -15,19 +16,28 @@ export class ProfilingIntegration implements Integration {
 
   setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this.getCurrentHub = getCurrentHub;
-    // const client = getCurrentHub().getClient();
+    const client = getCurrentHub().getClient() as NodeClient;
 
-    // if (client && typeof client.on === 'function') {
-    //   client.on('startTransaction', (transaction) => {});
-    //   client.on('finishTransaction', (transaction) => {});
-    //   client.on('beforeEnvelope', (envelope) => {});
+    if (client && typeof client.on === 'function') {
+      client.on('startTransaction', (transaction: Transaction) => {
+        maybeProfileTransaction(client, transaction, undefined);
+      });
 
-    //   return;
-    // }
+      client.on('finishTransaction', (transaction) => {
+        if (transaction) {
+          maybeStopTransactionProfile(transaction);
+        }
+      });
 
-    // Patch the carrier methods
+      client.on('beforeEnvelope', (envelope) => {
+        addItemToEnvelope();
+      });
+
+      return;
+    }
+
+    // Patch the carrier methods and add the event processor.
     addProfilingExtensionMethods();
-    // else add event processor
     addGlobalEventProcessor(this.handleGlobalEvent.bind(this));
   }
 
