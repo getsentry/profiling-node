@@ -153,9 +153,6 @@ function createEventEnvelopeHeaders(
  * Creates a profiling event envelope from a Sentry event. If profile does not pass
  * validation, returns null.
  * @param event
- * @param dsn
- * @param metadata
- * @param tunnel
  * @returns {Profile | null}
  */
 export function createProfilingEvent(event: ProfiledEvent): Profile | null {
@@ -254,11 +251,17 @@ export function createProfilingEventEnvelope(
   enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
 
   const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
+  const profile = createProfilingEvent(event);
+
+  if (!profile) {
+    return null;
+  }
+
   const envelopeItem: EventItem = [
     {
       type: 'profile'
     },
-    // @ts-expect-error profile is not yet a type in @sentry/types
+    // @ts-expect-error profile is not part of sdk types yet
     profile
   ];
 

@@ -21,7 +21,7 @@ export function maybeProfileTransaction(
   client: NodeClient | undefined,
   transaction: Transaction,
   customSamplingContext?: CustomSamplingContext
-): undefined | string {
+): string | undefined {
   // profilesSampleRate is multiplied with tracesSampleRate to get the final sampling rate. We dont perform
   // the actual multiplication to get the final rate, but we discard the profile if the transaction was sampled,
   // so anything after this block from here is based on the transaction sampling.
@@ -49,7 +49,7 @@ export function maybeProfileTransaction(
 
   // Prefer sampler to sample rate if both are provided.
   if (typeof profilesSampler === 'function') {
-    profilesSampleRate = profilesSampler({ ...transaction.toContext(), ...customSamplingContext });
+    profilesSampleRate = profilesSampler({ transactionContext: transaction.toContext(), ...customSamplingContext });
   }
 
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
@@ -98,7 +98,6 @@ export function maybeProfileTransaction(
 
   // set transaction context - do this regardless if profiling fails down the line
   // so that we can still see the profile_id in the transaction context
-  transaction.setContext('profile', { profile_id });
   return profile_id;
 }
 
@@ -108,11 +107,11 @@ export function maybeProfileTransaction(
  * @param profile_id
  * @returns
  */
-export function maybeStopTransactionProfile(
-  transaction: Transaction
+export function stopTransactionProfile(
+  transaction: Transaction,
+  profile_id: string | undefined
 ): ReturnType<typeof CpuProfilerBindings['stopProfiling']> | null {
   // Should not happen, but satisfy the type checker and be safe regardless.
-  const profile_id = transaction.getContext('profile');
   if (!profile_id) {
     return null;
   }
@@ -176,7 +175,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
       if (isDebugBuild()) {
         logger.log('[Profiling] max profile duration elapsed, stopping profiling for:', transaction.name);
       }
-      profile = stopProfile(transaction, profile_id);
+      profile = stopTransactionProfile(transaction, profile_id);
     }, MAX_PROFILE_DURATION_MS);
 
     // We need to reference the original finish call to avoid creating an infinite loop
@@ -197,7 +196,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
       // onProfileHandler should always return the same profile even if this is called multiple times.
       // Always call onProfileHandler to ensure stopProfiling is called and the timeout is cleared.
       if (!profile) {
-        profile = stopProfile(transaction, profile_id);
+        profile = stopTransactionProfile(transaction, profile_id);
       }
 
       // @ts-expect-error profile is not a part of sdk metadata so we expect error until it becomes part of the official SDK.

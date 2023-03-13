@@ -3,10 +3,11 @@ import type {
   ClientOptions,
   Hub,
   Context,
-  Client,
   Transaction,
   TransactionMetadata
 } from '@sentry/types';
+
+import { NodeClient } from '@sentry/node';
 
 import { __PRIVATE__wrapStartTransactionWithProfiling } from './hubextensions';
 import { importCppBindingsModule } from './cpu_profiler';
@@ -42,7 +43,7 @@ function makeHubMock({
   client
 }: {
   profilesSampleRate: number | undefined;
-  client?: Partial<Client<ClientOptions<BaseTransportOptions>>>;
+  client?: Partial<NodeClient>;
 }): Hub {
   return {
     getClient: jest.fn().mockImplementation(() => {

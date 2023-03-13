@@ -1,10 +1,15 @@
 import type { NodeClient } from '@sentry/node';
 import type { Integration, EventProcessor, Hub, Event, Transaction } from '@sentry/types';
 
-import { addItemToEnvelope, logger } from '@sentry/utils';
+import { logger, addItemToEnvelope } from '@sentry/utils';
 import { isDebugBuild } from './env';
-import { addProfilingExtensionMethods, maybeProfileTransaction, maybeStopTransactionProfile } from './hubextensions';
-import { maybeRemoveProfileFromSdkMetadata, createProfilingEventEnvelope, isProfiledTransactionEvent } from './utils';
+import { addProfilingExtensionMethods, maybeProfileTransaction, stopTransactionProfile } from './hubextensions';
+import {
+  maybeRemoveProfileFromSdkMetadata,
+  createProfilingEvent,
+  createProfilingEventEnvelope,
+  isProfiledTransactionEvent
+} from './utils';
 
 // We need this integration in order to actually send data to Sentry. We hook into the event processor
 // and inspect each event to see if it is a transaction event and if that transaction event
@@ -20,17 +25,30 @@ export class ProfilingIntegration implements Integration {
 
     if (client && typeof client.on === 'function') {
       client.on('startTransaction', (transaction: Transaction) => {
-        maybeProfileTransaction(client, transaction, undefined);
+        const profile_id = maybeProfileTransaction(client, transaction, undefined);
+
+        if (profile_id) {
+          transaction.setContext('profile', { profile_id });
+          // @ts-expect-error profile_id is not part of transaction types
+          transaction.setMetadata({ profile_id });
+        }
       });
 
       client.on('finishTransaction', (transaction) => {
-        if (transaction) {
-          maybeStopTransactionProfile(transaction);
+        // @ts-expect-error profile_id is
+        const profile_id = transaction && transaction.metadata && transaction.metadata.profile_id;
+        if (profile_id) {
+          stopTransactionProfile(transaction, profile_id);
         }
       });
 
       client.on('beforeEnvelope', (envelope) => {
-        addItemToEnvelope();
+        // @ts-expect-error profile_id is
+        const profiledEvent = createProfilingEvent({});
+        if (profiledEvent) {
+          // @ts-expect-error profile_id is
+          void addItemToEnvelope(envelope, profiledEvent);
+        }
       });
 
       return;
