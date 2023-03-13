@@ -1,10 +1,11 @@
 import type { Hub, TransactionContext, CustomSamplingContext, Transaction } from '@sentry/types';
-import { getMainCarrier } from '@sentry/hub';
 import { logger, uuid4 } from '@sentry/utils';
+import type { NodeClient } from '@sentry/node';
 
 import { isDebugBuild } from './env';
 import { CpuProfilerBindings } from './cpu_profiler';
 import { isValidSampleRate } from './utils';
+import { getMainCarrier } from '@sentry/hub';
 
 const MAX_PROFILE_DURATION_MS = 30 * 1000;
 
@@ -13,6 +14,131 @@ type StartTransaction = (
   transactionContext: TransactionContext,
   customSamplingContext?: CustomSamplingContext
 ) => Transaction;
+
+// Takes a transaction and determines if it should be profiled or not. If it should be profiled, it returns the
+// profile_id, otherwise returns undefined. Takes care of setting profile context on transaction as well
+export function maybeProfileTransaction(
+  client: NodeClient | undefined,
+  transaction: Transaction,
+  customSamplingContext?: CustomSamplingContext
+): undefined | string {
+  // profilesSampleRate is multiplied with tracesSampleRate to get the final sampling rate. We dont perform
+  // the actual multiplication to get the final rate, but we discard the profile if the transaction was sampled,
+  // so anything after this block from here is based on the transaction sampling.
+  if (!transaction.sampled) {
+    return;
+  }
+
+  // Client and options are required for profiling
+  if (!client) {
+    if (isDebugBuild()) {
+      logger.log('[Profiling] Profiling disabled, no client found.');
+    }
+    return;
+  }
+  const options = client.getOptions();
+  if (!options) {
+    if (isDebugBuild()) {
+      logger.log('[Profiling] Profiling disabled, no options found.');
+    }
+    return;
+  }
+
+  // @ts-expect-error not part of the options yet
+  const profilesSampler = options.profilesSampler;
+  let profilesSampleRate: number | undefined = options.profilesSampleRate;
+
+  // Prefer sampler to sample rate if both are provided.
+  if (typeof profilesSampler === 'function') {
+    profilesSampleRate = profilesSampler(customSamplingContext);
+  }
+
+  // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
+  // only valid values are booleans or numbers between 0 and 1.)
+  if (!isValidSampleRate(profilesSampleRate)) {
+    if (isDebugBuild()) {
+      logger.warn('[Profiling] Discarding profile because of invalid sample rate.');
+    }
+    return;
+  }
+
+  // if the function returned 0 (or false), or if `profileSampleRate` is 0, it's a sign the profile should be dropped
+  if (!profilesSampleRate) {
+    if (isDebugBuild()) {
+      logger.log(
+        `[Profiling] Discarding profile because ${
+          typeof profilesSampler === 'function'
+            ? 'profileSampler returned 0 or false'
+            : 'a negative sampling decision was inherited or profileSampleRate is set to 0'
+        }`
+      );
+    }
+    return;
+  }
+
+  // Now we roll the dice. Math.random is inclusive of 0, but not of 1, so strict < is safe here. In case sampleRate is
+  // a boolean, the < comparison will cause it to be automatically cast to 1 if it's true and 0 if it's false.
+  const sampled = Math.random() < (profilesSampleRate as number | boolean);
+  // Check if we should sample this profile
+  if (!sampled) {
+    if (isDebugBuild()) {
+      logger.log(
+        `[Profiling] Discarding profile because it's not included in the random sample (sampling rate = ${Number(
+          profilesSampleRate
+        )})`
+      );
+    }
+    return;
+  }
+
+  const profile_id = uuid4();
+  CpuProfilerBindings.startProfiling(profile_id);
+  if (isDebugBuild()) {
+    logger.log('[Profiling] started profiling transaction: ' + transaction.name);
+  }
+
+  // set transaction context - do this regardless if profiling fails down the line
+  // so that we can still see the profile_id in the transaction context
+  transaction.setContext('profile', { profile_id });
+  return profile_id;
+}
+
+/**
+ * Stops the profiler for profile_id and returns the profile
+ * @param transaction
+ * @param profile_id
+ * @returns
+ */
+export function stopProfile(
+  transaction: Transaction,
+  profile_id: string
+): ReturnType<typeof CpuProfilerBindings['stopProfiling']> | null {
+  // Should not happen, but satisfy the type checker and be safe regardless.
+  if (!profile_id) {
+    return null;
+  }
+
+  const profile = CpuProfilerBindings.stopProfiling(profile_id);
+
+  if (isDebugBuild()) {
+    logger.log('[Profiling] stopped profiling of transaction: ' + transaction.name);
+  }
+
+  // In case of an overlapping transaction, stopProfiling may return null and silently ignore the overlapping profile.
+  if (!profile) {
+    if (isDebugBuild()) {
+      logger.log(
+        '[Profiling] profiler returned null profile for: ' + transaction.name,
+        'this may indicate an overlapping transaction or a call to stopProfiling with a profile title that was never started'
+      );
+    }
+    return null;
+  }
+
+  // Assign profile_id to the profile
+  profile.profile_id = profile_id;
+  return profile;
+}
 
 // Wraps startTransaction and stopTransaction with profiling related logic.
 // startProfiling is called after the call to startTransaction in order to avoid our own code from
@@ -25,86 +151,16 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
   ): Transaction {
     const transaction = startTransaction.call(this, transactionContext, customSamplingContext);
 
-    // We create "unique" transaction names to avoid concurrent transactions with same names
-    // from being ignored by the profiler. From here on, only this transaction name should be used when
-    // calling the profiler methods. Note: we log the original name to the user to avoid confusion.
-    const profile_id = uuid4();
-    const uniqueTransactionName = `${transactionContext.name} ${profile_id}`;
-
-    // profilesSampleRate is multiplied with tracesSampleRate to get the final sampling rate. We dont perform
-    // the actual multiplication to get the final rate, but we discard the profile if the transaction was sampled,
-    // so anything after this block from here is based on the transaction sampling.
-    if (!transaction.sampled) {
-      return transaction;
-    }
-
-    const client = this.getClient();
+    // Client is required if we want to profile
+    const client = this.getClient() as NodeClient | undefined;
     if (!client) {
-      if (isDebugBuild()) {
-        logger.log('[Profiling] Profiling disabled, no client found.');
-      }
-      return transaction;
-    }
-    const options = client.getOptions();
-    if (!options) {
-      if (isDebugBuild()) {
-        logger.log('[Profiling] Profiling disabled, no options found.');
-      }
       return transaction;
     }
 
-    // @ts-expect-error sampler is not yer part of the sdk options
-    const profilesSampler = options.profilesSampler;
-    // @ts-expect-error sampler is not yer part of the sdk options
-    let profilesSampleRate: number | undefined = options.profilesSampleRate;
-
-    // Prefer sampler to sample rate if both are provided.
-    if (typeof profilesSampler === 'function') {
-      profilesSampleRate = profilesSampler(customSamplingContext);
-    }
-
-    // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
-    // only valid values are booleans or numbers between 0 and 1.)
-    if (!isValidSampleRate(profilesSampleRate)) {
-      if (isDebugBuild()) {
-        logger.warn('[Profiling] Discarding profile because of invalid sample rate.');
-      }
+    // Check if we should profile this transaction. If a profile_id is returned, then profiling has been started.
+    const profile_id = maybeProfileTransaction(client, transaction, customSamplingContext);
+    if (!profile_id) {
       return transaction;
-    }
-
-    // if the function returned 0 (or false), or if `profileSampleRate` is 0, it's a sign the profile should be dropped
-    if (!profilesSampleRate) {
-      if (isDebugBuild()) {
-        logger.log(
-          `[Profiling] Discarding profile because ${
-            typeof profilesSampler === 'function'
-              ? 'profileSampler returned 0 or false'
-              : 'a negative sampling decision was inherited or profileSampleRate is set to 0'
-          }`
-        );
-      }
-      return transaction;
-    }
-
-    // Now we roll the dice. Math.random is inclusive of 0, but not of 1, so strict < is safe here. In case sampleRate is
-    // a boolean, the < comparison will cause it to be automatically cast to 1 if it's true and 0 if it's false.
-    const sampled = Math.random() < (profilesSampleRate as number | boolean);
-    // Check if we should sample this profile
-    if (!sampled) {
-      if (isDebugBuild()) {
-        logger.log(
-          `[Profiling] Discarding profile because it's not included in the random sample (sampling rate = ${Number(
-            profilesSampleRate
-          )})`
-        );
-      }
-      return transaction;
-    }
-
-    // Start the profiler
-    CpuProfilerBindings.startProfiling(uniqueTransactionName);
-    if (isDebugBuild()) {
-      logger.log('[Profiling] started profiling transaction: ' + transactionContext.name);
     }
 
     // A couple of important things to note here:
@@ -116,63 +172,37 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     // After the original finish method is called, the event will be reported through the integration and delegated to transport.
     let profile: ReturnType<typeof CpuProfilerBindings['stopProfiling']> | null = null;
 
-    function onProfileHandler(): ReturnType<typeof CpuProfilerBindings['stopProfiling']> | null {
-      // Check if the profile exists and return it the behavior has to be idempotent as users may call transaction.finish multiple times.
-      if (profile) {
-        if (isDebugBuild()) {
-          logger.log('[Profiling] profile for:', transactionContext.name, 'already exists, returning early');
-        }
-        return profile;
-      }
-
-      profile = CpuProfilerBindings.stopProfiling(uniqueTransactionName);
-
-      if (maxDurationTimeoutID) {
-        global.clearTimeout(maxDurationTimeoutID);
-        maxDurationTimeoutID = undefined;
-      }
-
-      if (isDebugBuild()) {
-        logger.log('[Profiling] stopped profiling of transaction: ' + transactionContext.name);
-      }
-
-      // In case of an overlapping transaction, stopProfiling may return null and silently ignore the overlapping profile.
-      if (!profile) {
-        if (isDebugBuild()) {
-          logger.log(
-            '[Profiling] profiler returned null profile for: ' + transactionContext.name,
-            'this may indicate an overlapping transaction or a call to stopProfiling with a profile title that was never started'
-          );
-        }
-        return null;
-      }
-
-      // Assign profile_id to the profile
-      profile.profile_id = profile_id;
-      return profile;
-    }
-
     // Enqueue a timeout to prevent profiles from running over max duration.
     let maxDurationTimeoutID: NodeJS.Timeout | void = global.setTimeout(() => {
       if (isDebugBuild()) {
-        logger.log('[Profiling] max profile duration elapsed, stopping profiling for:', transactionContext.name);
+        logger.log('[Profiling] max profile duration elapsed, stopping profiling for:', transaction.name);
       }
-      onProfileHandler();
+      profile = stopProfile(transaction, profile_id);
     }, MAX_PROFILE_DURATION_MS);
 
     // We need to reference the original finish call to avoid creating an infinite loop
     const originalFinish = transaction.finish.bind(transaction);
 
+    // Wrap the transaction finish method to stop profiling and set the profile on the transaction.
     function profilingWrappedTransactionFinish() {
+      if (!profile_id) {
+        return originalFinish();
+      }
+
+      // We stop the handler first to ensure that the timeout is cleared and the profile is stopped.
+      if (maxDurationTimeoutID) {
+        global.clearTimeout(maxDurationTimeoutID);
+        maxDurationTimeoutID = undefined;
+      }
+
       // onProfileHandler should always return the same profile even if this is called multiple times.
       // Always call onProfileHandler to ensure stopProfiling is called and the timeout is cleared.
-      const profile = onProfileHandler();
+      if (!profile) {
+        profile = stopProfile(transaction, profile_id);
+      }
 
       // @ts-expect-error profile is not a part of sdk metadata so we expect error until it becomes part of the official SDK.
       transaction.setMetadata({ profile });
-      // Set profile context
-      transaction.setContext('profile', { profile_id });
-
       return originalFinish();
     }
 
@@ -183,6 +213,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
 
 /**
  * Patches startTransaction and stopTransaction with profiling logic.
+ * This is used by the SDK's that do not support event hooks.
  * @private
  */
 function _addProfilingExtensionMethods(): void {
@@ -216,6 +247,6 @@ function _addProfilingExtensionMethods(): void {
 /**
  * This patches the global object and injects the Profiling extensions methods
  */
-export function addExtensionMethods(): void {
+export function addProfilingExtensionMethods(): void {
   _addProfilingExtensionMethods();
 }

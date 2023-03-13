@@ -2,6 +2,7 @@ import type { Integration, EventProcessor, Hub, Event } from '@sentry/types';
 
 import { logger } from '@sentry/utils';
 import { isDebugBuild } from './env';
+import { addProfilingExtensionMethods } from './hubextensions';
 import { maybeRemoveProfileFromSdkMetadata, createProfilingEventEnvelope, isProfiledTransactionEvent } from './utils';
 
 // We need this integration in order to actually send data to Sentry. We hook into the event processor
@@ -14,6 +15,19 @@ export class ProfilingIntegration implements Integration {
 
   setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this.getCurrentHub = getCurrentHub;
+    // const client = getCurrentHub().getClient();
+
+    // if (client && typeof client.on === 'function') {
+    //   client.on('startTransaction', (transaction) => {});
+    //   client.on('finishTransaction', (transaction) => {});
+    //   client.on('beforeEnvelope', (envelope) => {});
+
+    //   return;
+    // }
+
+    // Patch the carrier methods
+    addProfilingExtensionMethods();
+    // else add event processor
     addGlobalEventProcessor(this.handleGlobalEvent.bind(this));
   }
 
@@ -27,7 +41,6 @@ export class ProfilingIntegration implements Integration {
       // If either of them is not available, we remove the profile from the transaction event.
       // and forward it to the next event processor.
       const hub = this.getCurrentHub();
-
       const client = hub.getClient();
       if (!client) {
         if (isDebugBuild()) {

@@ -175,6 +175,6 @@ describe('ProfilingIntegration', () => {
     integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
 
     assertCleanProfile(integration.handleGlobalEvent(makeProfiledEvent()));
-    expect(logSpy.mock.calls?.[0]?.[0]).toBe('[Profiling] Preparing envelope and sending a profiling event');
+    expect(logSpy.mock.calls?.[1]?.[0]).toBe('[Profiling] Preparing envelope and sending a profiling event');
   });
 });
