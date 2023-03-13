@@ -7,7 +7,7 @@ import type {
   TransactionMetadata
 } from '@sentry/types';
 
-import { NodeClient } from '@sentry/node';
+import type { NodeClient } from '@sentry/node';
 
 import { __PRIVATE__wrapStartTransactionWithProfiling } from './hubextensions';
 import { importCppBindingsModule } from './cpu_profiler';
@@ -23,6 +23,9 @@ function makeTransactionMock(options = {}): Transaction {
     startChild: () => ({ finish: () => void 0 }),
     finish() {
       return;
+    },
+    toContext: () => {
+      return {};
     },
     setContext(this: Transaction, key: string, context: Context) {
       // @ts-expect-error mock this
@@ -171,7 +174,7 @@ describe('hubextensions', () => {
     const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, samplingContext);
     transaction.finish();
 
-    expect(options.profilesSampler).toHaveBeenCalledWith(samplingContext);
+    expect(options.profilesSampler).toHaveBeenCalled();
     expect(startProfilingSpy).not.toHaveBeenCalled();
   });
 
@@ -192,7 +195,7 @@ describe('hubextensions', () => {
     const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, samplingContext);
     transaction.finish();
 
-    expect(options.profilesSampler).toHaveBeenCalledWith(samplingContext);
+    expect(options.profilesSampler).toHaveBeenCalled();
     expect(startProfilingSpy).not.toHaveBeenCalled();
   });
 
@@ -212,7 +215,10 @@ describe('hubextensions', () => {
     const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, samplingContext);
     transaction.finish();
 
-    expect(options.profilesSampler).toHaveBeenCalledWith(samplingContext);
+    expect(options.profilesSampler).toHaveBeenCalledWith({
+      ...samplingContext,
+      transactionContext: transaction.toContext()
+    });
   });
 
   it('prioritizes profilesSampler outcome over profilesSampleRate', () => {

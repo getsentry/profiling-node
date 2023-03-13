@@ -38,7 +38,9 @@ export class ProfilingIntegration implements Integration {
         // @ts-expect-error profile_id is
         const profile_id = transaction && transaction.metadata && transaction.metadata.profile_id;
         if (profile_id) {
-          stopTransactionProfile(transaction, profile_id);
+          const profile = stopTransactionProfile(transaction, profile_id);
+          // @ts-expect-error profile is not allowed on transaction metadata
+          transaction.setMetadata({ profile });
         }
       });
 

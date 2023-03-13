@@ -42,7 +42,7 @@ describe('hubextensions', () => {
 
     expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[1]).toMatchObject({ environment: 'test-environment' });
   });
-  it.only('calls profiler when startTransaction is invoked on hub', async () => {
+  it('calls profiler when startTransaction is invoked on hub', async () => {
     const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
     const stopProfilingSpy = jest.spyOn(profiler, 'stopProfiling');
     const transport = Sentry.getCurrentHub().getClient()?.getTransport();
