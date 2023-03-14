@@ -57,46 +57,6 @@ public:
   }
 };
 
-#if PROFILER_FORMAT == FORMAT_RAW || FORMAT_BENCHMARK == 1
-v8::Local<v8::Object> CreateFrameGraphNode(
-  v8::Local<v8::String> name, v8::Local<v8::String> scriptName,
-  v8::Local<v8::Integer> scriptId, v8::Local<v8::Integer> lineNumber,
-  v8::Local<v8::Integer> columnNumber, v8::Local<v8::Integer> hitCount,
-  v8::Local<v8::Array> children) {
-
-  v8::Local<v8::Object> js_node = Nan::New<v8::Object>();
-
-  Nan::Set(js_node, Nan::New<v8::String>("name").ToLocalChecked(), name);
-  Nan::Set(js_node, Nan::New<v8::String>("file").ToLocalChecked(), scriptName);
-  Nan::Set(js_node, Nan::New<v8::String>("script_id").ToLocalChecked(), scriptId);
-  Nan::Set(js_node, Nan::New<v8::String>("line_number").ToLocalChecked(), lineNumber);
-  Nan::Set(js_node, Nan::New<v8::String>("column_number").ToLocalChecked(), columnNumber);
-  Nan::Set(js_node, Nan::New<v8::String>("hit_count").ToLocalChecked(), hitCount);
-  Nan::Set(js_node, Nan::New<v8::String>("children").ToLocalChecked(), children);
-
-  return js_node;
-};
-
-v8::Local<v8::Value> CreateFrameGraph(const CpuProfileNode* node) {
-  int32_t count = node->GetChildrenCount();
-  v8::Local<v8::Array> children = Nan::New<v8::Array>(count);
-  for (int32_t i = 0; i < count; i++) {
-    Nan::Set(children, i, CreateFrameGraph(node->GetChild(i)));
-  }
-
-  return CreateFrameGraphNode(
-    node->GetFunctionName(),
-    node->GetScriptResourceName(),
-    Nan::New<Integer>(node->GetScriptId()),
-    Nan::New<Integer>(node->GetLineNumber()),
-    Nan::New<Integer>(node->GetColumnNumber()),
-    Nan::New<Integer>(node->GetHitCount()),
-    children
-  );
-};
-#endif
-
-#if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
 v8::Local<v8::Object> CreateFrameNode(
   v8::Local<v8::String> function, v8::Local<v8::String> abs_path, v8::Local<v8::Integer> lineno,
   v8::Local<v8::Integer> colno, v8::CpuProfileNode::SourceType type, std::vector<v8::CpuProfileDeoptInfo> deopt_info, std::string app_root_dir) {
@@ -241,7 +201,6 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
 
   return std::make_tuple(stacks, samples, frames);
 };
-#endif
 
 v8::Local<v8::Value> CreateProfile(const v8::CpuProfile* profile, uint32_t thread_id, std::string app_root_directory) {
   v8::Local<v8::Object> js_profile = Nan::New<v8::Object>();
@@ -249,15 +208,11 @@ v8::Local<v8::Value> CreateProfile(const v8::CpuProfile* profile, uint32_t threa
   Nan::Set(js_profile, Nan::New<v8::String>("profiler_logging_mode").ToLocalChecked(), Nan::New<v8::String>(getLoggingMode() == v8::CpuProfilingLoggingMode::kEagerLogging ? "eager" : "lazy").ToLocalChecked());
 
 
-#if PROFILER_FORMAT == FORMAT_SAMPLED || FORMAT_BENCHMARK == 1
   std::tuple<v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> samples = GetSamples(profile, thread_id, app_root_directory);
   Nan::Set(js_profile, Nan::New<v8::String>("stacks").ToLocalChecked(), std::get<0>(samples));
   Nan::Set(js_profile, Nan::New<v8::String>("samples").ToLocalChecked(), std::get<1>(samples));
   Nan::Set(js_profile, Nan::New<v8::String>("frames").ToLocalChecked(), std::get<2>(samples));
-#endif
-#if PROFILER_FORMAT == FORMAT_RAW || FORMAT_BENCHMARK == 1
-  Nan::Set(js_profile, Nan::New<v8::String>("top_down_root").ToLocalChecked(), CreateFrameGraph(profile->GetTopDownRoot()));
-#endif
+
   return js_profile;
 };
 
