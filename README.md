@@ -26,9 +26,8 @@ npm install --save @sentry/tracing sentry/profiling-node
 
 ```javascript
 import * as Sentry from '@sentry/node';
-import '@sentry/tracing';
-// Profiling import has to come after @sentry/tracing
 import { ProfilingIntegration } from '@sentry/profiling-node';
+import '@sentry/tracing';
 
 Sentry.init({
   dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
