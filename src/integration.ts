@@ -21,7 +21,7 @@ export class ProfilingIntegration implements Integration {
 
   setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this.getCurrentHub = getCurrentHub;
-    const client = getCurrentHub().getClient() as NodeClient;
+    const client = this.getCurrentHub().getClient() as NodeClient;
 
     if (client && typeof client.on === 'function') {
       client.on('startTransaction', (transaction: Transaction) => {
@@ -52,13 +52,11 @@ export class ProfilingIntegration implements Integration {
           void addItemToEnvelope(envelope, profiledEvent);
         }
       });
-
-      return;
+    } else {
+      // Patch the carrier methods and add the event processor.
+      addProfilingExtensionMethods();
+      addGlobalEventProcessor(this.handleGlobalEvent.bind(this));
     }
-
-    // Patch the carrier methods and add the event processor.
-    addProfilingExtensionMethods();
-    addGlobalEventProcessor(this.handleGlobalEvent.bind(this));
   }
 
   handleGlobalEvent(event: Event): Event {
