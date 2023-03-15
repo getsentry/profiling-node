@@ -40,7 +40,7 @@ Sentry.init({
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-describe.skip('Sentry - Profiling', () => {
+describe('Sentry - Profiling', () => {
   beforeEach(() => {
     STATIC_TRANSPORT.events = [];
   });
