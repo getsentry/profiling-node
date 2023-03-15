@@ -73,7 +73,13 @@ v8::Local<v8::Object> CreateFrameNode(
   }
   Nan::Set(js_node, Nan::New<v8::String>("lineno").ToLocalChecked(), lineno);
   Nan::Set(js_node, Nan::New<v8::String>("colno").ToLocalChecked(), colno);
-  Nan::Set(js_node, Nan::New<v8::String>("in_app").ToLocalChecked(), Nan::New<v8::Boolean>(type == v8::CpuProfileNode::SourceType::kScript));
+
+  // Anything in user land javascript (including module and packages) is considered a script,
+  // therefor do not mark it as in_app so that the backend will not skip inferring it. This will
+  // cause the backend to infer the in_app based on the abs_path.
+  if(type != v8::CpuProfileNode::SourceType::kScript){
+    Nan::Set(js_node, Nan::New<v8::String>("in_app").ToLocalChecked(), Nan::New<v8::Boolean>(false));
+  }
 
   // @TODO Deopt info needs to be added to backend
   // size_t size = deoptInfos.size();
