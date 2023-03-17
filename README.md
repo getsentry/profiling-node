@@ -19,7 +19,7 @@ Profiling works as an extension of tracing so you will need both @sentry/tracing
 yarn add @sentry/tracing @sentry/profiling-node
 
 # Using npm
-npm install --save @sentry/tracing sentry/profiling-node
+npm install --save @sentry/tracing @sentry/profiling-node
 ```
 
 ## Usage
