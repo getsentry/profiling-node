@@ -8,11 +8,12 @@ import type {
   DsnComponents,
   Event,
   EventItem,
+  Envelope,
   EventEnvelope,
   EventEnvelopeHeaders
 } from '@sentry/types';
 
-import { createEnvelope, dropUndefinedKeys, dsnToString, uuid4, logger } from '@sentry/utils';
+import { createEnvelope, dropUndefinedKeys, dsnToString, logger, forEachEnvelopeItem } from '@sentry/utils';
 import type { ThreadCpuProfile, RawThreadCpuProfile } from './cpu_profiler';
 import { isDebugBuild } from './env';
 
@@ -153,17 +154,9 @@ function createEventEnvelopeHeaders(
  * Creates a profiling event envelope from a Sentry event. If profile does not pass
  * validation, returns null.
  * @param event
- * @param dsn
- * @param metadata
- * @param tunnel
- * @returns {EventEnvelope | null}
+ * @returns {Profile | null}
  */
-export function createProfilingEventEnvelope(
-  event: ProfiledEvent,
-  dsn: DsnComponents,
-  metadata?: SdkMetadata,
-  tunnel?: string
-): EventEnvelope | null {
+export function createProfilingEventFromTransaction(event: ProfiledEvent): Profile | null {
   if (event.type !== 'transaction') {
     // createProfilingEventEnvelope should only be called for transactions,
     // we type guard this behavior with isProfiledTransactionEvent.
@@ -171,7 +164,6 @@ export function createProfilingEventEnvelope(
   }
 
   const rawProfile = event.sdkProcessingMetadata['profile'];
-
   if (rawProfile === undefined || rawProfile === null) {
     throw new TypeError(
       `Cannot construct profiling event envelope without a valid profile. Got ${rawProfile} instead.`
@@ -179,42 +171,93 @@ export function createProfilingEventEnvelope(
   }
 
   if (!rawProfile.profile_id) {
-    throw new TypeError('Profile is missing profile_id');
+    throw new TypeError(
+      `Cannot construct profiling event envelope without a valid profile id. Got ${rawProfile.profile_id} instead.`
+    );
   }
 
-  if (rawProfile.samples.length <= 1) {
-    if (isDebugBuild()) {
-      // Log a warning if the profile has less than 2 samples so users can know why
-      // they are not seeing any profiling data and we cant avoid the back and forth
-      // of asking them to provide us with a dump of the profile data.
-      logger.log('[Profiling] Discarding profile because it contains less than 2 samples');
-    }
+  if (!isValidProfile(rawProfile)) {
     return null;
   }
 
-  const sdkInfo = getSdkMetadataForEnvelopeHeader(metadata);
-  enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
-  const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
-  const enrichedThreadProfile = enrichWithThreadInformation(rawProfile);
-  const transactionStartMs = typeof event.start_timestamp === 'number' ? event.start_timestamp * 1000 : Date.now();
+  return createProfilePayload(rawProfile, {
+    release: event.release || '',
+    environment: event.environment || '',
+    event_id: event.event_id || '',
+    transaction: event.transaction || '',
+    start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
+    // @ts-expect-error trace_id is not defined on Event
+    trace_id: event?.contexts?.trace?.trace_id ?? '',
+    profile_id: rawProfile.profile_id
+  });
+}
 
-  const traceId = (event?.contexts?.['trace']?.['trace_id'] as string) ?? '';
+/**
+ * Creates a profiling envelope item, if the profile does not pass validation, returns null.
+ * @param event
+ * @returns {Profile | null}
+ */
+export function createProfilingEvent(profile: RawThreadCpuProfile, event: Event): Profile | null {
+  if (!isValidProfile(profile)) {
+    return null;
+  }
+
+  return createProfilePayload(profile, {
+    release: event.release || '',
+    environment: event.environment || '',
+    event_id: event.event_id || '',
+    transaction: event.transaction || '',
+    start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
+    // @ts-expect-error trace_id is not defined on Event
+    trace_id: event?.contexts?.trace?.trace_id ?? '',
+    profile_id: profile.profile_id
+  });
+}
+
+/**
+ * Create a profile
+ * @param profile
+ * @param options
+ * @returns
+ */
+function createProfilePayload(
+  cpuProfile: RawThreadCpuProfile,
+  {
+    release,
+    environment,
+    event_id,
+    transaction,
+    start_timestamp,
+    trace_id,
+    profile_id
+  }: {
+    release: string;
+    environment: string;
+    event_id: string;
+    transaction: string;
+    start_timestamp: number;
+    trace_id: string | undefined;
+    profile_id: string;
+  }
+): Profile {
   // Log a warning if the profile has an invalid traceId (should be uuidv4).
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
-  if (traceId.length !== 32) {
+  if (trace_id && trace_id.length !== 32) {
     if (isDebugBuild()) {
-      logger.log('[Profiling] Invalid traceId: ' + traceId + ' on profiled event');
+      logger.log('[Profiling] Invalid traceId: ' + trace_id + ' on profiled event');
     }
   }
 
+  const enrichedThreadProfile = enrichWithThreadInformation(cpuProfile);
+
   const profile: Profile = {
-    event_id: rawProfile.profile_id,
-    timestamp: new Date(transactionStartMs).toISOString(),
+    event_id: profile_id,
+    timestamp: new Date(start_timestamp).toISOString(),
     platform: 'node',
     version: '1',
-    release: event.release || '',
-    environment: event.environment || '',
+    release: release,
+    environment: environment,
     runtime: {
       name: 'node',
       version: process.versions.node || ''
@@ -234,18 +277,45 @@ export function createProfilingEventEnvelope(
     },
     profile: enrichedThreadProfile,
     transaction: {
-      name: event.transaction || '',
-      id: event.event_id || uuid4(),
-      trace_id: traceId,
+      name: transaction,
+      id: event_id,
+      trace_id: trace_id || '',
       active_thread_id: THREAD_ID_STRING
     }
   };
+
+  return profile;
+}
+
+/**
+ * Creates an envelope from a profiling event.
+ * @param event Profile
+ * @param dsn
+ * @param metadata
+ * @param tunnel
+ * @returns
+ */
+export function createProfilingEventEnvelope(
+  event: ProfiledEvent,
+  dsn: DsnComponents,
+  metadata?: SdkMetadata,
+  tunnel?: string
+): EventEnvelope | null {
+  const sdkInfo = getSdkMetadataForEnvelopeHeader(metadata);
+  enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
+
+  const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
+  const profile = createProfilingEventFromTransaction(event);
+
+  if (!profile) {
+    return null;
+  }
 
   const envelopeItem: EventItem = [
     {
       type: 'profile'
     },
-    // @ts-expect-error profile is not yet a type in @sentry/types
+    // @ts-expect-error profile is not part of sdk types yet
     profile
   ];
 
@@ -299,4 +369,65 @@ export function isValidSampleRate(rate: unknown): boolean {
     return false;
   }
   return true;
+}
+
+export function isValidProfile(profile: RawThreadCpuProfile): profile is RawThreadCpuProfile & { profile_id: string } {
+  if (profile.samples.length <= 1) {
+    if (isDebugBuild()) {
+      // Log a warning if the profile has less than 2 samples so users can know why
+      // they are not seeing any profiling data and we cant avoid the back and forth
+      // of asking them to provide us with a dump of the profile data.
+      logger.log('[Profiling] Discarding profile because it contains less than 2 samples');
+    }
+    return false;
+  }
+
+  if (!profile.profile_id) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Adds items to envelope if they are not already present - mutates the envelope.
+ * @param envelope
+ */
+export function addProfilesToEnvelope(envelope: Envelope, profiles: Profile[]): Envelope {
+  if (!profiles.length) {
+    return envelope;
+  }
+
+  for (const profile of profiles) {
+    // @ts-expect-error - the second item in the item envelope is an array of EventItems
+    envelope[1].push([{ type: 'profile' }, profile]);
+  }
+  return envelope;
+}
+
+/**
+ * Finds transactions with profile_id context in the envelope
+ * @param envelope
+ * @returns
+ */
+export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[] {
+  const events: Event[] = [];
+
+  forEachEnvelopeItem(envelope, (item, type) => {
+    if (type !== 'transaction') {
+      return;
+    }
+
+    // First item is the type
+    for (let j = 1; j < item.length; j++) {
+      const event = item[j];
+
+      // @ts-expect-error cryptic ts error, we are doing a safe check here anyways
+      if (event && event.contexts && event.contexts['profile'] && event.contexts['profile']['profile_id']) {
+        events.push(item[j] as Event);
+      }
+    }
+  });
+
+  return events;
 }

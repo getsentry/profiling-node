@@ -3,6 +3,7 @@ import type { Event, Hub, Transport } from '@sentry/types';
 import type { ProfiledEvent } from './utils';
 
 import { logger } from '@sentry/utils';
+import { EventEmitter } from 'events';
 
 function assertCleanProfile(event: ProfiledEvent | Event): void {
   expect(event.sdkProcessingMetadata?.profile).toBeUndefined();
@@ -39,142 +40,226 @@ describe('ProfilingIntegration', () => {
     expect(new ProfilingIntegration().name).toBe('ProfilingIntegration');
   });
 
-  it('does not call transporter if null profile is received', () => {
-    const transport: Transport = {
-      send: jest.fn().mockImplementation(() => Promise.resolve()),
-      flush: jest.fn().mockImplementation(() => Promise.resolve())
-    };
+  it('stores a reference to getCurrentHub', () => {
     const integration = new ProfilingIntegration();
 
-    const getCurrentHub = jest.fn((): Hub => {
+    const getCurrentHub = jest.fn().mockImplementation(() => {
       return {
-        getClient: () => {
-          return {
-            getOptions: () => {
-              return {
-                _metadata: {}
-              };
-            },
-            getDsn: () => {
-              return {};
-            },
-            getTransport: () => transport
-          };
-        }
-      } as Hub;
+        getClient: jest.fn()
+      };
     });
-    const addGlobalEventProcessor = () => void 0;
-    integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
-
-    integration.handleGlobalEvent({
-      type: 'transaction',
-      sdkProcessingMetadata: {
-        profile: null
-      }
-    });
-    expect(transport.send).not.toHaveBeenCalled();
-  });
-
-  it('keeps a reference to getCurrentHub', () => {
-    const integration = new ProfilingIntegration();
-
-    const getCurrentHub = jest.fn();
     const addGlobalEventProcessor = () => void 0;
 
     integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
     expect(integration.getCurrentHub).toBe(getCurrentHub);
   });
 
-  it('when Hub.getClient returns undefined', () => {
-    const logSpy = jest.spyOn(logger, 'log');
-    const integration = new ProfilingIntegration();
+  describe('without hooks', () => {
+    it('does not call transporter if null profile is received', () => {
+      const transport: Transport = {
+        send: jest.fn().mockImplementation(() => Promise.resolve()),
+        flush: jest.fn().mockImplementation(() => Promise.resolve())
+      };
+      const integration = new ProfilingIntegration();
 
-    const getCurrentHub = jest.fn((): Hub => {
-      return { getClient: () => undefined } as Hub;
-    });
-    const addGlobalEventProcessor = () => void 0;
-    integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
+      const getCurrentHub = jest.fn((): Hub => {
+        return {
+          getClient: () => {
+            return {
+              getOptions: () => {
+                return {
+                  _metadata: {}
+                };
+              },
+              getDsn: () => {
+                return {};
+              },
+              getTransport: () => transport
+            };
+          }
+        } as Hub;
+      });
+      const addGlobalEventProcessor = () => void 0;
+      integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
 
-    assertCleanProfile(integration.handleGlobalEvent(makeProfiledEvent()));
-    expect(logSpy).toHaveBeenCalledWith(
-      '[Profiling] getClient did not return a Client, removing profile from event and forwarding to next event processors.'
-    );
-  });
-  it('when getDsn returns undefined', () => {
-    const logSpy = jest.spyOn(logger, 'log');
-    const integration = new ProfilingIntegration();
-
-    const getCurrentHub = jest.fn((): Hub => {
-      return {
-        getClient: () => {
-          return {
-            getDsn: () => undefined
-          };
+      integration.handleGlobalEvent({
+        type: 'transaction',
+        sdkProcessingMetadata: {
+          profile: null
         }
-      } as Hub;
+      });
+      expect(transport.send).not.toHaveBeenCalled();
     });
-    const addGlobalEventProcessor = () => void 0;
-    integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
 
-    assertCleanProfile(integration.handleGlobalEvent(makeProfiledEvent()));
-    expect(logSpy).toHaveBeenCalledWith(
-      '[Profiling] getDsn did not return a Dsn, removing profile from event and forwarding to next event processors.'
-    );
+    it('when Hub.getClient returns undefined', () => {
+      const logSpy = jest.spyOn(logger, 'log');
+      const integration = new ProfilingIntegration();
+
+      const getCurrentHub = jest.fn((): Hub => {
+        return { getClient: () => undefined } as Hub;
+      });
+      const addGlobalEventProcessor = () => void 0;
+      integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
+
+      assertCleanProfile(integration.handleGlobalEvent(makeProfiledEvent()));
+      expect(logSpy).toHaveBeenCalledWith(
+        '[Profiling] getClient did not return a Client, removing profile from event and forwarding to next event processors.'
+      );
+    });
+    it('when getDsn returns undefined', () => {
+      const logSpy = jest.spyOn(logger, 'log');
+      const integration = new ProfilingIntegration();
+
+      const getCurrentHub = jest.fn((): Hub => {
+        return {
+          getClient: () => {
+            return {
+              getDsn: () => undefined
+            };
+          }
+        } as Hub;
+      });
+      const addGlobalEventProcessor = () => void 0;
+      integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
+
+      assertCleanProfile(integration.handleGlobalEvent(makeProfiledEvent()));
+      expect(logSpy).toHaveBeenCalledWith(
+        '[Profiling] getDsn did not return a Dsn, removing profile from event and forwarding to next event processors.'
+      );
+    });
+    it('when getTransport returns undefined', () => {
+      const logSpy = jest.spyOn(logger, 'log');
+      const integration = new ProfilingIntegration();
+
+      const getCurrentHub = jest.fn((): Hub => {
+        return {
+          getClient: () => {
+            return {
+              getDsn: () => {
+                return {};
+              },
+              getTransport: () => undefined
+            };
+          }
+        } as Hub;
+      });
+      const addGlobalEventProcessor = () => void 0;
+      integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
+
+      assertCleanProfile(integration.handleGlobalEvent(makeProfiledEvent()));
+      expect(logSpy).toHaveBeenCalledWith(
+        '[Profiling] getTransport did not return a Transport, removing profile from event and forwarding to next event processors.'
+      );
+    });
+
+    it('sends profile to sentry', () => {
+      const logSpy = jest.spyOn(logger, 'log');
+      const transport: Transport = {
+        send: jest.fn().mockImplementation(() => Promise.resolve()),
+        flush: jest.fn().mockImplementation(() => Promise.resolve())
+      };
+      const integration = new ProfilingIntegration();
+
+      const getCurrentHub = jest.fn((): Hub => {
+        return {
+          getClient: () => {
+            return {
+              getOptions: () => {
+                return {
+                  _metadata: {}
+                };
+              },
+              getDsn: () => {
+                return {};
+              },
+              getTransport: () => transport
+            };
+          }
+        } as Hub;
+      });
+      const addGlobalEventProcessor = () => void 0;
+      integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
+
+      assertCleanProfile(integration.handleGlobalEvent(makeProfiledEvent()));
+      expect(logSpy.mock.calls?.[1]?.[0]).toBe('[Profiling] Preparing envelope and sending a profiling event');
+    });
   });
-  it('when getTransport returns undefined', () => {
-    const logSpy = jest.spyOn(logger, 'log');
-    const integration = new ProfilingIntegration();
 
-    const getCurrentHub = jest.fn((): Hub => {
-      return {
-        getClient: () => {
-          return {
-            getDsn: () => {
-              return {};
-            },
-            getTransport: () => undefined
-          };
-        }
-      } as Hub;
+  describe('with SDK hooks', () => {
+    it('does not call transporter if null profile is received', () => {
+      const transport: Transport = {
+        send: jest.fn().mockImplementation(() => Promise.resolve()),
+        flush: jest.fn().mockImplementation(() => Promise.resolve())
+      };
+      const integration = new ProfilingIntegration();
+      const emitter = new EventEmitter();
+
+      const getCurrentHub = jest.fn((): Hub => {
+        return {
+          getClient: () => {
+            return {
+              on: emitter.on.bind(emitter),
+              emit: emitter.emit.bind(emitter),
+              getOptions: () => {
+                return {
+                  _metadata: {}
+                };
+              },
+              getDsn: () => {
+                return {};
+              },
+              getTransport: () => transport
+            } as any;
+          }
+        } as Hub;
+      });
+
+      const addGlobalEventProcessor = () => void 0;
+      integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
+
+      // @TODO mock profiler stop
+      expect(transport.send).not.toHaveBeenCalled();
     });
-    const addGlobalEventProcessor = () => void 0;
-    integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
 
-    assertCleanProfile(integration.handleGlobalEvent(makeProfiledEvent()));
-    expect(logSpy).toHaveBeenCalledWith(
-      '[Profiling] getTransport did not return a Transport, removing profile from event and forwarding to next event processors.'
-    );
-  });
+    it('binds to startTransaction, finishTransaction and beforeEnvelope', () => {
+      const transport: Transport = {
+        send: jest.fn().mockImplementation(() => Promise.resolve()),
+        flush: jest.fn().mockImplementation(() => Promise.resolve())
+      };
+      const integration = new ProfilingIntegration();
+      const emitter = new EventEmitter();
 
-  it('sends profile to sentry', () => {
-    const logSpy = jest.spyOn(logger, 'log');
-    const transport: Transport = {
-      send: jest.fn().mockImplementation(() => Promise.resolve()),
-      flush: jest.fn().mockImplementation(() => Promise.resolve())
-    };
-    const integration = new ProfilingIntegration();
+      const getCurrentHub = jest.fn((): Hub => {
+        return {
+          getClient: () => {
+            return {
+              on: emitter.on.bind(emitter),
+              emit: emitter.emit.bind(emitter),
+              getOptions: () => {
+                return {
+                  _metadata: {}
+                };
+              },
+              getDsn: () => {
+                return {};
+              },
+              getTransport: () => transport
+            } as any;
+          }
+        } as Hub;
+      });
 
-    const getCurrentHub = jest.fn((): Hub => {
-      return {
-        getClient: () => {
-          return {
-            getOptions: () => {
-              return {
-                _metadata: {}
-              };
-            },
-            getDsn: () => {
-              return {};
-            },
-            getTransport: () => transport
-          };
-        }
-      } as Hub;
+      const spy = jest.spyOn(emitter, 'on');
+
+      const addGlobalEventProcessor = jest.fn();
+      integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
+
+      expect(spy).toBeCalledTimes(3);
+      expect(spy.mock?.calls?.[0]?.[0]).toBe('startTransaction');
+      expect(spy.mock?.calls?.[1]?.[0]).toBe('finishTransaction');
+      expect(spy.mock?.calls?.[2]?.[0]).toBe('beforeEnvelope');
+
+      expect(addGlobalEventProcessor).not.toHaveBeenCalled();
     });
-    const addGlobalEventProcessor = () => void 0;
-    integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
-
-    assertCleanProfile(integration.handleGlobalEvent(makeProfiledEvent()));
-    expect(logSpy.mock.calls?.[1]?.[0]).toBe('[Profiling] Preparing envelope and sending a profiling event');
   });
 });
