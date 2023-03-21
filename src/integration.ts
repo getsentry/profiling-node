@@ -15,8 +15,18 @@ import {
   findProfiledTransactionsFromEnvelope
 } from './utils';
 
-const PROFILE_QUEUE: RawThreadCpuProfile[] = [];
 const MAX_PROFILE_QUEUE_LENGTH = 50;
+const PROFILE_QUEUE: RawThreadCpuProfile[] = [];
+const PROFILE_TIMEOUTS: Record<string, NodeJS.Timeout> = {};
+
+function addToProfileQueue(profile: RawThreadCpuProfile): void {
+  PROFILE_QUEUE.push(profile);
+
+  // We only want to keep the last n profiles in the queue.
+  if (PROFILE_QUEUE.length > MAX_PROFILE_QUEUE_LENGTH) {
+    PROFILE_QUEUE.shift();
+  }
+}
 
 // We need this integration in order to actually send data to Sentry. We hook into the event processor
 // and inspect each event to see if it is a transaction event and if that transaction event
@@ -35,6 +45,30 @@ export class ProfilingIntegration implements Integration {
         const profile_id = maybeProfileTransaction(client, transaction, undefined);
 
         if (profile_id) {
+          const options = client.getOptions();
+          // Not intended for external use, hence missing types, but we want to profile a couple of things at Sentry that
+          // currently exceed the default timeout set by the SDKs.
+          const maxProfileDurationMs =
+            // @ts-expect-error maxProfileDurationMs is not intended for external use
+            (options._experiments && options._experiments.maxProfileDurationMs) || MAX_PROFILE_DURATION_MS;
+
+          // Enqueue a timeout to prevent profiles from running over max duration.
+          if (PROFILE_TIMEOUTS[profile_id]) {
+            global.clearTimeout(PROFILE_TIMEOUTS[profile_id]);
+            delete PROFILE_TIMEOUTS[profile_id];
+          }
+
+          PROFILE_TIMEOUTS[profile_id] = global.setTimeout(() => {
+            if (isDebugBuild()) {
+              logger.log('[Profiling] max profile duration elapsed, stopping profiling for:', transaction.name);
+            }
+
+            const profile = stopTransactionProfile(transaction, profile_id);
+            if (profile) {
+              addToProfileQueue(profile);
+            }
+          }, maxProfileDurationMs);
+
           transaction.setContext('profile', { profile_id });
           // @ts-expect-error profile is not part of txn metadata
           transaction.setMetadata({ profile_id: profile_id });
@@ -42,20 +76,17 @@ export class ProfilingIntegration implements Integration {
       });
 
       client.on('finishTransaction', (transaction) => {
-        // @ts-expect-error profile is not part of txn metadata
+        // @ts-expect-error profile is not part of txn metadata)
         const profile_id = transaction && transaction.metadata && transaction.metadata.profile_id;
         if (profile_id) {
+          if (PROFILE_TIMEOUTS[profile_id]) {
+            global.clearTimeout(PROFILE_TIMEOUTS[profile_id]);
+            delete PROFILE_TIMEOUTS[profile_id];
+          }
           const profile = stopTransactionProfile(transaction, profile_id);
 
           if (profile) {
-            PROFILE_QUEUE.push(profile);
-
-            // We only want to keep the last 50 profiles in memory,
-            // this should be plenty as beforeEnvelope should be called right after
-            // the transaction finishes and the queue should be empty.
-            if (PROFILE_QUEUE.length > MAX_PROFILE_QUEUE_LENGTH) {
-              PROFILE_QUEUE.shift();
-            }
+            addToProfileQueue(profile);
           }
         }
       });
