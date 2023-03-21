@@ -112,13 +112,10 @@ v8::Local<v8::Object> CreateSample(const uint32_t stack_id, const int64_t sample
   return js_node;
 };
 
-std::string hashCpuProfilerNodeByPath(const v8::CpuProfileNode* node) {
-  std::string path = std::string();
-  std::string delimiter = std::string(";");
-
+std::string delimiter = std::string(";");
+std::string hashCpuProfilerNodeByPath(const v8::CpuProfileNode* node, std::string& path) {
   while (node != nullptr) {
-    path += std::to_string(node->GetNodeId());
-    path += delimiter;
+    path.append(std::to_string(node->GetNodeId()));
     node = node->GetParent();
   }
 
@@ -141,6 +138,8 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
   v8::Local<v8::Array> stacks = Nan::New<v8::Array>();
   v8::Local<v8::Array> frames = Nan::New<v8::Array>();
 
+  std::string node_hash = "";
+
   for (int i = 0; i < sampleCount; i++) {
     uint32_t stack_index = unique_stack_id;
 
@@ -150,7 +149,8 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
     // If a node was only on top of the stack once, then it will only ever 
     // be inserted once and there is no need for hashing.
     if (node->GetHitCount() > 1) {
-      std::string node_hash = hashCpuProfilerNodeByPath(node);
+      hashCpuProfilerNodeByPath(node, node_hash);
+      
       std::unordered_map<std::string, int>::iterator stack_index_cache_hit = stack_lookup_table.find(node_hash);
 
       // If we have a hit, update the stack index, otherwise
