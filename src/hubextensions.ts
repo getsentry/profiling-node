@@ -7,7 +7,7 @@ import { CpuProfilerBindings } from './cpu_profiler';
 import { isValidSampleRate } from './utils';
 import { getMainCarrier } from '@sentry/core';
 
-const MAX_PROFILE_DURATION_MS = 30 * 1000;
+export const MAX_PROFILE_DURATION_MS = 30 * 1000;
 
 type StartTransaction = (
   this: Hub,
@@ -36,6 +36,7 @@ export function maybeProfileTransaction(
     }
     return;
   }
+
   const options = client.getOptions();
   if (!options) {
     if (isDebugBuild()) {
@@ -170,13 +171,20 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     // After the original finish method is called, the event will be reported through the integration and delegated to transport.
     let profile: ReturnType<typeof CpuProfilerBindings['stopProfiling']> | null = null;
 
+    const options = client.getOptions();
+    // Not intended for external use, hence missing types, but we want to profile a couple of things at Sentry that
+    // currently exceed the default timeout set by the SDKs.
+    const maxProfileDurationMs =
+      // @ts-expect-error maxProfileDurationMs is not intended for external use
+      (options._experiments && options._experiments.maxProfileDurationMs) || MAX_PROFILE_DURATION_MS;
+
     // Enqueue a timeout to prevent profiles from running over max duration.
     let maxDurationTimeoutID: NodeJS.Timeout | void = global.setTimeout(() => {
       if (isDebugBuild()) {
         logger.log('[Profiling] max profile duration elapsed, stopping profiling for:', transaction.name);
       }
       profile = stopTransactionProfile(transaction, profile_id);
-    }, MAX_PROFILE_DURATION_MS);
+    }, maxProfileDurationMs);
 
     // We need to reference the original finish call to avoid creating an infinite loop
     const originalFinish = transaction.finish.bind(transaction);
