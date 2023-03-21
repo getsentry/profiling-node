@@ -16,12 +16,12 @@
 #define FORMAT_BENCHMARK 0
 #endif
 
-static const uint8_t MAX_STACK_DEPTH = 128;
-static const float SAMPLING_FREQUENCY = 99.0; // 99 to avoid lockstep sampling
-static const float SAMPLING_HZ = 1 / SAMPLING_FREQUENCY;
-static const int SAMPLING_INTERVAL_US = SAMPLING_HZ * 1e6;
-static const v8::CpuProfilingNamingMode NAMING_MODE = v8::CpuProfilingNamingMode::kDebugNaming;
-static const v8::CpuProfilingLoggingMode LOGGING_MODE = v8::CpuProfilingLoggingMode::kEagerLogging;
+static const uint8_t kMaxStackDepth = 128;
+static const float kSamplingFrequency = 99.0; // 99 to avoid lockstep sampling
+static const float kSamplingHz = 1 / kSamplingFrequency;
+static const int kSamplingInterval = kSamplingHz * 1e6;
+static const v8::CpuProfilingNamingMode kNamingMode = v8::CpuProfilingNamingMode::kDebugNaming;
+static const v8::CpuProfilingLoggingMode kLoggingMode = v8::CpuProfilingLoggingMode::kEagerLogging;
 
 // Allow users to override the default logging mode via env variable. This is useful 
 // because sometimes the flow of the profiled program can be to execute many sequential 
@@ -38,13 +38,13 @@ v8::CpuProfilingLoggingMode getLoggingMode() {
     }
   }
 
-  return LOGGING_MODE;
+  return kLoggingMode;
 }
 class Profiler {
 public:
   explicit Profiler(v8::Isolate* isolate):
     cpu_profiler(
-      v8::CpuProfiler::New(isolate, NAMING_MODE, getLoggingMode())) {
+      v8::CpuProfiler::New(isolate, kNamingMode, getLoggingMode())) {
     node::AddEnvironmentCleanupHook(isolate, DeleteInstance, this);
   }
 
@@ -112,7 +112,7 @@ v8::Local<v8::Object> CreateSample(const uint32_t stack_id, const int64_t sample
   return js_node;
 };
 
-std::string delimiter = std::string(";");
+std::string kDelimiter = std::string(";");
 std::string hashCpuProfilerNodeByPath(const v8::CpuProfileNode* node, std::string& path) {
   path.clear();
   
@@ -124,9 +124,9 @@ std::string hashCpuProfilerNodeByPath(const v8::CpuProfileNode* node, std::strin
   return path;
 }
 
-std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> GetSamples(const v8::CpuProfile& profile, const uint32_t thread_id, const std::string& app_root_dir) {
-  const int64_t profile_start_time_us = profile.GetStartTime();
-  const int sampleCount = profile.GetSamplesCount();
+std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> GetSamples(const v8::CpuProfile* profile, const uint32_t thread_id, const std::string& app_root_dir) {
+  const int64_t profile_start_time_us = profile->GetStartTime();
+  const int sampleCount = profile->GetSamplesCount();
 
   uint32_t unique_stack_id = 0;
   uint32_t unique_frame_id = 0;
@@ -145,8 +145,8 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
   for (int i = 0; i < sampleCount; i++) {
     uint32_t stack_index = unique_stack_id;
 
-    const v8::CpuProfileNode* node = profile.GetSample(i);
-    const int64_t sample_timestamp = profile.GetSampleTimestamp(i);
+    const v8::CpuProfileNode* node = profile->GetSample(i);
+    const int64_t sample_timestamp = profile->GetSampleTimestamp(i);
 
     // If a node was only on top of the stack once, then it will only ever 
     // be inserted once and there is no need for hashing.
@@ -178,7 +178,7 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
     v8::Local<v8::Array> stack = Nan::New<v8::Array>();
     uint32_t stack_depth = 0;
 
-    while (node != nullptr && stack_depth < MAX_STACK_DEPTH) {
+    while (node != nullptr && stack_depth < kMaxStackDepth) {
       auto nodeId = node->GetNodeId();
       auto frame_index = frame_lookup_table.find(nodeId);
 
@@ -208,7 +208,7 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
   return std::make_tuple(stacks, samples, frames);
 };
 
-v8::Local<v8::Value> CreateProfile(const v8::CpuProfile& profile, const uint32_t thread_id, const std::string& app_root_directory) {
+v8::Local<v8::Value> CreateProfile(const v8::CpuProfile* profile, const uint32_t thread_id, const std::string& app_root_directory) {
   v8::Local<v8::Object> js_profile = Nan::New<v8::Object>();
 
   Nan::Set(js_profile, Nan::New<v8::String>("profiler_logging_mode").ToLocalChecked(), Nan::New<v8::String>(getLoggingMode() == v8::CpuProfilingLoggingMode::kEagerLogging ? "eager" : "lazy").ToLocalChecked());
@@ -237,7 +237,7 @@ static void StartProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
   Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<v8::External>()->Value());
   profiler->cpu_profiler->StartProfiling(title, {
     v8::CpuProfilingMode::kCallerLineNumbers, v8::CpuProfilingOptions::kNoSampleLimit,
-    SAMPLING_INTERVAL_US });
+    kSamplingInterval });
 };
 
 // StopProfiling(string title)
@@ -273,7 +273,7 @@ static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
   std::string app_root_directory = args[2].IsEmpty() ? std::string() : std::string(*Nan::Utf8String(args[2]));
   uint32_t thread_id = Nan::To<uint32_t>(args[1]).FromJust();
 
-  v8::Local<v8::Value> js_profile = CreateProfile(*profile, thread_id, app_root_directory);
+  v8::Local<v8::Value> js_profile = CreateProfile(profile, thread_id, app_root_directory);
   profile->Delete();
 
   args.GetReturnValue().Set(js_profile);
