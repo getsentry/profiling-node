@@ -76,9 +76,11 @@ v8::Local<v8::Object> CreateFrameNode(
   }
 
   Nan::Set(js_node, Nan::New<v8::String>("lineno").ToLocalChecked(), Nan::New<v8::Number>(node.GetLineNumber()));
-
   Nan::Set(js_node, Nan::New<v8::String>("colno").ToLocalChecked(), Nan::New<v8::Number>(node.GetColumnNumber()));
 
+  // Anything in user land javascript (including module and packages) is considered a script,
+  // therefor do not mark it as in_app so that the backend will not skip inferring it. This will
+  // cause the backend to infer the in_app based on the abs_path.
   if (node.GetSourceType() != v8::CpuProfileNode::SourceType::kScript) {
     Nan::Set(js_node, Nan::New<v8::String>("in_app").ToLocalChecked(), Nan::New<v8::Boolean>(false));
   }
