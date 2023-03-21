@@ -1,6 +1,12 @@
-import type { SdkMetadata, DsnComponents } from '@sentry/types';
+import type { SdkMetadata, DsnComponents, Event } from '@sentry/types';
 import type { ProfiledEvent } from './utils';
-import { isValidSampleRate } from './utils';
+import {
+  isValidSampleRate,
+  isValidProfile,
+  addProfilesToEnvelope,
+  findProfiledTransactionsFromEnvelope
+} from './utils';
+import { createEnvelope, uuid4, addItemToEnvelope } from '@sentry/utils';
 
 import {
   maybeRemoveProfileFromSdkMetadata,
@@ -73,13 +79,13 @@ describe('maybeRemoveProfileFromSdkMetadata', () => {
 });
 
 describe('createProfilingEventEnvelope', () => {
-  it('throws if profile_id is set', () => {
+  it('throws if profile_id is not set', () => {
     const profile = makeProfile({});
     delete profile.profile_id;
 
     expect(() =>
       createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, profile), makeDsn({}), makeSdkMetadata({}))
-    ).toThrowError('Profile is missing profile_id');
+    ).toThrowError('Cannot construct profiling event envelope without a valid profile id. Got undefined instead.');
   });
   it('throws if profile is undefined', () => {
     expect(() =>
@@ -224,6 +230,7 @@ describe('createProfilingEventEnvelope', () => {
     const envelope = createProfilingEventEnvelope(
       makeEvent(
         {
+          event_id: uuid4(),
           type: 'transaction',
           transaction: 'transaction-name',
           start_timestamp: start.getTime() / 1000,
@@ -278,5 +285,78 @@ describe('isValidSampleRate', () => {
     [() => null, false]
   ])('value %s is %s', (input, expected) => {
     expect(isValidSampleRate(input)).toBe(expected);
+  });
+});
+
+describe('isValidProfile', () => {
+  it('is not valid if samples <= 1', () => {
+    expect(isValidProfile(makeProfile({ samples: [] }))).toBe(false);
+  });
+
+  it('is not valid if it does not have a profile_id', () => {
+    // @ts-expect-error force profile_id to undefined
+    expect(isValidProfile(makeProfile({ samples: [], profile_id: undefined }))).toBe(false);
+  });
+});
+
+describe('addProfilesToEnvelope', () => {
+  it('adds profile', () => {
+    const profile = makeProfile({});
+    const envelope = createEnvelope({});
+
+    // @ts-expect-error addProfilesToEnvelope is not typed
+    addProfilesToEnvelope(envelope, [profile]);
+
+    // @ts-expect-error profile is not typed
+    const addedBySdk = addItemToEnvelope(createEnvelope({}), [{ type: 'profile' }, profile]);
+
+    expect(envelope?.[1][0]?.[0]).toEqual({ type: 'profile' });
+    expect(envelope?.[1][0]?.[1]).toEqual(profile);
+
+    expect(JSON.stringify(addedBySdk)).toEqual(JSON.stringify(envelope));
+  });
+});
+
+describe('findProfiledTransactionsFromEnvelope', () => {
+  it('returns transactions with profile context', () => {
+    const txnWithProfile: Event = {
+      event_id: uuid4(),
+      type: 'transaction',
+      contexts: {
+        profile: {
+          profile_id: uuid4()
+        }
+      }
+    };
+
+    const envelope = addItemToEnvelope(createEnvelope({}), [{ type: 'transaction' }, txnWithProfile]);
+    expect(findProfiledTransactionsFromEnvelope(envelope)[0]).toBe(txnWithProfile);
+  });
+
+  it('skips if transaction event is not profiled', () => {
+    const txnWithProfile: Event = {
+      event_id: uuid4(),
+      type: 'transaction',
+      contexts: {}
+    };
+
+    const envelope = addItemToEnvelope(createEnvelope({}), [{ type: 'transaction' }, txnWithProfile]);
+    expect(findProfiledTransactionsFromEnvelope(envelope)[0]).toBe(undefined);
+  });
+
+  it('skips if event is not a transaction', () => {
+    const nonTransactionEvent: Event = {
+      event_id: uuid4(),
+      type: 'replay_event',
+      contexts: {
+        profile: {
+          profile_id: uuid4()
+        }
+      }
+    };
+
+    // @ts-expect-error force header
+    const envelope = addItemToEnvelope(createEnvelope({}), [{ type: 'replay_event' }, nonTransactionEvent]);
+    expect(findProfiledTransactionsFromEnvelope(envelope)[0]).toBe(undefined);
   });
 });

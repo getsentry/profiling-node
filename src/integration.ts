@@ -1,8 +1,22 @@
-import type { Integration, EventProcessor, Hub, Event } from '@sentry/types';
+import type { NodeClient } from '@sentry/node';
+import type { Integration, EventProcessor, Hub, Event, Transaction } from '@sentry/types';
 
 import { logger } from '@sentry/utils';
 import { isDebugBuild } from './env';
-import { maybeRemoveProfileFromSdkMetadata, createProfilingEventEnvelope, isProfiledTransactionEvent } from './utils';
+import { addProfilingExtensionMethods, maybeProfileTransaction, stopTransactionProfile } from './hubextensions';
+
+import type { RawThreadCpuProfile } from './cpu_profiler';
+import { Profile, addProfilesToEnvelope } from './utils';
+import {
+  maybeRemoveProfileFromSdkMetadata,
+  createProfilingEventEnvelope,
+  createProfilingEvent,
+  isProfiledTransactionEvent,
+  findProfiledTransactionsFromEnvelope
+} from './utils';
+
+const PROFILE_QUEUE: RawThreadCpuProfile[] = [];
+const MAX_PROFILE_QUEUE_LENGTH = 50;
 
 // We need this integration in order to actually send data to Sentry. We hook into the event processor
 // and inspect each event to see if it is a transaction event and if that transaction event
@@ -14,7 +28,92 @@ export class ProfilingIntegration implements Integration {
 
   setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this.getCurrentHub = getCurrentHub;
-    addGlobalEventProcessor(this.handleGlobalEvent.bind(this));
+    const client = this.getCurrentHub().getClient() as NodeClient;
+
+    if (client && typeof client.on === 'function') {
+      client.on('startTransaction', (transaction: Transaction) => {
+        const profile_id = maybeProfileTransaction(client, transaction, undefined);
+
+        if (profile_id) {
+          transaction.setContext('profile', { profile_id });
+          // @ts-expect-error profile is not part of txn metadata
+          transaction.setMetadata({ profile_id: profile_id });
+        }
+      });
+
+      client.on('finishTransaction', (transaction) => {
+        // @ts-expect-error profile is not part of txn metadata
+        const profile_id = transaction && transaction.metadata && transaction.metadata.profile_id;
+        if (profile_id) {
+          const profile = stopTransactionProfile(transaction, profile_id);
+
+          if (profile) {
+            PROFILE_QUEUE.push(profile);
+
+            // We only want to keep the last 50 profiles in memory,
+            // this should be plenty as beforeEnvelope should be called right after
+            // the transaction finishes and the queue should be empty.
+            if (PROFILE_QUEUE.length > MAX_PROFILE_QUEUE_LENGTH) {
+              PROFILE_QUEUE.shift();
+            }
+          }
+        }
+      });
+
+      client.on('beforeEnvelope', (envelope): void => {
+        // if not profiles are in queue, there is nothing to add to the envelope.
+        if (!PROFILE_QUEUE.length) {
+          return;
+        }
+
+        const profiledTransactionEvents = findProfiledTransactionsFromEnvelope(envelope);
+        if (!profiledTransactionEvents.length) {
+          return;
+        }
+
+        const profilesToAddToEnvelope: Profile[] = [];
+
+        for (let i = 0; i < profiledTransactionEvents.length; i++) {
+          const profiledTransaction = profiledTransactionEvents[i];
+          const profile_id = profiledTransaction?.contexts?.['profile']?.['profile_id'];
+
+          if (!profile_id) {
+            throw new TypeError('[Profiling] cannot find profile for a transaction without a profile context');
+          }
+
+          // We need to find both a profile and a transaction event for the same profile_id.
+          const profileIndex = PROFILE_QUEUE.findIndex((p) => p.profile_id === profile_id);
+          if (profileIndex === -1) {
+            if (isDebugBuild()) {
+              logger.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
+            }
+            continue;
+          }
+
+          const cpuProfile = PROFILE_QUEUE[profileIndex];
+          if (!cpuProfile) {
+            if (isDebugBuild()) {
+              logger.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
+            }
+            continue;
+          }
+
+          // Remove the profile from the queue.
+          PROFILE_QUEUE.splice(profileIndex, 1);
+          const profile = createProfilingEvent(cpuProfile, profiledTransaction);
+
+          if (profile) {
+            profilesToAddToEnvelope.push(profile);
+          }
+        }
+
+        addProfilesToEnvelope(envelope, profilesToAddToEnvelope);
+      });
+    } else {
+      // Patch the carrier methods and add the event processor.
+      addProfilingExtensionMethods();
+      addGlobalEventProcessor(this.handleGlobalEvent.bind(this));
+    }
   }
 
   handleGlobalEvent(event: Event): Event {
@@ -27,7 +126,6 @@ export class ProfilingIntegration implements Integration {
       // If either of them is not available, we remove the profile from the transaction event.
       // and forward it to the next event processor.
       const hub = this.getCurrentHub();
-
       const client = hub.getClient();
       if (!client) {
         if (isDebugBuild()) {
