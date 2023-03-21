@@ -16,37 +16,37 @@
 #define FORMAT_BENCHMARK 0
 #endif
 
-static const uint8_t MAX_STACK_DEPTH = 128;
-static const float SAMPLING_FREQUENCY = 99.0; // 99 to avoid lockstep sampling
-static const float SAMPLING_HZ = 1 / SAMPLING_FREQUENCY;
-static const int SAMPLING_INTERVAL_US = SAMPLING_HZ * 1e6;
-static const v8::CpuProfilingNamingMode NAMING_MODE = v8::CpuProfilingNamingMode::kDebugNaming;
-static const v8::CpuProfilingLoggingMode LOGGING_MODE = v8::CpuProfilingLoggingMode::kEagerLogging;
+static const uint8_t kMaxStackDepth = 128;
+static const float kSamplingFrequency = 99.0; // 99 to avoid lockstep sampling
+static const float kSamplingHz = 1 / kSamplingFrequency;
+static const int kSamplingInterval = kSamplingHz * 1e6;
+static const v8::CpuProfilingNamingMode kNamingMode = v8::CpuProfilingNamingMode::kDebugNaming;
+static const v8::CpuProfilingLoggingMode kLoggingMode = v8::CpuProfilingLoggingMode::kEagerLogging;
 
 // Allow users to override the default logging mode via env variable. This is useful 
 // because sometimes the flow of the profiled program can be to execute many sequential 
 // transaction - in that case, it may be preferable to set eager logging to avoid paying the
 // high cost of profiling for each individual transaction (one example for this are jest 
 // tests when run with --runInBand option).
-v8::CpuProfilingLoggingMode getLoggingMode(){
+v8::CpuProfilingLoggingMode getLoggingMode() {
   char* logging_mode = getenv("SENTRY_PROFILER_LOGGING_MODE");
-  if(logging_mode){
-    if(std::strcmp(logging_mode, "eager") == 0) {
+  if (logging_mode) {
+    if (std::strcmp(logging_mode, "eager") == 0) {
       return v8::CpuProfilingLoggingMode::kEagerLogging;
-    } if(std::strcmp(logging_mode, "lazy") == 0) {
+    } if (std::strcmp(logging_mode, "lazy") == 0) {
       return v8::CpuProfilingLoggingMode::kLazyLogging;
     }
   }
-  
-  return LOGGING_MODE;
+
+  return kLoggingMode;
 }
 class Profiler {
 public:
   explicit Profiler(v8::Isolate* isolate):
     cpu_profiler(
-      v8::CpuProfiler::New(isolate, NAMING_MODE, getLoggingMode())) {
-        node::AddEnvironmentCleanupHook(isolate, DeleteInstance, this);
-    }
+      v8::CpuProfiler::New(isolate, kNamingMode, getLoggingMode())) {
+    node::AddEnvironmentCleanupHook(isolate, DeleteInstance, this);
+  }
 
   v8::CpuProfiler* cpu_profiler;
 
@@ -58,26 +58,30 @@ public:
 };
 
 v8::Local<v8::Object> CreateFrameNode(
-  v8::Local<v8::String> function, v8::Local<v8::String> abs_path, v8::Local<v8::Integer> lineno,
-  v8::Local<v8::Integer> colno, v8::CpuProfileNode::SourceType type, std::vector<v8::CpuProfileDeoptInfo> deopt_info, std::string app_root_dir) {
+  const v8::CpuProfileNode& node,
+  const std::string& app_root_dir
+) {
 
   v8::Local<v8::Object> js_node = Nan::New<v8::Object>();
 
-  Nan::Set(js_node, Nan::New<v8::String>("function").ToLocalChecked(), function);
-  Nan::Set(js_node, Nan::New<v8::String>("abs_path").ToLocalChecked(), abs_path);
-  if(!app_root_dir.empty()){
-    std::string abs_path_str = *Nan::Utf8String(abs_path);
-    if(abs_path_str.compare(0, app_root_dir.size(), app_root_dir) == 0){
+  Nan::Set(js_node, Nan::New<v8::String>("function").ToLocalChecked(), node.GetFunctionName());
+  Nan::Set(js_node, Nan::New<v8::String>("abs_path").ToLocalChecked(), node.GetScriptResourceName());
+
+  if (!app_root_dir.empty()) {
+    std::string abs_path_str = node.GetScriptResourceNameStr();
+
+    if (abs_path_str.compare(0, app_root_dir.size(), app_root_dir) == 0) {
       Nan::Set(js_node, Nan::New<v8::String>("filename").ToLocalChecked(), Nan::New<v8::String>(abs_path_str.substr(app_root_dir.length())).ToLocalChecked());
     }
   }
-  Nan::Set(js_node, Nan::New<v8::String>("lineno").ToLocalChecked(), lineno);
-  Nan::Set(js_node, Nan::New<v8::String>("colno").ToLocalChecked(), colno);
+
+  Nan::Set(js_node, Nan::New<v8::String>("lineno").ToLocalChecked(), Nan::New<v8::Number>(node.GetLineNumber()));
+  Nan::Set(js_node, Nan::New<v8::String>("colno").ToLocalChecked(), Nan::New<v8::Number>(node.GetColumnNumber()));
 
   // Anything in user land javascript (including module and packages) is considered a script,
   // therefor do not mark it as in_app so that the backend will not skip inferring it. This will
   // cause the backend to infer the in_app based on the abs_path.
-  if(type != v8::CpuProfileNode::SourceType::kScript){
+  if (node.GetSourceType() != v8::CpuProfileNode::SourceType::kScript) {
     Nan::Set(js_node, Nan::New<v8::String>("in_app").ToLocalChecked(), Nan::New<v8::Boolean>(false));
   }
 
@@ -98,7 +102,7 @@ v8::Local<v8::Object> CreateFrameNode(
 };
 
 
-v8::Local<v8::Object> CreateSample(uint32_t stack_id, int64_t sample_timestamp_us, uint32_t thread_id) {
+v8::Local<v8::Object> CreateSample(const uint32_t stack_id, const int64_t sample_timestamp_us, const uint32_t thread_id) {
   v8::Local<v8::Object> js_node = Nan::New<v8::Object>();
 
   Nan::Set(js_node, Nan::New<v8::String>("stack_id").ToLocalChecked(), Nan::New<v8::Number>(stack_id));
@@ -108,20 +112,19 @@ v8::Local<v8::Object> CreateSample(uint32_t stack_id, int64_t sample_timestamp_u
   return js_node;
 };
 
-std::string hashCpuProfilerNodeByPath(const v8::CpuProfileNode* node) {
-  std::string path = std::string();
-  std::string delimiter = std::string(";");
-
+std::string kDelimiter = std::string(";");
+std::string hashCpuProfilerNodeByPath(const v8::CpuProfileNode* node, std::string& path) {
+  path.clear();
+  
   while (node != nullptr) {
-    path += std::to_string(node->GetNodeId());
-    path += delimiter;
+    path.append(std::to_string(node->GetNodeId()));
     node = node->GetParent();
   }
 
   return path;
 }
 
-std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> GetSamples(const v8::CpuProfile* profile, uint32_t thread_id, std::string app_root_dir) {
+std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> GetSamples(const v8::CpuProfile* profile, const uint32_t thread_id, const std::string& app_root_dir) {
   const int64_t profile_start_time_us = profile->GetStartTime();
   const int sampleCount = profile->GetSamplesCount();
 
@@ -137,14 +140,19 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
   v8::Local<v8::Array> stacks = Nan::New<v8::Array>();
   v8::Local<v8::Array> frames = Nan::New<v8::Array>();
 
+  std::string node_hash = "";
+
   for (int i = 0; i < sampleCount; i++) {
     uint32_t stack_index = unique_stack_id;
+
     const v8::CpuProfileNode* node = profile->GetSample(i);
+    const int64_t sample_timestamp = profile->GetSampleTimestamp(i);
 
     // If a node was only on top of the stack once, then it will only ever 
     // be inserted once and there is no need for hashing.
     if (node->GetHitCount() > 1) {
-      std::string node_hash = hashCpuProfilerNodeByPath(node);
+      hashCpuProfilerNodeByPath(node, node_hash);
+
       std::unordered_map<std::string, int>::iterator stack_index_cache_hit = stack_lookup_table.find(node_hash);
 
       // If we have a hit, update the stack index, otherwise
@@ -158,7 +166,7 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
     }
 
 
-    const v8::Local<v8::Value> sample = CreateSample(stack_index, profile->GetSampleTimestamp(i) - profile_start_time_us, thread_id);
+    const v8::Local<v8::Value> sample = CreateSample(stack_index, sample_timestamp - profile_start_time_us, thread_id);
 
     // If stack index differs from the sample index that means the stack had been indexed.
     if (stack_index != unique_stack_id) {
@@ -170,8 +178,8 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
     v8::Local<v8::Array> stack = Nan::New<v8::Array>();
     uint32_t stack_depth = 0;
 
-    while (node != nullptr && stack_depth < MAX_STACK_DEPTH) {
-      const uint32_t nodeId = node->GetNodeId();
+    while (node != nullptr && stack_depth < kMaxStackDepth) {
+      auto nodeId = node->GetNodeId();
       auto frame_index = frame_lookup_table.find(nodeId);
 
       // If the frame does not exist in the index
@@ -179,15 +187,7 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
         frame_lookup_table.insert({ nodeId, unique_frame_id });
 
         Nan::Set(stack, stack_depth, Nan::New<v8::Number>(unique_frame_id));
-        Nan::Set(frames, unique_frame_id, CreateFrameNode(
-          node->GetFunctionName(),
-          node->GetScriptResourceName(),
-          Nan::New<v8::Integer>(node->GetLineNumber()),
-          Nan::New<v8::Integer>(node->GetColumnNumber()),
-          node->GetSourceType(),
-          node->GetDeoptInfos(),
-          app_root_dir
-        ));
+        Nan::Set(frames, unique_frame_id, CreateFrameNode(*node, app_root_dir));
         unique_frame_id++;
       }
       else {
@@ -208,7 +208,7 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
   return std::make_tuple(stacks, samples, frames);
 };
 
-v8::Local<v8::Value> CreateProfile(const v8::CpuProfile* profile, uint32_t thread_id, std::string app_root_directory) {
+v8::Local<v8::Value> CreateProfile(const v8::CpuProfile* profile, const uint32_t thread_id, const std::string& app_root_directory) {
   v8::Local<v8::Object> js_profile = Nan::New<v8::Object>();
 
   Nan::Set(js_profile, Nan::New<v8::String>("profiler_logging_mode").ToLocalChecked(), Nan::New<v8::String>(getLoggingMode() == v8::CpuProfilingLoggingMode::kEagerLogging ? "eager" : "lazy").ToLocalChecked());
@@ -237,7 +237,7 @@ static void StartProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
   Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<v8::External>()->Value());
   profiler->cpu_profiler->StartProfiling(title, {
     v8::CpuProfilingMode::kCallerLineNumbers, v8::CpuProfilingOptions::kNoSampleLimit,
-    SAMPLING_INTERVAL_US });
+    kSamplingInterval });
 };
 
 // StopProfiling(string title)
@@ -282,7 +282,7 @@ static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
 NODE_MODULE_INIT(/* exports, module, context */) {
   v8::Isolate* isolate = context->GetIsolate();
 
-  if(isolate == nullptr){
+  if (isolate == nullptr) {
     return Nan::ThrowError("Failed to initialize Sentry profiler: isolate is null.");
   }
 
