@@ -1,3 +1,19 @@
+## 0.3.0
+
+### Various fixes & improvements
+
+- fix(profiling): avoid unnecessary copy operations (#117) by @JonasBa
+- feat(profiling): expose timeout experiment and handle timeout in hooks (#118) by @JonasBa
+- ref(profiling): add SDK hooks support (#110) by @JonasBa
+- build(deps-dev): bump sqlite3 from 5.1.2 to 5.1.5 (#111) by @dependabot
+- docs: update install link for sentry profiling (#116) by @emilsivervik
+- feat(profiling): only mark in_app: false for system code (#114) by @JonasBa
+- ref(format): remove format macros (cee68c53) by @JonasBa
+- ref(prebuilds): remove binary (6ff35ecb) by @JonasBa
+- feat(profiling): add profilesSampler (#109) by @JonasBa
+- ref(format): remove transactions array in favor of transaction property (#108) by @JonasBa
+- chore: improve documentation around prebuild binaries (dc37cbfb) by @JonasBa
+
 ## 0.2.2
 
 ### Various fixes & improvements
