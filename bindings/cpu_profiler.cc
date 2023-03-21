@@ -114,6 +114,8 @@ v8::Local<v8::Object> CreateSample(const uint32_t stack_id, const int64_t sample
 
 std::string delimiter = std::string(";");
 std::string hashCpuProfilerNodeByPath(const v8::CpuProfileNode* node, std::string& path) {
+  path.clear();
+  
   while (node != nullptr) {
     path.append(std::to_string(node->GetNodeId()));
     node = node->GetParent();
@@ -150,7 +152,7 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
     // be inserted once and there is no need for hashing.
     if (node->GetHitCount() > 1) {
       hashCpuProfilerNodeByPath(node, node_hash);
-      
+
       std::unordered_map<std::string, int>::iterator stack_index_cache_hit = stack_lookup_table.find(node_hash);
 
       // If we have a hit, update the stack index, otherwise
