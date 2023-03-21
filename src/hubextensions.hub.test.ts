@@ -3,9 +3,9 @@ import * as Sentry from '@sentry/node';
 import { addExtensionMethods } from '@sentry/tracing';
 import { ProfilingIntegration } from './index';
 import { importCppBindingsModule } from './cpu_profiler';
-import { logger } from '@sentry/utils';
+import { logger, createEnvelope } from '@sentry/utils';
 import { NodeClient } from '@sentry/node';
-import { getMainCarrier } from '@sentry/hub';
+import { getMainCarrier } from '@sentry/core';
 import type { Transport } from '@sentry/types';
 
 function makeClientWithoutHooks(): [NodeClient, Transport] {
@@ -40,14 +40,8 @@ function makeClientWithoutHooks(): [NodeClient, Transport] {
   return [client, transport];
 }
 
-function makeClient(): [NodeClient, Transport] {
+function makeClientWithHooks(): [NodeClient, Transport] {
   const integration = new ProfilingIntegration();
-  const transport = Sentry.makeNodeTransport({
-    url: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
-    recordDroppedEvent: () => {
-      return undefined;
-    }
-  });
   const client = new NodeClient({
     stackParser: Sentry.defaultStackParser,
     tracesSampleRate: 1,
@@ -56,8 +50,15 @@ function makeClient(): [NodeClient, Transport] {
     environment: 'test-environment',
     dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
     integrations: [integration],
-    transport: (_opts) => transport
+    transport: (_opts) =>
+      Sentry.makeNodeTransport({
+        url: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
+        recordDroppedEvent: () => {
+          return undefined;
+        }
+      })
   });
+
   client.setupIntegrations = () => {
     integration.setupOnce(
       (cb) => {
@@ -68,7 +69,7 @@ function makeClient(): [NodeClient, Transport] {
     );
   };
 
-  return [client, transport];
+  return [client, client.getTransport() as Transport];
 }
 
 const profiler = importCppBindingsModule();
@@ -91,10 +92,7 @@ describe('hubextensions', () => {
     const hub = Sentry.getCurrentHub();
     hub.bindClient(client);
 
-    const transportSpy = jest.spyOn(transport, 'send').mockImplementation(() => {
-      // Do nothing so we don't send events to Sentry
-      return Promise.resolve();
-    });
+    const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve());
 
     const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub' });
     await wait(500);
@@ -126,10 +124,7 @@ describe('hubextensions', () => {
       };
     });
 
-    jest.spyOn(transport, 'send').mockImplementation(() => {
-      // Do nothing so we don't send events to Sentry
-      return Promise.resolve();
-    });
+    jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve());
 
     const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub' });
     transaction.finish();
@@ -168,10 +163,7 @@ describe('hubextensions', () => {
       };
     });
 
-    jest.spyOn(transport, 'send').mockImplementation(() => {
-      // Do nothing so we don't send events to Sentry
-      return Promise.resolve();
-    });
+    jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve());
 
     const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub', traceId: 'boop' });
     await wait(500);
@@ -181,19 +173,16 @@ describe('hubextensions', () => {
     expect(logSpy.mock?.calls?.[6]?.[0]).toBe('[Profiling] Invalid traceId: ' + 'boop' + ' on profiled event');
   });
 
-  describe.skip('with hooks', () => {
+  describe('with hooks', () => {
     it('calls profiler when transaction is started/stopped', async () => {
-      const [client, transport] = makeClient();
+      const [client, transport] = makeClientWithHooks();
       const hub = Sentry.getCurrentHub();
       hub.bindClient(client);
 
       const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
       const stopProfilingSpy = jest.spyOn(profiler, 'stopProfiling');
 
-      const transportSpy = jest.spyOn(transport, 'send').mockImplementation(() => {
-        // Do nothing so we don't send events to Sentry
-        return Promise.resolve();
-      });
+      jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve());
 
       const transaction = hub.startTransaction({ name: 'profile_hub' });
       await wait(500);
@@ -203,16 +192,57 @@ describe('hubextensions', () => {
 
       expect(startProfilingSpy).toHaveBeenCalledTimes(1);
       expect((stopProfilingSpy.mock.lastCall?.[0] as string).length).toBe(32);
-      // One for profile, the other for transaction
-      expect(transportSpy).toHaveBeenCalledTimes(2);
-      expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0]).toMatchObject({ type: 'profile' });
     });
 
-    it('sends profile in separate envelope', async () => {
-      const [client, transport] = makeClient();
+    it('sends profile in the same envelope as transaction', async () => {
+      const [client, transport] = makeClientWithHooks();
       const hub = Sentry.getCurrentHub();
       hub.bindClient(client);
 
+      const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve());
+
+      const transaction = hub.startTransaction({ name: 'profile_hub' });
+      await wait(500);
+      transaction.finish();
+
+      await Sentry.flush(1000);
+
+      // One for profile, the other for transaction
+      expect(transportSpy).toHaveBeenCalledTimes(1);
+      expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[1]?.[0]).toMatchObject({ type: 'profile' });
+    });
+
+    it('does not crash if transaction has no profile context or it is invalid', async () => {
+      const [client] = makeClientWithHooks();
+      const hub = Sentry.getCurrentHub();
+      hub.bindClient(client);
+
+      // @ts-expect-error - we are testing what happens when the transaction might have no profile context
+      client.emit('beforeEnvelope', createEnvelope({ type: 'transaction' }, { type: 'transaction' }));
+      // @ts-expect-error - we are testing what happens when the transaction might have no profile context
+      client.emit('beforeEnvelope', createEnvelope({ type: 'transaction' }, { type: 'transaction', contexts: {} }));
+      client.emit(
+        'beforeEnvelope',
+        // @ts-expect-error - we are testing what happens when the transaction might have no profile context
+        createEnvelope({ type: 'transaction' }, { type: 'transaction', contexts: { profile: {} } })
+      );
+      client.emit(
+        'beforeEnvelope',
+        // @ts-expect-error - we are testing what happens when the transaction might have no profile context
+        createEnvelope({ type: 'transaction' }, { type: 'transaction', contexts: { profile: { profile_id: null } } })
+      );
+
+      // Emit is sync, so we can just assert that we got here
+      expect(true).toBe(true);
+    });
+
+    it('if transaction was profiled, but profiler returned null', async () => {
+      const [client, transport] = makeClientWithHooks();
+      const hub = Sentry.getCurrentHub();
+      hub.bindClient(client);
+
+      jest.spyOn(profiler, 'stopProfiling').mockReturnValue(null);
+      // Emit is sync, so we can just assert that we got here
       const transportSpy = jest.spyOn(transport, 'send').mockImplementation(() => {
         // Do nothing so we don't send events to Sentry
         return Promise.resolve();
@@ -224,10 +254,9 @@ describe('hubextensions', () => {
 
       await Sentry.flush(1000);
 
-      // One for profile, the other for transaction
-      expect(transportSpy).toHaveBeenCalledTimes(1);
-      // @TODO fix this
-      expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0]).toMatchObject({ type: 'profile' });
+      // Only transaction is sent
+      expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0]).toMatchObject({ type: 'transaction' });
+      expect(transportSpy.mock.calls?.[0]?.[0]?.[1][1]).toBeUndefined();
     });
   });
 

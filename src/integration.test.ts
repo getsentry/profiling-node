@@ -217,17 +217,11 @@ describe('ProfilingIntegration', () => {
       const addGlobalEventProcessor = () => void 0;
       integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
 
-      integration.handleGlobalEvent({
-        type: 'transaction',
-        sdkProcessingMetadata: {
-          profile: null
-        }
-      });
+      // @TODO mock profiler stop
       expect(transport.send).not.toHaveBeenCalled();
     });
 
-    it('sends profile to sentry', () => {
-      const logSpy = jest.spyOn(logger, 'log');
+    it('binds to startTransaction, finishTransaction and beforeEnvelope', () => {
       const transport: Transport = {
         send: jest.fn().mockImplementation(() => Promise.resolve()),
         flush: jest.fn().mockImplementation(() => Promise.resolve())
@@ -254,11 +248,18 @@ describe('ProfilingIntegration', () => {
           }
         } as Hub;
       });
-      const addGlobalEventProcessor = () => void 0;
+
+      const spy = jest.spyOn(emitter, 'on');
+
+      const addGlobalEventProcessor = jest.fn();
       integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
 
-      assertCleanProfile(integration.handleGlobalEvent(makeProfiledEvent()));
-      expect(logSpy.mock.calls?.[0]?.[0]).toBe('[Profiling] Preparing envelope and sending a profiling event');
+      expect(spy).toBeCalledTimes(3);
+      expect(spy.mock?.calls?.[0]?.[0]).toBe('startTransaction');
+      expect(spy.mock?.calls?.[1]?.[0]).toBe('finishTransaction');
+      expect(spy.mock?.calls?.[2]?.[0]).toBe('beforeEnvelope');
+
+      expect(addGlobalEventProcessor).not.toHaveBeenCalled();
     });
   });
 });

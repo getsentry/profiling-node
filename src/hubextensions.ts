@@ -5,7 +5,7 @@ import type { NodeClient } from '@sentry/node';
 import { isDebugBuild } from './env';
 import { CpuProfilerBindings } from './cpu_profiler';
 import { isValidSampleRate } from './utils';
-import { getMainCarrier } from '@sentry/hub';
+import { getMainCarrier } from '@sentry/core';
 
 const MAX_PROFILE_DURATION_MS = 30 * 1000;
 

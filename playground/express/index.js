@@ -9,7 +9,7 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 Sentry.init({
   dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
   tracesSampleRate: 1,
-  profilesSampleRate: 1,
+  profilesSampleRate: 0.3,
   debug: true,
   integrations: [
     // enable HTTP calls tracing
@@ -34,7 +34,7 @@ app.get('/', function rootHandler(_req, res) {
   res.end('Hello world!');
 });
 
-app.get('/slow', async function rootHandler(_req, res) {
+app.get('/hooks-slow', async function rootHandler(_req, res) {
   await wait(1000);
   res.end('Hello world!');
 });
@@ -53,3 +53,4 @@ app.use(function onError(_err, _req, res, _next) {
 app.listen(3000, () => {
   console.log('Server listening on port 3000');
 });
+
