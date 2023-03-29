@@ -4,6 +4,7 @@
     "strict": true,
     "moduleResolution": "node",
     "esModuleInterop": true,
+    "isolatedModules": true,
     "skipLibCheck": false,
     "forceConsistentCasingInFileNames": true,
     "allowUnusedLabels": false,
@@ -20,6 +21,7 @@
     "checkJs": false,
     "allowJs": true,
     "declaration": false,
+    "baseUrl": "./src",
     "typeRoots": ["node_modules/@types"]
   },
   "include": ["src/**/*.ts"],

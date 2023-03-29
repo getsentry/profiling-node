@@ -1,11 +1,11 @@
 import type { Hub, TransactionContext, CustomSamplingContext, Transaction } from '@sentry/types';
 import { logger, uuid4 } from '@sentry/utils';
 import type { NodeClient } from '@sentry/node';
+import { getMainCarrier } from '@sentry/core';
 
 import { isDebugBuild } from './env';
 import { CpuProfilerBindings } from './cpu_profiler';
 import { isValidSampleRate } from './utils';
-import { getMainCarrier } from '@sentry/core';
 
 export const MAX_PROFILE_DURATION_MS = 30 * 1000;
 
@@ -175,7 +175,6 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     // Not intended for external use, hence missing types, but we want to profile a couple of things at Sentry that
     // currently exceed the default timeout set by the SDKs.
     const maxProfileDurationMs =
-      // @ts-expect-error maxProfileDurationMs is not intended for external use
       (options._experiments && options._experiments.maxProfileDurationMs) || MAX_PROFILE_DURATION_MS;
 
     // Enqueue a timeout to prevent profiles from running over max duration.
@@ -207,7 +206,6 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
         profile = stopTransactionProfile(transaction, profile_id);
       }
 
-      // @ts-expect-error profile is not a part of sdk metadata so we expect error until it becomes part of the official SDK.
       transaction.setMetadata({ profile });
       return originalFinish();
     }

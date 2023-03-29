@@ -20,7 +20,7 @@ import { isDebugBuild } from './env';
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.
 // eslint-disable-next-line
-const { root_directory } = require('./../root.js');
+const { root_directory } = require('../root.js');
 
 const THREAD_ID_STRING = String(threadId);
 const THREAD_NAME = isMainThread ? 'main' : 'worker';
@@ -32,6 +32,7 @@ const VERSION = os.version();
 const TYPE = os.type();
 const MODEL = os.machine ? os.machine() : os.arch();
 const ARCH = os.arch();
+
 export interface Profile {
   event_id: string;
   version: string;

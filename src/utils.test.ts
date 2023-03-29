@@ -1,19 +1,14 @@
 import type { SdkMetadata, DsnComponents, Event } from '@sentry/types';
-import type { ProfiledEvent } from './utils';
+import { createEnvelope, uuid4, addItemToEnvelope } from '@sentry/utils';
+import type { ProfiledEvent, Profile } from './utils';
 import {
   isValidSampleRate,
   isValidProfile,
   addProfilesToEnvelope,
   findProfiledTransactionsFromEnvelope
 } from './utils';
-import { createEnvelope, uuid4, addItemToEnvelope } from '@sentry/utils';
 
-import {
-  maybeRemoveProfileFromSdkMetadata,
-  isProfiledTransactionEvent,
-  createProfilingEventEnvelope,
-  Profile
-} from './utils';
+import { maybeRemoveProfileFromSdkMetadata, isProfiledTransactionEvent, createProfilingEventEnvelope } from './utils';
 
 function makeSdkMetadata(props: Partial<SdkMetadata['sdk']>): SdkMetadata {
   return {
@@ -294,7 +289,6 @@ describe('isValidProfile', () => {
   });
 
   it('is not valid if it does not have a profile_id', () => {
-    // @ts-expect-error force profile_id to undefined
     expect(isValidProfile(makeProfile({ samples: [], profile_id: undefined }))).toBe(false);
   });
 });
