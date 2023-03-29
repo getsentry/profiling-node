@@ -84,11 +84,9 @@ describe('createProfilingEventEnvelope', () => {
   });
   it('throws if profile is undefined', () => {
     expect(() =>
-      // @ts-expect-error undefined is not a valid profile, we are forcing it here for some defensive programming
       createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, undefined), makeDsn({}), makeSdkMetadata({}))
     ).toThrowError('Cannot construct profiling event envelope without a valid profile. Got undefined instead.');
     expect(() =>
-      // @ts-expect-error null is not a valid profile, we are forcing it here for some defensive programming
       createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, null), makeDsn({}), makeSdkMetadata({}))
     ).toThrowError('Cannot construct profiling event envelope without a valid profile. Got null instead.');
   });
@@ -150,9 +148,7 @@ describe('createProfilingEventEnvelope', () => {
       })
     );
 
-    // @ts-expect-error header type inference is broken
     expect(envelope[0].sdk.name).toBe('sentry.javascript.node');
-    // @ts-expect-error header type inference is broken
     expect(envelope[0].sdk.version).toBe('1.2.3');
   });
 
@@ -207,9 +203,7 @@ describe('createProfilingEventEnvelope', () => {
     expect(() =>
       createProfilingEventEnvelope(
         makeEvent(
-          // @ts-expect-error type is forced to something other than transaction
           { type: 'error' },
-          // @ts-expect-error thread_id is forced to undefined and we assert that it is enriched
           makeProfile({ samples: [{ stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }] })
         ),
         makeDsn({}),
@@ -239,9 +233,7 @@ describe('createProfilingEventEnvelope', () => {
         },
         makeProfile({
           samples: [
-            // @ts-expect-error thread_id is forced to undefined and we assert that it is enriched
             { stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' },
-            // @ts-expect-error thread_id is forced to undefined and we assert that it is enriched
             { stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }
           ]
         })
@@ -298,10 +290,8 @@ describe('addProfilesToEnvelope', () => {
     const profile = makeProfile({});
     const envelope = createEnvelope({});
 
-    // @ts-expect-error addProfilesToEnvelope is not typed
     addProfilesToEnvelope(envelope, [profile]);
 
-    // @ts-expect-error profile is not typed
     const addedBySdk = addItemToEnvelope(createEnvelope({}), [{ type: 'profile' }, profile]);
 
     expect(envelope?.[1][0]?.[0]).toEqual({ type: 'profile' });
@@ -349,7 +339,6 @@ describe('findProfiledTransactionsFromEnvelope', () => {
       }
     };
 
-    // @ts-expect-error force header
     const envelope = addItemToEnvelope(createEnvelope({}), [{ type: 'replay_event' }, nonTransactionEvent]);
     expect(findProfiledTransactionsFromEnvelope(envelope)[0]).toBe(undefined);
   });

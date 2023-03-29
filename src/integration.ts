@@ -76,13 +76,11 @@ export class ProfilingIntegration implements Integration {
           }, maxProfileDurationMs);
 
           transaction.setContext('profile', { profile_id });
-          // @ts-expect-error profile is not part of txn metadata
           transaction.setMetadata({ profile_id: profile_id });
         }
       });
 
       client.on('finishTransaction', (transaction) => {
-        // @ts-expect-error profile is not part of txn metadata)
         const profile_id = transaction && transaction.metadata && transaction.metadata.profile_id;
         if (profile_id) {
           if (PROFILE_TIMEOUTS[profile_id]) {

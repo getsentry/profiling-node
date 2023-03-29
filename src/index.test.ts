@@ -41,42 +41,14 @@ function makeClientWithoutHooks(): [NodeClient, MockTransport] {
   client.setupIntegrations = () => {
     integration.setupOnce(
       (cb) => {
-        // @ts-expect-error just push our processor
         getMainCarrier().__SENTRY__.globalEventProcessors = [cb];
       },
       () => Sentry.getCurrentHub()
     );
   };
-  // @ts-expect-error override on purpose
   client.on = undefined;
   return [client, transport];
 }
-
-// function _makeClient(): [NodeClient, Transport] {
-//   const integration = new ProfilingIntegration();
-//   const transport = makeStaticTransport();
-//   const client = new NodeClient({
-//     stackParser: Sentry.defaultStackParser,
-//     tracesSampleRate: 1,
-//     profilesSampleRate: 1,
-//     debug: true,
-//     environment: 'test-environment',
-//     dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
-//     integrations: [integration],
-//     transport: (_opts) => transport
-//   });
-//   client.setupIntegrations = () => {
-//     integration.setupOnce(
-//       (cb) => {
-//         // @ts-expect-error just push our processor
-//         getMainCarrier().__SENTRY__.globalEventProcessors = [cb];
-//       },
-//       () => Sentry.getCurrentHub()
-//     );
-//   };
-
-//   return [client, transport];
-// }
 
 function findAllProfiles(transport: MockTransport): [any, Profile][] | null {
   return transport?.events.filter((call) => {

@@ -187,7 +187,6 @@ export function createProfilingEventFromTransaction(event: ProfiledEvent): Profi
     event_id: event.event_id || '',
     transaction: event.transaction || '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
-    // @ts-expect-error trace_id is not defined on Event
     trace_id: event?.contexts?.trace?.trace_id ?? '',
     profile_id: rawProfile.profile_id
   });
@@ -209,7 +208,6 @@ export function createProfilingEvent(profile: RawThreadCpuProfile, event: Event)
     event_id: event.event_id || '',
     transaction: event.transaction || '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
-    // @ts-expect-error trace_id is not defined on Event
     trace_id: event?.contexts?.trace?.trace_id ?? '',
     profile_id: profile.profile_id
   });
@@ -316,7 +314,6 @@ export function createProfilingEventEnvelope(
     {
       type: 'profile'
     },
-    // @ts-expect-error profile is not part of sdk types yet
     profile
   ];
 
@@ -400,7 +397,6 @@ export function addProfilesToEnvelope(envelope: Envelope, profiles: Profile[]): 
   }
 
   for (const profile of profiles) {
-    // @ts-expect-error - the second item in the item envelope is an array of EventItems
     envelope[1].push([{ type: 'profile' }, profile]);
   }
   return envelope;
@@ -423,7 +419,6 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
     for (let j = 1; j < item.length; j++) {
       const event = item[j];
 
-      // @ts-expect-error cryptic ts error, we are doing a safe check here anyways
       if (event && event.contexts && event.contexts['profile'] && event.contexts['profile']['profile_id']) {
         events.push(item[j] as Event);
       }
