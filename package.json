@@ -2,8 +2,9 @@
   "name": "@sentry/profiling-node",
   "version": "0.3.0",
   "description": "Sampling based nodejs profiler.",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
+  "main": "lib/cjs/index.js",
+  "module": "lib/esm/index.js",
+  "types": "lib/types/index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/getsentry/profiling-node.git"
@@ -32,7 +33,7 @@
     "clean": "rm -rf ./lib && rm -rf build",
     "lint": "eslint ./src --ext .ts",
     "build": "npm run build:bindings && npm run build:lib",
-    "build:lib": "tsc -p ./tsconfig.json",
+    "build:lib": "tsc -p ./tsconfig.cjs.json && tsc -p tsconfig.esm.json && tsc -p ./tsconfig.types.json",
     "build:configure": "node-gyp configure",
     "build:configure:arm64": "node-gyp configure --arch=arm64",
     "build:bindings": "node-gyp build",

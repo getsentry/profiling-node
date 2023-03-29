@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "es2016",
+    "target": "es2017",
     "strict": true,
     "moduleResolution": "node",
     "esModuleInterop": true,
@@ -20,8 +19,7 @@
     "importsNotUsedAsValues": "error",
     "checkJs": false,
     "allowJs": true,
-    "declaration": true,
-    "outDir": "lib",
+    "declaration": false,
     "typeRoots": ["node_modules/@types"]
   },
   "include": ["src/**/*.ts"],
