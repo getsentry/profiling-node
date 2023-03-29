@@ -64,6 +64,7 @@
   "author": "jonas.badalic@sentry.io",
   "license": "MIT",
   "dependencies": {
+    "@sentry/core": "^7.44.0",
     "@sentry/hub": "^7.44.1",
     "@sentry/node": "^7.44.1",
     "@sentry/tracing": "^7.44.1",
