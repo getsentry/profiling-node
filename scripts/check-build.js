@@ -20,10 +20,20 @@ function recompileFromSource() {
 }
 
 try {
-  console.log('@sentry/profiling-node: Precompiled binary found, attempting to load...');
-  require(target);
-  console.log('@sentry/profiling-node: Precompiled binary found, skipping build from source.');
+  if (existsSync(target)) {
+    console.log('@sentry/profiling-node: Precompiled binary found, attempting to load...');
+    require(target);
+    console.log('@sentry/profiling-node: Precompiled binary found, skipping build from source.');
+  } else {
+    console.log('@sentry/profiling-node: Precompiled binary not found, attempting to compile...');
+    const success = recompileFromSource();
+    if (success) {
+      process.exit(0);
+    }
+  }
 } catch (e) {
+  console.log('@sentry/profiling-node: Precompiled binary found but failed loading');
+
   // Check for node version missmatch
   if (/was compiled against a different Node.js/.test(e.message)) {
     const success = recompileFromSource();
@@ -31,8 +41,9 @@ try {
       process.exit(0);
     }
   }
+
   // Not sure if this could even happen, but just in case it somehow does,
-  //  we can provide a better experience than just crashing with cannot find module message.
+  // we can provide a better experience than just crashing with cannot find module message.
   if (/Cannot find module/.test(e.message)) {
     const success = recompileFromSource();
     if (success) {
