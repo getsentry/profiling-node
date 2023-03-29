@@ -20,8 +20,8 @@
     "allowJs": true,
     "declaration": false,
     "baseUrl": "./src",
-    "typeRoots": ["node_modules/@types"]
+    "typeRoots": ["node_modules/@types"],
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts", "scripts/**/*", "root.js"]
+  "exclude": ["src/**/*.test.ts", "scripts/**/*"]
 }

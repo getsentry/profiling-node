@@ -1,3 +1,4 @@
+import { path as root_directory } from 'app-root-path';
 import { platform, arch, release, version, type, machine } from 'os';
 import { resolve } from 'path';
 import { isMainThread, threadId } from 'worker_threads';
@@ -20,7 +21,6 @@ import { isDebugBuild } from './env';
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.
 // eslint-disable-next-line
-const { root_directory } = require('../root.js');
 
 const THREAD_ID_STRING = String(threadId);
 const THREAD_NAME = isMainThread ? 'main' : 'worker';
@@ -339,8 +339,6 @@ export function maybeRemoveProfileFromSdkMetadata(event: Event | ProfiledEvent):
   return event;
 }
 
-// Requires the root.js file which exports __dirname, this is then forwarded to our native
-// addon where we remove the absolute path from each frame to generate a project relatvie filename
 export function getProjectRootDirectory(): string | null {
   const components = resolve(root_directory).split('/node_modules');
   return components?.[0] ?? null;
