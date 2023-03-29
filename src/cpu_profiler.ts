@@ -1,6 +1,6 @@
 import { getAbi } from 'node-abi';
-import path from 'path';
-import os from 'os';
+import { join } from 'path';
+import { arch, platform } from 'os';
 import { familySync } from 'detect-libc';
 
 import { threadId } from 'worker_threads';
@@ -8,22 +8,23 @@ import { getProjectRootDirectory } from './utils';
 
 export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   const family = familySync();
-  const arch = process.env['BUILD_ARCH'] || os.arch();
+  const userArchitecture = process.env['BUILD_ARCH'] || arch();
+  const userPlatform = platform();
 
   if (family === null) {
     // If we did not find libc or musl, we may be on Windows or some other platform.
-    return require(path.join(
+    return require(join(
       __dirname,
       '..',
       'binaries',
-      `sentry_cpu_profiler-v${getAbi(process.versions.node, 'node')}-${os.platform()}-${arch}.node`
+      `sentry_cpu_profiler-v${getAbi(process.versions.node, 'node')}-${userPlatform}-${userArchitecture}.node`
     ));
   }
-  return require(path.join(
+  return require(join(
     __dirname,
     '..',
     'binaries',
-    `sentry_cpu_profiler-v${getAbi(process.versions.node, 'node')}-${os.platform()}-${arch}-${family}.node`
+    `sentry_cpu_profiler-v${getAbi(process.versions.node, 'node')}-${userPlatform}-${userArchitecture}-${family}.node`
   ));
 }
 

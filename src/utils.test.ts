@@ -1,4 +1,4 @@
-import type { SdkMetadata, DsnComponents, Event } from '@sentry/types';
+import type { SdkMetadata, DsnComponents, Event, SdkInfo } from '@sentry/types';
 import { createEnvelope, uuid4, addItemToEnvelope } from '@sentry/utils';
 import type { ProfiledEvent, Profile } from './utils';
 import {
@@ -148,8 +148,8 @@ describe('createProfilingEventEnvelope', () => {
       })
     );
 
-    expect(envelope[0].sdk.name).toBe('sentry.javascript.node');
-    expect(envelope[0].sdk.version).toBe('1.2.3');
+    expect(envelope && envelope[0]?.sdk?.name).toBe('sentry.javascript.node');
+    expect(envelope && envelope[0]?.sdk?.version).toBe('1.2.3');
   });
 
   it('handles undefined sdk metadata', () => {
@@ -203,6 +203,7 @@ describe('createProfilingEventEnvelope', () => {
     expect(() =>
       createProfilingEventEnvelope(
         makeEvent(
+          // @ts-expect-error force invalid value
           { type: 'error' },
           makeProfile({ samples: [{ stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }] })
         ),
@@ -290,8 +291,10 @@ describe('addProfilesToEnvelope', () => {
     const profile = makeProfile({});
     const envelope = createEnvelope({});
 
+    // @ts-expect-error profile is untyped
     addProfilesToEnvelope(envelope, [profile]);
 
+    // @ts-expect-error profile is untyped
     const addedBySdk = addItemToEnvelope(createEnvelope({}), [{ type: 'profile' }, profile]);
 
     expect(envelope?.[1][0]?.[0]).toEqual({ type: 'profile' });
@@ -339,6 +342,7 @@ describe('findProfiledTransactionsFromEnvelope', () => {
       }
     };
 
+    // @ts-expect-error replay event is partial
     const envelope = addItemToEnvelope(createEnvelope({}), [{ type: 'replay_event' }, nonTransactionEvent]);
     expect(findProfiledTransactionsFromEnvelope(envelope)[0]).toBe(undefined);
   });

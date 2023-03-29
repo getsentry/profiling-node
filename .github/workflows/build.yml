@@ -1,6 +1,5 @@
-name: Upload build artifacts
+name: Precompile binaries
 on:
-  pull_request:
   push:
     branches:
       - main

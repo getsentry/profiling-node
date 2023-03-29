@@ -28,6 +28,7 @@ function makeTransactionMock(options = {}): Transaction {
       return {};
     },
     setContext(this: Transaction, key: string, context: Context) {
+      // @ts-expect-error - contexts is private
       this.contexts[key] = context;
     },
     setTag(this: Transaction, key: string, value: any) {
@@ -162,6 +163,7 @@ describe('hubextensions', () => {
     const hub = makeHubMock({
       profilesSampleRate: undefined,
       client: {
+        // @ts-expect-error partial client
         getOptions: () => options
       }
     });
@@ -182,6 +184,7 @@ describe('hubextensions', () => {
     const hub = makeHubMock({
       profilesSampleRate: NaN,
       client: {
+        // @ts-expect-error partial client
         getOptions: () => options
       }
     });
@@ -201,6 +204,7 @@ describe('hubextensions', () => {
     const hub = makeHubMock({
       profilesSampleRate: undefined,
       client: {
+        // @ts-expect-error partial client
         getOptions: () => options
       }
     });
@@ -223,6 +227,7 @@ describe('hubextensions', () => {
     const hub = makeHubMock({
       profilesSampleRate: 0,
       client: {
+        // @ts-expect-error partial client
         getOptions: () => options
       }
     });

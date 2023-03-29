@@ -29,6 +29,7 @@ function makeClientWithoutHooks(): [NodeClient, Transport] {
   client.setupIntegrations = () => {
     integration.setupOnce(
       (cb) => {
+        // @ts-expect-error __SENTRY__ is a private property
         getMainCarrier().__SENTRY__.globalEventProcessors = [cb];
       },
       () => Sentry.getCurrentHub()
@@ -60,6 +61,7 @@ function makeClientWithHooks(): [NodeClient, Transport] {
   client.setupIntegrations = () => {
     integration.setupOnce(
       (cb) => {
+        // @ts-expect-error __SENTRY__ is a private property
         getMainCarrier().__SENTRY__.globalEventProcessors = [cb];
       },
       () => Sentry.getCurrentHub()
@@ -214,14 +216,18 @@ describe('hubextensions', () => {
       const hub = Sentry.getCurrentHub();
       hub.bindClient(client);
 
+      // @ts-expect-error transaction is partial
       client.emit('beforeEnvelope', createEnvelope({ type: 'transaction' }, { type: 'transaction' }));
+      // @ts-expect-error transaction is partial
       client.emit('beforeEnvelope', createEnvelope({ type: 'transaction' }, { type: 'transaction', contexts: {} }));
       client.emit(
         'beforeEnvelope',
+        // @ts-expect-error transaction is partial
         createEnvelope({ type: 'transaction' }, { type: 'transaction', contexts: { profile: {} } })
       );
       client.emit(
         'beforeEnvelope',
+        // @ts-expect-error transaction is partial
         createEnvelope({ type: 'transaction' }, { type: 'transaction', contexts: { profile: { profile_id: null } } })
       );
 

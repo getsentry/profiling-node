@@ -41,6 +41,7 @@ function makeClientWithoutHooks(): [NodeClient, MockTransport] {
   client.setupIntegrations = () => {
     integration.setupOnce(
       (cb) => {
+        // @ts-expect-error __SENTRY__ is private
         getMainCarrier().__SENTRY__.globalEventProcessors = [cb];
       },
       () => Sentry.getCurrentHub()
