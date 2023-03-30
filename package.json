@@ -34,7 +34,7 @@
     "build:lib": "tsc -p ./tsconfig.cjs.json && tsc -p tsconfig.esm.json && tsc -p ./tsconfig.types.json",
     "build:configure": "node-gyp configure",
     "build:configure:arm64": "node-gyp configure --arch=arm64",
-    "build:bindings": "node-gyp build",
+    "build:bindings": "node-gyp build && node scripts/copy-target.js",
     "build:bindings:arm64": "node-gyp build --arch=arm64",
     "build:benchmark:format": "node-gyp -DFORMAT_BENCHMARK=1 build",
     "build:dev": "npm run clean && npm run build:configure && npm run build && node scripts/copy-target.js",
