@@ -4,7 +4,13 @@ const path = require('path');
 
 const { getModuleName } = require('./binaries');
 
+const lib = path.resolve(__dirname, '..', 'lib');
 const binaries = path.resolve(__dirname, '..', 'lib', 'binaries');
+
+if (!fs.existsSync(lib)) {
+  fs.mkdirSync(lib);
+}
+
 if (!fs.existsSync(binaries)) {
   fs.mkdirSync(binaries);
 }
