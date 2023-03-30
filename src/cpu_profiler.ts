@@ -16,13 +16,16 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
     return require(join(
       __dirname,
       '..',
+      'lib',
       'binaries',
       `sentry_cpu_profiler-v${getAbi(process.versions.node, 'node')}-${userPlatform}-${userArchitecture}.node`
     ));
   }
+
   return require(join(
     __dirname,
     '..',
+    'lib',
     'binaries',
     `sentry_cpu_profiler-v${getAbi(process.versions.node, 'node')}-${userPlatform}-${userArchitecture}-${family}.node`
   ));
