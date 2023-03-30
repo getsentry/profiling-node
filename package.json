@@ -20,7 +20,6 @@
     "README.md",
     "package.json",
     "package-lock.json",
-    "binaries",
     "scripts/binaries.js",
     "scripts/check-build.js",
     "scripts/copy-target.js",
