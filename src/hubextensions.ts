@@ -1,11 +1,11 @@
 import type { Hub, TransactionContext, CustomSamplingContext, Transaction } from '@sentry/types';
 import { logger, uuid4 } from '@sentry/utils';
 import type { NodeClient } from '@sentry/node';
+import { getMainCarrier } from '@sentry/core';
 
 import { isDebugBuild } from './env';
 import { CpuProfilerBindings } from './cpu_profiler';
 import { isValidSampleRate } from './utils';
-import { getMainCarrier } from '@sentry/core';
 
 export const MAX_PROFILE_DURATION_MS = 30 * 1000;
 
@@ -78,7 +78,7 @@ export function maybeProfileTransaction(
 
   // Now we roll the dice. Math.random is inclusive of 0, but not of 1, so strict < is safe here. In case sampleRate is
   // a boolean, the < comparison will cause it to be automatically cast to 1 if it's true and 0 if it's false.
-  const sampled = Math.random() < (profilesSampleRate as number | boolean);
+  const sampled = profilesSampleRate === true ? true : Math.random() < profilesSampleRate;
   // Check if we should sample this profile
   if (!sampled) {
     if (isDebugBuild()) {
@@ -148,7 +148,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     transactionContext: TransactionContext,
     customSamplingContext?: CustomSamplingContext
   ): Transaction {
-    const transaction = startTransaction.call(this, transactionContext, customSamplingContext);
+    const transaction: Transaction = startTransaction.call(this, transactionContext, customSamplingContext);
 
     // Client is required if we want to profile
     const client = this.getClient() as NodeClient | undefined;
@@ -175,8 +175,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     // Not intended for external use, hence missing types, but we want to profile a couple of things at Sentry that
     // currently exceed the default timeout set by the SDKs.
     const maxProfileDurationMs =
-      // @ts-expect-error maxProfileDurationMs is not intended for external use
-      (options._experiments && options._experiments.maxProfileDurationMs) || MAX_PROFILE_DURATION_MS;
+      (options._experiments && options._experiments['maxProfileDurationMs']) || MAX_PROFILE_DURATION_MS;
 
     // Enqueue a timeout to prevent profiles from running over max duration.
     let maxDurationTimeoutID: NodeJS.Timeout | void = global.setTimeout(() => {
@@ -207,7 +206,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
         profile = stopTransactionProfile(transaction, profile_id);
       }
 
-      // @ts-expect-error profile is not a part of sdk metadata so we expect error until it becomes part of the official SDK.
+      // @ts-expect-error profile is not part of metadata
       transaction.setMetadata({ profile });
       return originalFinish();
     }

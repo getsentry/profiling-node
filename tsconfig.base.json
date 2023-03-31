@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "es2016",
+    "target": "es2017",
     "strict": true,
     "moduleResolution": "node",
     "esModuleInterop": true,
@@ -17,13 +16,12 @@
     "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "importsNotUsedAsValues": "error",
     "checkJs": false,
     "allowJs": true,
-    "declaration": true,
-    "outDir": "lib",
-    "typeRoots": ["node_modules/@types"]
+    "declaration": false,
+    "baseUrl": "./src",
+    "typeRoots": ["node_modules/@types"],
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts", "scripts/**/*", "root.js"]
+  "exclude": ["src/**/*.test.ts", "scripts/**/*"]
 }

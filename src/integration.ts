@@ -2,6 +2,7 @@ import type { NodeClient } from '@sentry/node';
 import type { Integration, EventProcessor, Hub, Event, Transaction } from '@sentry/types';
 
 import { logger } from '@sentry/utils';
+
 import { isDebugBuild } from './env';
 import {
   addProfilingExtensionMethods,
@@ -11,8 +12,9 @@ import {
 } from './hubextensions';
 
 import type { RawThreadCpuProfile } from './cpu_profiler';
-import { Profile, addProfilesToEnvelope } from './utils';
+import type { Profile } from './utils';
 import {
+  addProfilesToEnvelope,
   maybeRemoveProfileFromSdkMetadata,
   createProfilingEventEnvelope,
   createProfilingEvent,
@@ -54,8 +56,7 @@ export class ProfilingIntegration implements Integration {
           // Not intended for external use, hence missing types, but we want to profile a couple of things at Sentry that
           // currently exceed the default timeout set by the SDKs.
           const maxProfileDurationMs =
-            // @ts-expect-error maxProfileDurationMs is not intended for external use
-            (options._experiments && options._experiments.maxProfileDurationMs) || MAX_PROFILE_DURATION_MS;
+            (options._experiments && options._experiments['maxProfileDurationMs']) || MAX_PROFILE_DURATION_MS;
 
           // Enqueue a timeout to prevent profiles from running over max duration.
           if (PROFILE_TIMEOUTS[profile_id]) {
@@ -75,13 +76,13 @@ export class ProfilingIntegration implements Integration {
           }, maxProfileDurationMs);
 
           transaction.setContext('profile', { profile_id });
-          // @ts-expect-error profile is not part of txn metadata
+          // @ts-expect-error profile_id is not part of the metadata type
           transaction.setMetadata({ profile_id: profile_id });
         }
       });
 
       client.on('finishTransaction', (transaction) => {
-        // @ts-expect-error profile is not part of txn metadata)
+        // @ts-expect-error profile_id is not part of the metadata type
         const profile_id = transaction && transaction.metadata && transaction.metadata.profile_id;
         if (profile_id) {
           if (PROFILE_TIMEOUTS[profile_id]) {

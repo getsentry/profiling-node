@@ -1,19 +1,14 @@
-import type { SdkMetadata, DsnComponents, Event } from '@sentry/types';
-import type { ProfiledEvent } from './utils';
+import type { SdkMetadata, DsnComponents, Event, SdkInfo } from '@sentry/types';
+import { createEnvelope, uuid4, addItemToEnvelope } from '@sentry/utils';
+import type { ProfiledEvent, Profile } from './utils';
 import {
   isValidSampleRate,
   isValidProfile,
   addProfilesToEnvelope,
   findProfiledTransactionsFromEnvelope
 } from './utils';
-import { createEnvelope, uuid4, addItemToEnvelope } from '@sentry/utils';
 
-import {
-  maybeRemoveProfileFromSdkMetadata,
-  isProfiledTransactionEvent,
-  createProfilingEventEnvelope,
-  Profile
-} from './utils';
+import { maybeRemoveProfileFromSdkMetadata, isProfiledTransactionEvent, createProfilingEventEnvelope } from './utils';
 
 function makeSdkMetadata(props: Partial<SdkMetadata['sdk']>): SdkMetadata {
   return {
@@ -89,11 +84,9 @@ describe('createProfilingEventEnvelope', () => {
   });
   it('throws if profile is undefined', () => {
     expect(() =>
-      // @ts-expect-error undefined is not a valid profile, we are forcing it here for some defensive programming
       createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, undefined), makeDsn({}), makeSdkMetadata({}))
     ).toThrowError('Cannot construct profiling event envelope without a valid profile. Got undefined instead.');
     expect(() =>
-      // @ts-expect-error null is not a valid profile, we are forcing it here for some defensive programming
       createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, null), makeDsn({}), makeSdkMetadata({}))
     ).toThrowError('Cannot construct profiling event envelope without a valid profile. Got null instead.');
   });
@@ -155,10 +148,8 @@ describe('createProfilingEventEnvelope', () => {
       })
     );
 
-    // @ts-expect-error header type inference is broken
-    expect(envelope[0].sdk.name).toBe('sentry.javascript.node');
-    // @ts-expect-error header type inference is broken
-    expect(envelope[0].sdk.version).toBe('1.2.3');
+    expect(envelope && envelope[0]?.sdk?.name).toBe('sentry.javascript.node');
+    expect(envelope && envelope[0]?.sdk?.version).toBe('1.2.3');
   });
 
   it('handles undefined sdk metadata', () => {
@@ -212,9 +203,8 @@ describe('createProfilingEventEnvelope', () => {
     expect(() =>
       createProfilingEventEnvelope(
         makeEvent(
-          // @ts-expect-error type is forced to something other than transaction
+          // @ts-expect-error force invalid value
           { type: 'error' },
-          // @ts-expect-error thread_id is forced to undefined and we assert that it is enriched
           makeProfile({ samples: [{ stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }] })
         ),
         makeDsn({}),
@@ -244,9 +234,7 @@ describe('createProfilingEventEnvelope', () => {
         },
         makeProfile({
           samples: [
-            // @ts-expect-error thread_id is forced to undefined and we assert that it is enriched
             { stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' },
-            // @ts-expect-error thread_id is forced to undefined and we assert that it is enriched
             { stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }
           ]
         })
@@ -294,7 +282,6 @@ describe('isValidProfile', () => {
   });
 
   it('is not valid if it does not have a profile_id', () => {
-    // @ts-expect-error force profile_id to undefined
     expect(isValidProfile(makeProfile({ samples: [], profile_id: undefined }))).toBe(false);
   });
 });
@@ -304,10 +291,10 @@ describe('addProfilesToEnvelope', () => {
     const profile = makeProfile({});
     const envelope = createEnvelope({});
 
-    // @ts-expect-error addProfilesToEnvelope is not typed
+    // @ts-expect-error profile is untyped
     addProfilesToEnvelope(envelope, [profile]);
 
-    // @ts-expect-error profile is not typed
+    // @ts-expect-error profile is untyped
     const addedBySdk = addItemToEnvelope(createEnvelope({}), [{ type: 'profile' }, profile]);
 
     expect(envelope?.[1][0]?.[0]).toEqual({ type: 'profile' });
@@ -355,7 +342,7 @@ describe('findProfiledTransactionsFromEnvelope', () => {
       }
     };
 
-    // @ts-expect-error force header
+    // @ts-expect-error replay event is partial
     const envelope = addItemToEnvelope(createEnvelope({}), [{ type: 'replay_event' }, nonTransactionEvent]);
     expect(findProfiledTransactionsFromEnvelope(envelope)[0]).toBe(undefined);
   });

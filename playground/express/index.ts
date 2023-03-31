@@ -1,7 +1,7 @@
 import express from 'express';
 import * as Sentry from '@sentry/node';
 import * as Tracing from '@sentry/tracing';
-import { ProfilingIntegration } from '../../src';
+import { ProfilingIntegration } from '../../src/integration';
 
 const app = express();
 

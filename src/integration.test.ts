@@ -1,9 +1,10 @@
-import { ProfilingIntegration } from './integration';
-import type { Event, Hub, Transport } from '@sentry/types';
-import type { ProfiledEvent } from './utils';
+import { EventEmitter } from 'events';
 
 import { logger } from '@sentry/utils';
-import { EventEmitter } from 'events';
+import type { Event, Hub, Transport } from '@sentry/types';
+
+import { ProfilingIntegration } from './integration';
+import type { ProfiledEvent } from './utils';
 
 function assertCleanProfile(event: ProfiledEvent | Event): void {
   expect(event.sdkProcessingMetadata?.profile).toBeUndefined();

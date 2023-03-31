@@ -29,13 +29,12 @@ function makeClientWithoutHooks(): [NodeClient, Transport] {
   client.setupIntegrations = () => {
     integration.setupOnce(
       (cb) => {
-        // @ts-expect-error just push our processor
+        // @ts-expect-error __SENTRY__ is a private property
         getMainCarrier().__SENTRY__.globalEventProcessors = [cb];
       },
       () => Sentry.getCurrentHub()
     );
   };
-  // @ts-expect-error override on purpose
   client.on = undefined;
   return [client, transport];
 }
@@ -62,7 +61,7 @@ function makeClientWithHooks(): [NodeClient, Transport] {
   client.setupIntegrations = () => {
     integration.setupOnce(
       (cb) => {
-        // @ts-expect-error just push our processor
+        // @ts-expect-error __SENTRY__ is a private property
         getMainCarrier().__SENTRY__.globalEventProcessors = [cb];
       },
       () => Sentry.getCurrentHub()
@@ -217,18 +216,18 @@ describe('hubextensions', () => {
       const hub = Sentry.getCurrentHub();
       hub.bindClient(client);
 
-      // @ts-expect-error - we are testing what happens when the transaction might have no profile context
+      // @ts-expect-error transaction is partial
       client.emit('beforeEnvelope', createEnvelope({ type: 'transaction' }, { type: 'transaction' }));
-      // @ts-expect-error - we are testing what happens when the transaction might have no profile context
+      // @ts-expect-error transaction is partial
       client.emit('beforeEnvelope', createEnvelope({ type: 'transaction' }, { type: 'transaction', contexts: {} }));
       client.emit(
         'beforeEnvelope',
-        // @ts-expect-error - we are testing what happens when the transaction might have no profile context
+        // @ts-expect-error transaction is partial
         createEnvelope({ type: 'transaction' }, { type: 'transaction', contexts: { profile: {} } })
       );
       client.emit(
         'beforeEnvelope',
-        // @ts-expect-error - we are testing what happens when the transaction might have no profile context
+        // @ts-expect-error transaction is partial
         createEnvelope({ type: 'transaction' }, { type: 'transaction', contexts: { profile: { profile_id: null } } })
       );
 

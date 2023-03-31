@@ -28,7 +28,7 @@ function makeTransactionMock(options = {}): Transaction {
       return {};
     },
     setContext(this: Transaction, key: string, context: Context) {
-      // @ts-expect-error mock this
+      // @ts-expect-error - contexts is private
       this.contexts[key] = context;
     },
     setTag(this: Transaction, key: string, value: any) {
@@ -78,7 +78,7 @@ describe('hubextensions', () => {
 
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).not.toHaveBeenCalled();
-    // @ts-expect-error profile is not part of SDK metadata
+
     expect(transaction.metadata?.profile).toBeUndefined();
   });
   it('skips profiling if profilesSampleRate is set to 0', () => {
@@ -92,7 +92,7 @@ describe('hubextensions', () => {
 
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).not.toHaveBeenCalled();
-    // @ts-expect-error profile is not part of SDK metadata
+
     expect(transaction.metadata?.profile).toBeUndefined();
   });
   it('skips profiling when random > sampleRate', () => {
@@ -107,7 +107,7 @@ describe('hubextensions', () => {
 
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).not.toHaveBeenCalled();
-    // @ts-expect-error profile is not part of SDK metadata
+
     expect(transaction.metadata?.profile).toBeUndefined();
   });
   it('starts the profiler', () => {
@@ -124,7 +124,7 @@ describe('hubextensions', () => {
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).toHaveBeenCalledTimes(1);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
-    // @ts-expect-error profile is not part of SDK metadata
+
     expect(transaction.metadata?.profile).toBeDefined();
   });
 
@@ -163,7 +163,7 @@ describe('hubextensions', () => {
     const hub = makeHubMock({
       profilesSampleRate: undefined,
       client: {
-        // @ts-expect-error mock this
+        // @ts-expect-error partial client
         getOptions: () => options
       }
     });
@@ -184,7 +184,7 @@ describe('hubextensions', () => {
     const hub = makeHubMock({
       profilesSampleRate: NaN,
       client: {
-        // @ts-expect-error mock this
+        // @ts-expect-error partial client
         getOptions: () => options
       }
     });
@@ -204,7 +204,7 @@ describe('hubextensions', () => {
     const hub = makeHubMock({
       profilesSampleRate: undefined,
       client: {
-        // @ts-expect-error mock this
+        // @ts-expect-error partial client
         getOptions: () => options
       }
     });
@@ -227,7 +227,7 @@ describe('hubextensions', () => {
     const hub = makeHubMock({
       profilesSampleRate: 0,
       client: {
-        // @ts-expect-error mock this
+        // @ts-expect-error partial client
         getOptions: () => options
       }
     });

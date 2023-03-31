@@ -1,5 +1,6 @@
-import os from 'os';
-import path from 'path';
+import { path as root_directory } from 'app-root-path';
+import { platform, arch, release, version, type, machine } from 'os';
+import { resolve } from 'path';
 import { isMainThread, threadId } from 'worker_threads';
 import type {
   SdkInfo,
@@ -20,18 +21,18 @@ import { isDebugBuild } from './env';
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.
 // eslint-disable-next-line
-const { root_directory } = require('./../root.js');
 
 const THREAD_ID_STRING = String(threadId);
 const THREAD_NAME = isMainThread ? 'main' : 'worker';
 
 // Machine properties (eval only once)
-const PLATFORM = os.platform();
-const RELEASE = os.release();
-const VERSION = os.version();
-const TYPE = os.type();
-const MODEL = os.machine ? os.machine() : os.arch();
-const ARCH = os.arch();
+const PLATFORM = platform();
+const RELEASE = release();
+const VERSION = version();
+const TYPE = type();
+const MODEL = machine ? machine() : arch();
+const ARCH = arch();
+
 export interface Profile {
   event_id: string;
   version: string;
@@ -186,7 +187,7 @@ export function createProfilingEventFromTransaction(event: ProfiledEvent): Profi
     event_id: event.event_id || '',
     transaction: event.transaction || '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
-    // @ts-expect-error trace_id is not defined on Event
+    // @ts-expect-error trace id is unknown
     trace_id: event?.contexts?.trace?.trace_id ?? '',
     profile_id: rawProfile.profile_id
   });
@@ -208,7 +209,7 @@ export function createProfilingEvent(profile: RawThreadCpuProfile, event: Event)
     event_id: event.event_id || '',
     transaction: event.transaction || '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
-    // @ts-expect-error trace_id is not defined on Event
+    // @ts-expect-error accessing private property
     trace_id: event?.contexts?.trace?.trace_id ?? '',
     profile_id: profile.profile_id
   });
@@ -315,7 +316,7 @@ export function createProfilingEventEnvelope(
     {
       type: 'profile'
     },
-    // @ts-expect-error profile is not part of sdk types yet
+    // @ts-expect-error profile is not part of EventItem yet
     profile
   ];
 
@@ -338,10 +339,8 @@ export function maybeRemoveProfileFromSdkMetadata(event: Event | ProfiledEvent):
   return event;
 }
 
-// Requires the root.js file which exports __dirname, this is then forwarded to our native
-// addon where we remove the absolute path from each frame to generate a project relatvie filename
 export function getProjectRootDirectory(): string | null {
-  const components = path.resolve(root_directory).split('/node_modules');
+  const components = resolve(root_directory).split('/node_modules');
   return components?.[0] ?? null;
 }
 
@@ -359,6 +358,11 @@ export function isValidSampleRate(rate: unknown): boolean {
       );
     }
     return false;
+  }
+
+  // Boolean sample rates are always valid
+  if (rate === true || rate === false) {
+    return true;
   }
 
   // in case sampleRate is a boolean, it will get automatically cast to 1 if it's true and 0 if it's false
@@ -399,7 +403,7 @@ export function addProfilesToEnvelope(envelope: Envelope, profiles: Profile[]): 
   }
 
   for (const profile of profiles) {
-    // @ts-expect-error - the second item in the item envelope is an array of EventItems
+    // @ts-expect-error untyped envelope
     envelope[1].push([{ type: 'profile' }, profile]);
   }
   return envelope;
@@ -422,7 +426,7 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
     for (let j = 1; j < item.length; j++) {
       const event = item[j];
 
-      // @ts-expect-error cryptic ts error, we are doing a safe check here anyways
+      // @ts-expect-error accessing private property
       if (event && event.contexts && event.contexts['profile'] && event.contexts['profile']['profile_id']) {
         events.push(item[j] as Event);
       }

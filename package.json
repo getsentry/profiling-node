@@ -2,8 +2,9 @@
   "name": "@sentry/profiling-node",
   "version": "0.3.0",
   "description": "Sampling based nodejs profiler.",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
+  "main": "lib/cjs/index.js",
+  "module": "lib/esm/index.js",
+  "types": "lib/types/index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/getsentry/profiling-node.git"
@@ -15,12 +16,10 @@
     "lib",
     "bindings",
     "binding.gyp",
-    "root.js",
     "LICENSE",
     "README.md",
     "package.json",
     "package-lock.json",
-    "binaries",
     "scripts/binaries.js",
     "scripts/check-build.js",
     "scripts/copy-target.js",
@@ -32,10 +31,10 @@
     "clean": "rm -rf ./lib && rm -rf build",
     "lint": "eslint ./src --ext .ts",
     "build": "npm run build:bindings && npm run build:lib",
-    "build:lib": "tsc -p ./tsconfig.json",
+    "build:lib": "tsc -p ./tsconfig.cjs.json && tsc -p tsconfig.esm.json && tsc -p ./tsconfig.types.json",
     "build:configure": "node-gyp configure",
     "build:configure:arm64": "node-gyp configure --arch=arm64",
-    "build:bindings": "node-gyp build",
+    "build:bindings": "node-gyp build && node scripts/copy-target.js",
     "build:bindings:arm64": "node-gyp build --arch=arm64",
     "build:benchmark:format": "node-gyp -DFORMAT_BENCHMARK=1 build",
     "build:dev": "npm run clean && npm run build:configure && npm run build && node scripts/copy-target.js",
@@ -70,6 +69,7 @@
     "@sentry/tracing": "^7.44.1",
     "@sentry/types": "^7.44.1",
     "@sentry/utils": "^7.44.1",
+    "app-root-path": "^3.1.0",
     "detect-libc": "^2.0.1",
     "nan": "^2.17.0",
     "node-abi": "^3.28.0",
@@ -96,6 +96,6 @@
     "sqlite3": "^5.0.8",
     "ts-jest": "^28.0.8",
     "ts-node": "^10.9.1",
-    "typescript": "^4.8.3"
+    "typescript": "^5.0.2"
   }
 }
