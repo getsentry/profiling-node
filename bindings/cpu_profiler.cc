@@ -1,9 +1,10 @@
 
 #include <unordered_map>
-
-#include "nan.h"
-#include "node.h"
-#include "v8-profiler.h"
+#include <string>
+#include <assert.h>
+#include <node_api.h>
+#include <v8-profiler.h>
+#include <v8.h>
 
 #define FORMAT_SAMPLED 2
 #define FORMAT_RAW 1
@@ -42,10 +43,10 @@ v8::CpuProfilingLoggingMode getLoggingMode() {
 }
 class Profiler {
 public:
-  explicit Profiler(v8::Isolate* isolate):
+  explicit Profiler(napi_env& env, v8::Isolate* isolate):
     cpu_profiler(
       v8::CpuProfiler::New(isolate, kNamingMode, getLoggingMode())) {
-    node::AddEnvironmentCleanupHook(isolate, DeleteInstance, this);
+    napi_add_env_cleanup_hook(env, DeleteInstance, this);
   }
 
   v8::CpuProfiler* cpu_profiler;
@@ -57,57 +58,65 @@ public:
   }
 };
 
-v8::Local<v8::Object> CreateFrameNode(
-  const v8::CpuProfileNode& node,
-  const std::string& app_root_dir
-) {
+napi_value CreateFrameNode(napi_env& env, const v8::CpuProfileNode& node, const std::string& app_root_dir) {
+  napi_value js_node;
+  napi_create_object(env, &js_node);
 
-  v8::Local<v8::Object> js_node = Nan::New<v8::Object>();
+  napi_value function_name_prop;
+  napi_create_string_utf8(env, node.GetFunctionNameStr(), NAPI_AUTO_LENGTH, &function_name_prop);
+  napi_set_named_property(env, js_node, "function_name", function_name_prop);
 
-  Nan::Set(js_node, Nan::New<v8::String>("function").ToLocalChecked(), node.GetFunctionName());
-  Nan::Set(js_node, Nan::New<v8::String>("abs_path").ToLocalChecked(), node.GetScriptResourceName());
+  napi_value abs_path_prop;
+  napi_create_string_utf8(env, node.GetScriptResourceNameStr(), NAPI_AUTO_LENGTH, &abs_path_prop);
+  napi_set_named_property(env, js_node, "abs_path", abs_path_prop);
 
   if (!app_root_dir.empty()) {
     std::string abs_path_str = node.GetScriptResourceNameStr();
 
     if (abs_path_str.compare(0, app_root_dir.size(), app_root_dir) == 0) {
-      Nan::Set(js_node, Nan::New<v8::String>("filename").ToLocalChecked(), Nan::New<v8::String>(abs_path_str.substr(app_root_dir.length())).ToLocalChecked());
+      std::string filename_str = abs_path_str.substr(app_root_dir.length());
+
+      if (!filename_str.empty()) {
+        napi_value filename_prop;
+        napi_create_string_utf8(env, filename_str.c_str(), NAPI_AUTO_LENGTH, &filename_prop);
+        napi_set_named_property(env, js_node, "filename", filename_prop);
+      }
     }
   }
 
-  Nan::Set(js_node, Nan::New<v8::String>("lineno").ToLocalChecked(), Nan::New<v8::Number>(node.GetLineNumber()));
-  Nan::Set(js_node, Nan::New<v8::String>("colno").ToLocalChecked(), Nan::New<v8::Number>(node.GetColumnNumber()));
+  napi_value line_number_prop;
+  napi_create_int32(env, node.GetLineNumber(), &line_number_prop);
+  napi_set_named_property(env, js_node, "line_number", line_number_prop);
 
-  // Anything in user land javascript (including module and packages) is considered a script,
-  // therefor do not mark it as in_app so that the backend will not skip inferring it. This will
-  // cause the backend to infer the in_app based on the abs_path.
-  if (node.GetSourceType() != v8::CpuProfileNode::SourceType::kScript) {
-    Nan::Set(js_node, Nan::New<v8::String>("in_app").ToLocalChecked(), Nan::New<v8::Boolean>(false));
-  }
+  napi_value column_number_prop;
+  napi_create_int32(env, node.GetColumnNumber(), &column_number_prop);
+  napi_set_named_property(env, js_node, "column_number", column_number_prop);
 
-  // @TODO Deopt info needs to be added to backend
-  // size_t size = deoptInfos.size();
-
-  // if(size > 0) {
-  //   v8::Local<v8::Array> deoptReasons = Nan::New<v8::Array>(size);
-
-  //   for(size_t i = 0; i < size; i++) {
-  //     Nan::Set(deoptReasons, i, Nan::New<v8::String>(deoptInfos[i].deopt_reason).ToLocalChecked());
-  //   }
-
-  //   Nan::Set(js_node, Nan::New<v8::String>("deopt_reasons").ToLocalChecked(), deoptReasons);
-  // };
+  bool is_script = node.GetSourceType() == v8::CpuProfileNode::SourceType::kScript;
+  napi_value is_script_prop;
+  napi_get_boolean(env, is_script, &is_script_prop);
+  napi_set_named_property(env, js_node, "is_script", is_script_prop);
 
   return js_node;
 };
 
 
-v8::Local<v8::Object> CreateSample(const uint32_t stack_id, const int64_t sample_timestamp_us, const uint32_t thread_id) {
-  v8::Local<v8::Object> js_node = Nan::New<v8::Object>();
 
-  Nan::Set(js_node, Nan::New<v8::String>("stack_id").ToLocalChecked(), Nan::New<v8::Number>(stack_id));
-  Nan::Set(js_node, Nan::New<v8::String>("thread_id").ToLocalChecked(), Nan::New<v8::String>(std::to_string(thread_id)).ToLocalChecked());
-  Nan::Set(js_node, Nan::New<v8::String>("elapsed_since_start_ns").ToLocalChecked(), Nan::New<v8::Number>(sample_timestamp_us * 1000));
+napi_value CreateSample(napi_env& env, const uint32_t stack_id, const int64_t sample_timestamp_us, const uint32_t thread_id) {
+  napi_value js_node;
+  napi_create_object(env, &js_node);
+
+  napi_value stack_id_prop;
+  napi_create_uint32(env, stack_id, &stack_id_prop);
+  napi_set_named_property(env, js_node, "stack_id", stack_id_prop);
+
+  napi_value thread_id_prop;
+  napi_create_string_utf8(env, std::to_string(thread_id).c_str(), NAPI_AUTO_LENGTH, &thread_id_prop);
+  napi_set_named_property(env, js_node, "thread_id", thread_id_prop);
+
+  napi_value elapsed_since_start_ns_prop;
+  napi_create_int64(env, sample_timestamp_us * 1000, &elapsed_since_start_ns_prop);
+  napi_set_named_property(env, js_node, "elapsed_since_start_ns", elapsed_since_start_ns_prop);
 
   return js_node;
 };
@@ -124,7 +133,9 @@ std::string hashCpuProfilerNodeByPath(const v8::CpuProfileNode* node, std::strin
   return path;
 }
 
-std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> GetSamples(const v8::CpuProfile* profile, const uint32_t thread_id, const std::string& app_root_dir) {
+static void GetSamples(napi_env& env, const v8::CpuProfile* profile, const uint32_t thread_id, const std::string& app_root_dir, napi_value& samples, napi_value& stacks, napi_value& frames) {
+  napi_status status;
+
   const int64_t profile_start_time_us = profile->GetStartTime();
   const int sampleCount = profile->GetSamplesCount();
 
@@ -135,10 +146,6 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
   // in the sample format we are using to optimize for size.
   std::unordered_map<uint32_t, uint32_t> frame_lookup_table;
   std::unordered_map<std::string, int> stack_lookup_table;
-
-  v8::Local<v8::Array> samples = Nan::New<v8::Array>(sampleCount);
-  v8::Local<v8::Array> stacks = Nan::New<v8::Array>();
-  v8::Local<v8::Array> frames = Nan::New<v8::Array>();
 
   std::string node_hash = "";
 
@@ -165,17 +172,23 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
       }
     }
 
+    napi_value sample = CreateSample(env, stack_index, sample_timestamp - profile_start_time_us, thread_id);
 
-    const v8::Local<v8::Value> sample = CreateSample(stack_index, sample_timestamp - profile_start_time_us, thread_id);
-
-    // If stack index differs from the sample index that means the stack had been indexed.
     if (stack_index != unique_stack_id) {
-      Nan::Set(samples, i, sample);
+      napi_value index;
+      status = napi_create_uint32(env, stack_index, &index);
+      assert(status == napi_ok);
+
+      status = napi_set_property(env, samples, index, sample);
+      assert(status == napi_ok);
       continue;
     }
 
     // A stack is a list of frames ordered from outermost (top) to innermost frame (bottom)
-    v8::Local<v8::Array> stack = Nan::New<v8::Array>();
+    napi_value stack;
+    status = napi_create_array(env, &stack);
+    assert(status == napi_ok);
+
     uint32_t stack_depth = 0;
 
     while (node != nullptr && stack_depth < kMaxStackDepth) {
@@ -186,13 +199,33 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
       if (frame_index == frame_lookup_table.end()) {
         frame_lookup_table.insert({ nodeId, unique_frame_id });
 
-        Nan::Set(stack, stack_depth, Nan::New<v8::Number>(unique_frame_id));
-        Nan::Set(frames, unique_frame_id, CreateFrameNode(*node, app_root_dir));
+        napi_value frame_id;
+        status = napi_create_uint32(env, unique_frame_id, &frame_id);
+        assert(status == napi_ok);
+
+        napi_value depth;
+        status = napi_create_uint32(env, stack_depth, &depth);
+        assert(status == napi_ok);
+
+        status = napi_set_property(env, stack, depth, frame_id);
+        assert(status == napi_ok);
+
+        status = napi_set_property(env, frames, frame_id, CreateFrameNode(env, *node, app_root_dir));
+        assert(status == napi_ok);
+        
         unique_frame_id++;
       }
       else {
         // If it was already indexed, just add it's id to the stack
-        Nan::Set(stack, stack_depth, Nan::New<v8::Number>(frame_index->second));
+        napi_value depth;
+        status = napi_create_uint32(env, stack_depth, &depth);
+        assert(status == napi_ok);
+
+        napi_value frame;
+        status = napi_create_uint32(env, frame_index->second, &frame);
+        assert(status == napi_ok);
+
+        napi_set_property(env, stack, depth, frame);
       };
 
       // Continue walking down the stack
@@ -200,99 +233,246 @@ std::tuple <v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> Ge
       stack_depth++;
     }
 
-    Nan::Set(stacks, stack_index, stack);
-    Nan::Set(samples, i, sample);
+    napi_value napi_stack_index;
+    status = napi_create_uint32(env, stack_index, &napi_stack_index);
+    assert(status == napi_ok);
+
+    napi_value napi_sample;
+    status = napi_create_uint32(env, i, &napi_sample);
+    assert(status == napi_ok);
+
+    status = napi_set_property(env, stacks, napi_sample, sample);
+    assert(status == napi_ok);
+
+    status = napi_set_property(env, samples, napi_sample, sample);
+    assert(status == napi_ok);
+
     unique_stack_id++;
+  }
+}
+
+// StartProfiling(string title)
+// https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#aedf6a5ca49432ab665bc3a1ccf46cca4
+static napi_value TranslateProfile(napi_env env, const v8::CpuProfile* profile, const uint32_t thread_id, const std::string& app_root_directory){
+  napi_status status;
+  napi_value js_profile;
+
+  status = napi_create_object(env, &js_profile);
+  assert(status == napi_ok);
+
+  napi_value logging_mode;
+  napi_value samples;
+  napi_value stacks;
+  napi_value frames;
+
+  status = napi_create_string_utf8(env, getLoggingMode() == v8::CpuProfilingLoggingMode::kEagerLogging ? "eager" : "lazy", NAPI_AUTO_LENGTH, &logging_mode);
+  assert(status == napi_ok);
+
+  status = napi_create_array(env, &samples);
+  assert(status == napi_ok);
+
+  status = napi_create_array(env, &stacks);
+  assert(status == napi_ok);
+
+  status = napi_create_array(env, &frames);
+  assert(status == napi_ok);
+
+  status = napi_set_named_property(env, js_profile, "samples", samples);
+  assert(status == napi_ok);
+
+  status = napi_set_named_property(env, js_profile, "stacks", stacks);
+  assert(status == napi_ok);
+  
+  status = napi_set_named_property(env, js_profile, "frames", frames);
+  assert(status == napi_ok);
+
+  status = napi_set_named_property(env, js_profile, "logging_mode", logging_mode);
+  assert(status == napi_ok);
+
+  GetSamples(env, profile, thread_id, app_root_directory, samples, stacks, frames);
+
+  return js_profile;
+}
+
+static napi_value StartProfiling(napi_env env, napi_callback_info info) {
+  napi_status status;
+
+  napi_value args[1];
+  size_t argc = 1;
+
+  status = napi_get_cb_info(env, info, &argc, args, NULL, NULL);
+  assert(status == napi_ok);
+
+  napi_valuetype callbacktype0;
+  status = napi_typeof(env, args[0], &callbacktype0);
+  assert(status == napi_ok);
+
+  if(callbacktype0 != napi_string){
+    napi_throw_error(env, "NAPI_ERROR", "StartProfiling expects a string as first argument.");
+    return NULL;
+  }
+
+  char title;
+  status = napi_get_value_string_utf8(env, args[0], &title, NAPI_AUTO_LENGTH, NULL);
+  assert(status == napi_ok);
+
+  v8::Isolate* isolate = v8::Isolate::GetCurrent();
+  assert(isolate != 0);
+
+  v8::Local<v8::String> profile_title = v8::String::NewFromUtf8(isolate, &title, v8::NewStringType::kNormal).ToLocalChecked();
+
+  if(!profile_title->Length() ){
+    napi_throw_error(env, "NAPI_ERROR", "StartProfiling expects a string with a length of 100 or less as first argument.");
+    return NULL;
+  }
+
+  Profiler* profiler;
+  status = napi_get_instance_data(env, (void**)&profiler);
+  assert(status == napi_ok);
+
+  profiler->cpu_profiler->StartProfiling(profile_title, {
+    v8::CpuProfilingMode::kCallerLineNumbers, v8::CpuProfilingOptions::kNoSampleLimit,
+    kSamplingInterval });
+
+  return NULL;
+}
+
+// StopProfiling(string title)
+// https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#a40ca4c8a8aa4c9233aa2a2706457cc80
+static napi_value StopProfiling(napi_env env, napi_callback_info info) {
+  napi_status status;
+
+  size_t argc = 2;
+  napi_value args[argc];
+
+  status = napi_get_cb_info(env, info, &argc, args, NULL, NULL);
+  assert(status == napi_ok);
+
+  if(argc < 2){
+    napi_throw_error(env, "NAPI_ERROR", "StopProfiling expects two arguments.");
+    return NULL;
+  }
+
+  // Verify the first argument is a string
+  napi_valuetype callbacktype0;
+  status = napi_typeof(env, args[0], &callbacktype0);
+  assert(status == napi_ok);
+
+  if(callbacktype0 != napi_string){
+    napi_throw_error(env, "NAPI_ERROR", "StopProfiling expects a string as first argument.");
+   return NULL;
+  }
+
+  // Verify the second argument is a number
+  napi_valuetype callbacktype1;
+  status = napi_typeof(env, args[1], &callbacktype1);
+  assert(status == napi_ok);
+
+  if(callbacktype1 != napi_number){
+    napi_throw_error(env, "NAPI_ERROR", "StopProfiling expects a thread_id integer as second argument.");
+   return NULL;
+  }
+
+  // Get the value of the first argument and convert it to v8::String
+  v8::Isolate* isolate = v8::Isolate::GetCurrent();
+  assert(isolate != 0);
+
+  char title;
+  status = napi_get_value_string_utf8(env, args[0], &title, NAPI_AUTO_LENGTH, NULL);
+  assert(status == napi_ok);
+
+  v8::Local<v8::String> profile_title = v8::String::NewFromUtf8(isolate, &title, v8::NewStringType::kNormal).ToLocalChecked();
+
+  if(!profile_title->Length() ){
+    napi_throw_error(env, "NAPI_ERROR", "StopProfiling expects a string with a length of 100 or less as first argument.");
+   return NULL;
+  }
+
+  // Get the value of the second argument and convert it to uint64
+  int64_t thread_id;
+  status = napi_get_value_int64(env, args[1], &thread_id);
+  assert(status == napi_ok);
+
+
+  // Get profiler from instance data
+  Profiler* profiler;
+  status = napi_get_instance_data(env, (void**)&profiler);
+  assert(status == napi_ok);
+
+
+  v8::CpuProfile* profile = profiler->cpu_profiler->StopProfiling(profile_title);
+  // If for some reason stopProfiling was called with an invalid profile title or
+  // if that title had somehow been stopped already, profile will be null.
+  if (!profile) {
+    return NULL;
   };
 
-  return std::make_tuple(stacks, samples, frames);
-};
+  std::string app_root_directory_str;
 
-v8::Local<v8::Value> CreateProfile(const v8::CpuProfile* profile, const uint32_t thread_id, const std::string& app_root_directory) {
-  v8::Local<v8::Object> js_profile = Nan::New<v8::Object>();
+  if(argc > 2){
+    char app_root_directory;
 
-  Nan::Set(js_profile, Nan::New<v8::String>("profiler_logging_mode").ToLocalChecked(), Nan::New<v8::String>(getLoggingMode() == v8::CpuProfilingLoggingMode::kEagerLogging ? "eager" : "lazy").ToLocalChecked());
+    napi_valuetype callbacktype1;
+    status = napi_typeof(env, args[2], &callbacktype1);
+    assert(status == napi_ok);
 
+    status = napi_get_value_string_utf8(env, args[0], &app_root_directory, NAPI_AUTO_LENGTH, NULL);
+    assert(status == napi_ok);
 
-  std::tuple<v8::Local<v8::Value>, v8::Local<v8::Value>, v8::Local<v8::Value>> samples = GetSamples(profile, thread_id, app_root_directory);
-  Nan::Set(js_profile, Nan::New<v8::String>("stacks").ToLocalChecked(), std::get<0>(samples));
-  Nan::Set(js_profile, Nan::New<v8::String>("samples").ToLocalChecked(), std::get<1>(samples));
-  Nan::Set(js_profile, Nan::New<v8::String>("frames").ToLocalChecked(), std::get<2>(samples));
+    app_root_directory_str = std::string(&app_root_directory);
+  }
+
+  napi_value js_profile = TranslateProfile(env, profile, thread_id, app_root_directory_str);
+  profile->Delete();
 
   return js_profile;
 };
 
-// StartProfiling(string title)
-// https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#aedf6a5ca49432ab665bc3a1ccf46cca4
-static void StartProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
-  if (args[0].IsEmpty()) {
-    return Nan::ThrowError("StartProfiling expects a string as first argument.");
-  };
+napi_value Init(napi_env env, napi_value exports) {
+  napi_status status;
 
-  if (!args[0]->IsString()) {
-    return Nan::ThrowError("StartProfiling requires a string as the first argument.");
-  };
-
-  v8::Local<v8::String> title = Nan::To<v8::String>(args[0]).ToLocalChecked();
-  Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<v8::External>()->Value());
-  profiler->cpu_profiler->StartProfiling(title, {
-    v8::CpuProfilingMode::kCallerLineNumbers, v8::CpuProfilingOptions::kNoSampleLimit,
-    kSamplingInterval });
-};
-
-// StopProfiling(string title)
-// https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#a40ca4c8a8aa4c9233aa2a2706457cc80
-static void StopProfiling(const v8::FunctionCallbackInfo<v8::Value>& args) {
-  if (args[0].IsEmpty()) {
-    return Nan::ThrowError("StopProfiling expects a string as first argument.");
-  };
-
-  if (!args[0]->IsString()) {
-    return Nan::ThrowError("StopProfiling expects a string as first argument.");
-  };
-
-  if (args[1].IsEmpty()) {
-    return Nan::ThrowError("StopProfiling expects a number as second argument.");
-  };
-
-  if (!args[1]->IsNumber()) {
-    return Nan::ThrowError("StopProfiling expects a thread_id of type number as second argument.");
-  };
-
-  Profiler* profiler = reinterpret_cast<Profiler*>(args.Data().As<v8::External>()->Value());
-  v8::CpuProfile* profile = profiler->cpu_profiler->StopProfiling(Nan::To<v8::String>(args[0]).ToLocalChecked());
-
-  // If for some reason stopProfiling was called with an invalid profile title or
-  // if that title had somehow been stopped already, profile will be null.
-  if (profile == nullptr) {
-    args.GetReturnValue().Set(Nan::Null());
-    return;
-  };
-
-
-  std::string app_root_directory = args[2].IsEmpty() ? std::string() : std::string(*Nan::Utf8String(args[2]));
-  uint32_t thread_id = Nan::To<uint32_t>(args[1]).FromJust();
-
-  v8::Local<v8::Value> js_profile = CreateProfile(profile, thread_id, app_root_directory);
-  profile->Delete();
-
-  args.GetReturnValue().Set(js_profile);
-};
-
-NODE_MODULE_INIT(/* exports, module, context */) {
-  v8::Isolate* isolate = context->GetIsolate();
+  v8::Isolate* isolate = v8::Isolate::GetCurrent();
 
   if (isolate == nullptr) {
-    return Nan::ThrowError("Failed to initialize Sentry profiler: isolate is null.");
+    napi_throw_error(env, nullptr, "Failed to initialize Sentry profiler: isolate is null.");
+    return nullptr;
   }
 
-  Profiler* profiler = new Profiler(isolate);
-  v8::Local<v8::External> external = v8::External::New(isolate, profiler);
+  Profiler* profiler = new Profiler(env, isolate);
+  napi_value external;
+  status = napi_create_external(env, profiler, nullptr, nullptr, &external);
+  if (status != napi_ok) {
+    napi_throw_error(env, nullptr, "Failed to create external for profiler instance.");
+    return nullptr;
+  }
 
-  exports->Set(context,
-    Nan::New<v8::String>("startProfiling").ToLocalChecked(),
-    v8::FunctionTemplate::New(isolate, StartProfiling, external)->GetFunction(context).ToLocalChecked()).FromJust();
-  exports->Set(context,
-    Nan::New<v8::String>("stopProfiling").ToLocalChecked(),
-    v8::FunctionTemplate::New(isolate, StopProfiling, external)->GetFunction(context).ToLocalChecked()).FromJust();
+  napi_value start_profiling;
+  status = napi_create_function(env, "startProfiling", NAPI_AUTO_LENGTH, StartProfiling, external, &start_profiling);
+  if (status != napi_ok) {
+    napi_throw_error(env, nullptr, "Failed to create startProfiling function.");
+    return nullptr;
+  }
+
+  status = napi_set_named_property(env, exports, "startProfiling", start_profiling);
+  if (status != napi_ok) {
+    napi_throw_error(env, nullptr, "Failed to set startProfiling property on exports.");
+    return nullptr;
+  }
+
+  napi_value stop_profiling;
+  status = napi_create_function(env, "stopProfiling", NAPI_AUTO_LENGTH, StopProfiling, external, &stop_profiling);
+  if (status != napi_ok) {
+    napi_throw_error(env, nullptr, "Failed to create stopProfiling function.");
+    return nullptr;
+  }
+
+  status = napi_set_named_property(env, exports, "stopProfiling", stop_profiling);
+  if (status != napi_ok) {
+    napi_throw_error(env, nullptr, "Failed to set stopProfiling property on exports.");
+    return nullptr;
+  }
+
+  return exports;
 }
+
+NAPI_MODULE(NODE_GYP_MODULE_NAME, Init)
