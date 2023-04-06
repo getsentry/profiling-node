@@ -6,6 +6,9 @@
 #include <v8-profiler.h>
 #include <v8.h>
 
+#include <stdio.h>
+#include <iostream>
+
 #define FORMAT_SAMPLED 2
 #define FORMAT_RAW 1
 
@@ -176,7 +179,7 @@ static void GetSamples(napi_env& env, const v8::CpuProfile* profile, const uint3
 
     if (stack_index != unique_stack_id) {
       napi_value index;
-      status = napi_create_uint32(env, stack_index, &index);
+      status = napi_create_uint32(env, i, &index);
       assert(status == napi_ok);
 
       status = napi_set_property(env, samples, index, sample);
@@ -225,7 +228,8 @@ static void GetSamples(napi_env& env, const v8::CpuProfile* profile, const uint3
         status = napi_create_uint32(env, frame_index->second, &frame);
         assert(status == napi_ok);
 
-        napi_set_property(env, stack, depth, frame);
+        status = napi_set_property(env, stack, depth, frame);
+        assert(status == napi_ok);
       };
 
       // Continue walking down the stack
@@ -233,18 +237,18 @@ static void GetSamples(napi_env& env, const v8::CpuProfile* profile, const uint3
       stack_depth++;
     }
 
+    napi_value napi_sample_index;
+    status = napi_create_uint32(env, i, &napi_sample_index);
+    assert(status == napi_ok);
+
+    status = napi_set_property(env, samples, napi_sample_index, sample);
+    assert(status == napi_ok);
+
     napi_value napi_stack_index;
     status = napi_create_uint32(env, stack_index, &napi_stack_index);
     assert(status == napi_ok);
 
-    napi_value napi_sample;
-    status = napi_create_uint32(env, i, &napi_sample);
-    assert(status == napi_ok);
-
-    status = napi_set_property(env, stacks, napi_sample, sample);
-    assert(status == napi_ok);
-
-    status = napi_set_property(env, samples, napi_sample, sample);
+    status = napi_set_property(env, stacks, napi_stack_index, stack);
     assert(status == napi_ok);
 
     unique_stack_id++;
@@ -286,7 +290,7 @@ static napi_value TranslateProfile(napi_env env, const v8::CpuProfile* profile, 
   status = napi_set_named_property(env, js_profile, "frames", frames);
   assert(status == napi_ok);
 
-  status = napi_set_named_property(env, js_profile, "logging_mode", logging_mode);
+  status = napi_set_named_property(env, js_profile, "profiler_logging_mode", logging_mode);
   assert(status == napi_ok);
 
   GetSamples(env, profile, thread_id, app_root_directory, samples, stacks, frames);
@@ -297,8 +301,8 @@ static napi_value TranslateProfile(napi_env env, const v8::CpuProfile* profile, 
 static napi_value StartProfiling(napi_env env, napi_callback_info info) {
   napi_status status;
 
-  napi_value args[1];
   size_t argc = 1;
+  napi_value args[argc];
 
   status = napi_get_cb_info(env, info, &argc, args, NULL, NULL);
   assert(status == napi_ok);
@@ -308,33 +312,60 @@ static napi_value StartProfiling(napi_env env, napi_callback_info info) {
   assert(status == napi_ok);
 
   if(callbacktype0 != napi_string){
-    napi_throw_error(env, "NAPI_ERROR", "StartProfiling expects a string as first argument.");
-    return NULL;
+    napi_throw_error(env, "NAPI_ERROR", "TypeError: StartProfiling expects a string as first argument.");
+    napi_value napi_null;
+    status = napi_get_null(env, &napi_null);
+    assert(status == napi_ok);
+
+    return napi_null;
   }
 
-  char title;
-  status = napi_get_value_string_utf8(env, args[0], &title, NAPI_AUTO_LENGTH, NULL);
+  size_t len;
+  status = napi_get_value_string_utf8(env, args[0], NULL, 0, &len);
   assert(status == napi_ok);
+
+  char* title = (char*)malloc(len + 1);
+  status = napi_get_value_string_utf8(env, args[0], title, len+1, &len);
+  assert(status == napi_ok);
+
+  if(len < 1){
+    napi_throw_error(env, "NAPI_ERROR", "StartProfiling expects a non-empty string as first argument, got an empty string.");
+
+    napi_value napi_null;
+    status = napi_get_null(env, &napi_null);
+    assert(status == napi_ok);
+    
+    return napi_null;
+  }
 
   v8::Isolate* isolate = v8::Isolate::GetCurrent();
   assert(isolate != 0);
 
-  v8::Local<v8::String> profile_title = v8::String::NewFromUtf8(isolate, &title, v8::NewStringType::kNormal).ToLocalChecked();
-
-  if(!profile_title->Length() ){
-    napi_throw_error(env, "NAPI_ERROR", "StartProfiling expects a string with a length of 100 or less as first argument.");
-    return NULL;
-  }
+  v8::Local<v8::String> profile_title = v8::String::NewFromUtf8(isolate, title, v8::NewStringType::kNormal, len).ToLocalChecked();
 
   Profiler* profiler;
   status = napi_get_instance_data(env, (void**)&profiler);
   assert(status == napi_ok);
 
+  if(!profiler){
+    napi_throw_error(env, "NAPI_ERROR", "StartProfiling: Profiler is not initialized.");
+
+    napi_value napi_null;
+    status = napi_get_null(env, &napi_null);
+    assert(status == napi_ok);
+    
+    return napi_null;
+  }
+
   profiler->cpu_profiler->StartProfiling(profile_title, {
     v8::CpuProfilingMode::kCallerLineNumbers, v8::CpuProfilingOptions::kNoSampleLimit,
     kSamplingInterval });
 
-  return NULL;
+  napi_value napi_null;
+  status = napi_get_null(env, &napi_null);
+  assert(status == napi_ok);
+  
+  return napi_null;
 }
 
 // StopProfiling(string title)
@@ -342,15 +373,20 @@ static napi_value StartProfiling(napi_env env, napi_callback_info info) {
 static napi_value StopProfiling(napi_env env, napi_callback_info info) {
   napi_status status;
 
-  size_t argc = 2;
-  napi_value args[argc];
+  size_t argc = 3;
+  napi_value args[3];
 
   status = napi_get_cb_info(env, info, &argc, args, NULL, NULL);
   assert(status == napi_ok);
 
   if(argc < 2){
     napi_throw_error(env, "NAPI_ERROR", "StopProfiling expects two arguments.");
-    return NULL;
+    
+    napi_value napi_null;
+    status = napi_get_null(env, &napi_null);
+    assert(status == napi_ok);
+    
+    return napi_null;
   }
 
   // Verify the first argument is a string
@@ -360,7 +396,12 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
 
   if(callbacktype0 != napi_string){
     napi_throw_error(env, "NAPI_ERROR", "StopProfiling expects a string as first argument.");
-   return NULL;
+
+    napi_value napi_null;
+    status = napi_get_null(env, &napi_null);
+    assert(status == napi_ok);
+    
+    return napi_null;
   }
 
   // Verify the second argument is a number
@@ -370,22 +411,36 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
 
   if(callbacktype1 != napi_number){
     napi_throw_error(env, "NAPI_ERROR", "StopProfiling expects a thread_id integer as second argument.");
-   return NULL;
+
+    napi_value napi_null;
+    status = napi_get_null(env, &napi_null);
+    assert(status == napi_ok);
+    
+    return napi_null;
   }
 
   // Get the value of the first argument and convert it to v8::String
   v8::Isolate* isolate = v8::Isolate::GetCurrent();
   assert(isolate != 0);
 
-  char title;
-  status = napi_get_value_string_utf8(env, args[0], &title, NAPI_AUTO_LENGTH, NULL);
+  size_t len;
+  status = napi_get_value_string_utf8(env, args[0], NULL, 0, &len);
   assert(status == napi_ok);
 
-  v8::Local<v8::String> profile_title = v8::String::NewFromUtf8(isolate, &title, v8::NewStringType::kNormal).ToLocalChecked();
+  char* title = (char*)malloc(len + 1);
+  status = napi_get_value_string_utf8(env, args[0], title, len+1, &len);
+  assert(status == napi_ok);
 
-  if(!profile_title->Length() ){
-    napi_throw_error(env, "NAPI_ERROR", "StopProfiling expects a string with a length of 100 or less as first argument.");
-   return NULL;
+  v8::Local<v8::String> profile_title = v8::String::NewFromUtf8(isolate, title, v8::NewStringType::kNormal, len).ToLocalChecked();
+
+  if(len < 1){
+    napi_throw_error(env, "NAPI_ERROR", "StopProfiling expects a string as first argument.");
+    
+    napi_value napi_null;
+    status = napi_get_null(env, &napi_null);
+    assert(status == napi_ok);
+    
+    return napi_null;
   }
 
   // Get the value of the second argument and convert it to uint64
@@ -399,27 +454,43 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
   status = napi_get_instance_data(env, (void**)&profiler);
   assert(status == napi_ok);
 
+  if(!profiler){
+    napi_throw_error(env, "NAPI_ERROR", "StopProfiling: Profiler is not initialized.");
+
+    napi_value napi_null;
+    status = napi_get_null(env, &napi_null);
+    assert(status == napi_ok);
+    
+    return napi_null;
+  }
 
   v8::CpuProfile* profile = profiler->cpu_profiler->StopProfiling(profile_title);
   // If for some reason stopProfiling was called with an invalid profile title or
   // if that title had somehow been stopped already, profile will be null.
   if (!profile) {
-    return NULL;
+    napi_value napi_null;
+    status = napi_get_null(env, &napi_null);
+    assert(status == napi_ok);
+    
+    return napi_null;
   };
 
-  std::string app_root_directory_str;
+  std::string app_root_directory_str = std::string("");
 
-  if(argc > 2){
-    char app_root_directory;
+  napi_valuetype callbacktype2;
+  status = napi_typeof(env, args[2], &callbacktype2);
+  assert(status == napi_ok);
 
-    napi_valuetype callbacktype1;
-    status = napi_typeof(env, args[2], &callbacktype1);
+  if(callbacktype2 == napi_string){
+    size_t len;
+    status = napi_get_value_string_utf8(env, args[2], NULL, 0, &len);
     assert(status == napi_ok);
 
-    status = napi_get_value_string_utf8(env, args[0], &app_root_directory, NAPI_AUTO_LENGTH, NULL);
+    char * app_root_directory = (char*)malloc(len + 1);
+    status = napi_get_value_string_utf8(env, args[2], app_root_directory, len+1, &len);
     assert(status == napi_ok);
 
-    app_root_directory_str = std::string(&app_root_directory);
+    app_root_directory_str = std::string(app_root_directory);
   }
 
   napi_value js_profile = TranslateProfile(env, profile, thread_id, app_root_directory_str);
@@ -435,41 +506,48 @@ napi_value Init(napi_env env, napi_value exports) {
 
   if (isolate == nullptr) {
     napi_throw_error(env, nullptr, "Failed to initialize Sentry profiler: isolate is null.");
-    return nullptr;
+    return NULL;
   }
 
   Profiler* profiler = new Profiler(env, isolate);
+  status = napi_set_instance_data(env, profiler, NULL, NULL);
+
+  if (status != napi_ok) {
+    napi_throw_error(env, nullptr, "Failed to set instance data for profiler.");
+    return NULL;
+  }
+
   napi_value external;
   status = napi_create_external(env, profiler, nullptr, nullptr, &external);
   if (status != napi_ok) {
     napi_throw_error(env, nullptr, "Failed to create external for profiler instance.");
-    return nullptr;
+    return NULL;
   }
 
   napi_value start_profiling;
   status = napi_create_function(env, "startProfiling", NAPI_AUTO_LENGTH, StartProfiling, external, &start_profiling);
   if (status != napi_ok) {
     napi_throw_error(env, nullptr, "Failed to create startProfiling function.");
-    return nullptr;
+    return NULL;
   }
 
   status = napi_set_named_property(env, exports, "startProfiling", start_profiling);
   if (status != napi_ok) {
     napi_throw_error(env, nullptr, "Failed to set startProfiling property on exports.");
-    return nullptr;
+    return NULL;
   }
 
   napi_value stop_profiling;
   status = napi_create_function(env, "stopProfiling", NAPI_AUTO_LENGTH, StopProfiling, external, &stop_profiling);
   if (status != napi_ok) {
     napi_throw_error(env, nullptr, "Failed to create stopProfiling function.");
-    return nullptr;
+    return NULL;
   }
 
   status = napi_set_named_property(env, exports, "stopProfiling", stop_profiling);
   if (status != napi_ok) {
     napi_throw_error(env, nullptr, "Failed to set stopProfiling property on exports.");
-    return nullptr;
+    return NULL;
   }
 
   return exports;

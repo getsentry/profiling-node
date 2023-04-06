@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/node';
 import * as Tracing from '@sentry/tracing';
 import { ProfilingIntegration } from '../../src/integration';
 
+const wait = (ms: any) => new Promise((resolve) => setTimeout(resolve, ms));
 const app = express();
 
 Sentry.init({
@@ -33,16 +34,21 @@ app.get('/', function rootHandler(_req, res) {
   res.end('Hello world!');
 });
 
+app.get('/slow', async function rootHandler(_req, res) {
+  await wait(1000);
+  res.end('Hello world!');
+});
+
 // The error handler must be before any other error middleware and after all controllers
 app.use(Sentry.Handlers.errorHandler());
 
 // Optional fallthrough error handler
-app.use(function onError(_err: Error, _req: any, res: any, _next: any) {
-  // The error id is attached to `res.sentry` to be returned
-  // and optionally displayed to the user for support.
-  res.statusCode = 500;
-  res.end(res.sentry + '\n');
-});
+// app.use(function onError(_err: Error, _req: any, res: any, _next: any) {
+//   // The error id is attached to `res.sentry` to be returned
+//   // and optionally displayed to the user for support.
+//   res.statusCode = 500;
+//   res.end(res.sentry + '\n');
+// });
 
 app.listen(3000, () => {
   console.log('Server listening on port 3000');

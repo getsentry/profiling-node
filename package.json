@@ -37,7 +37,7 @@
     "build:bindings": "node-gyp build && node scripts/copy-target.js",
     "build:bindings:arm64": "node-gyp build --arch=arm64",
     "build:benchmark:format": "node-gyp -DFORMAT_BENCHMARK=1 build",
-    "build:dev": "npm run clean && npm run build:configure && npm run build && node scripts/copy-target.js",
+    "build:dev": "npm run clean && npm run build:configure && npm run build",
     "benchmark": "npm run benchmark:methods && npm run benchmark:profiler && npm run benchmark:server && npm run benchmark:format",
     "benchmark:methods": "node benchmarks/cpu/benchmark.methods.js",
     "benchmark:profiler": "node benchmarks/cpu/benchmark.profiler.js",
