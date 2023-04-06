@@ -1,9 +1,6 @@
 name: Precompile binaries
 on:
   push:
-    branches:
-      - main
-      - release/**
   workflow_dispatch:
     inputs:
       commit:
@@ -175,7 +172,7 @@ jobs:
 
       # continue with common steps
       - name: Log binary
-        run: du -sh binaries/*
+        run: du -sh lib/binaries/*
 
       - name: Archive binary
         uses: actions/upload-artifact@v3
@@ -204,7 +201,7 @@ jobs:
         with: 
           name: binaries-${{ github.sha }}
           path: binaries
-      - run: ls -l binaries
+      - run: ls -l lib/binaries
       - run: npm pack
 
       - name: Archive artifacts
