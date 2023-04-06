@@ -1,13 +1,12 @@
 
-#include <unordered_map>
-#include <string>
 #include <assert.h>
 #include <node_api.h>
 #include <v8-profiler.h>
 #include <v8.h>
 
-#include <stdio.h>
-#include <iostream>
+#include <cstring>
+#include <unordered_map>
+
 
 #define FORMAT_SAMPLED 2
 #define FORMAT_RAW 1
@@ -302,7 +301,7 @@ static napi_value StartProfiling(napi_env env, napi_callback_info info) {
   napi_status status;
 
   size_t argc = 1;
-  napi_value args[argc];
+  napi_value args[1];
 
   status = napi_get_cb_info(env, info, &argc, args, NULL, NULL);
   assert(status == napi_ok);
