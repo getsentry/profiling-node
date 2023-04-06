@@ -123,10 +123,6 @@ jobs:
         if: matrix.arch != 'arm64'
         run: npm run build:bindings
 
-      - name: Copy Binary
-        if: matrix.arch != 'arm64'
-        run: node scripts/copy-target.js
-
       - name: Test
         if: matrix.arch != 'arm64'
         run: npm run test --silent
@@ -159,10 +155,6 @@ jobs:
         if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine')
         run: |
           npm run build:bindings:arm64
-
-      - name: Copy Binary (aarch64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
-        if: matrix.arch == 'arm64'
-        run: BUILD_ARCH=arm64 node scripts/copy-target.js
 
       # This will obviously not work as we run on x64, but we should
       # investigate into adding qemu or equiv to run tests on compiled binaries
