@@ -27,6 +27,9 @@ const assertValidSamplesAndStacks = (stacks: ThreadCpuProfile['stacks'], samples
   expect(stacks.length <= samples.length).toBe(true);
 
   for (const sample of samples) {
+    if (sample.stack_id === undefined) {
+      throw new Error(`Sample ${JSON.stringify(sample)} has not stack id associated`);
+    }
     if (!stacks[sample.stack_id]) {
       throw new Error(`Failed to find stack for sample: ${JSON.stringify(sample)}`);
     }
@@ -85,7 +88,7 @@ describe('Profiler bindings', () => {
     const recurseToDepth = async (depth: number): Promise<number> => {
       if (depth === 0) {
         // Wait a bit to make sure stack gets sampled here
-        await wait(500);
+        await wait(1000);
         return 0;
       }
       return await recurseToDepth(depth - 1);
@@ -96,6 +99,7 @@ describe('Profiler bindings', () => {
     });
 
     if (!profile) fail('Profile is null');
+
     for (const stack of profile.stacks) {
       expect(stack.length).toBeLessThanOrEqual(128);
     }
@@ -133,6 +137,7 @@ describe('Profiler bindings', () => {
       await wait(1000);
     });
 
+    console.log(profile);
     if (!profile) fail('Profile is null');
     assertValidSamplesAndStacks(profile.stacks, profile.samples);
   });
