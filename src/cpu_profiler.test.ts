@@ -137,7 +137,6 @@ describe('Profiler bindings', () => {
       await wait(1000);
     });
 
-    console.log(profile);
     if (!profile) fail('Profile is null');
     assertValidSamplesAndStacks(profile.stacks, profile.samples);
   });
