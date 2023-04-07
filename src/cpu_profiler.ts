@@ -68,6 +68,7 @@ export interface ThreadCpuProfile {
 interface PrivateV8CpuProfilerBindings {
   startProfiling(name: string): void;
   stopProfiling(name: string, threadId: number, projectRootDir: string | null): RawThreadCpuProfile | null;
+  getFrameModule(abs_path: string, root_dir: string): string;
 }
 
 interface V8CpuProfilerBindings {

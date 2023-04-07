@@ -8,7 +8,8 @@ const config: Config = {
   testMatch: ['**/*.test.ts'],
   testPathIgnorePatterns: ['benchmarks/'],
   resetMocks: true,
-  restoreMocks: true
+  restoreMocks: true,
+  silent: false
 };
 
 export default config;
