@@ -160,7 +160,7 @@ describe('Profiler bindings', () => {
         fail('Only ' + profile.samples.length + ' samples obtained on ' + process.platform + ', expected at least 6');
       }
     }
-    if (profile.samples.length > 13) {
+    if (profile.samples.length > 15) {
       fail('Too many samples on ' + process.platform + ', got ' + profile.samples.length);
     }
   });

@@ -43,22 +43,28 @@ v8::CpuProfilingLoggingMode GetLoggingMode() {
   return kLoggingMode;
 }
 
+#if defined _WIN32
+static const char kPlatformSeparator = '\\';
+static const char kWinDiskPrefix = ':';
+#else
+static const char kPlatformSeparator = '/';
+#endif
+
+static const char* kSentryPathDelimiter = ".";
+static const char* kSentryFileDelimiter = ":";
+static const std::string kNodeModulesPath = std::string("node_modules") + kPlatformSeparator;
+
 static void GetFrameModule(const std::string& abs_path, const std::string& root_dir, std::string& module){
-  if (abs_path.compare(0, root_dir.size(), root_dir) == 0) {
+  if(abs_path.empty()){
+    return;
+  }
+
+  if (abs_path.length() > root_dir.length() && abs_path.compare(0, root_dir.size(), root_dir) == 0) {
     // strip the base path + trailing /
     module = abs_path.substr(root_dir.length() + 1);
   } else {
     module = abs_path;
   }
-
-  const char* path_delimiter = ".";
-  const char* file_delimiter = ":";
-
-  #if defined _WIN32
-  char platform_separator = '\\';
-  #else
-  char platform_separator = '/';
-  #endif
 
   // Drop .js extension
   size_t js_extension_pos = module.rfind(".js"); 
@@ -67,7 +73,7 @@ static void GetFrameModule(const std::string& abs_path, const std::string& root_
   }
 
   // Drop anything before and including node_modules/
-  size_t node_modules_pos = module.rfind("node_modules/");
+  size_t node_modules_pos = module.rfind(kNodeModulesPath);
   if(node_modules_pos != std::string::npos){
     module = module.substr(node_modules_pos + 13);
   }
@@ -76,11 +82,19 @@ static void GetFrameModule(const std::string& abs_path, const std::string& root_
   int match_count = 0;
   for (int i = module.size() - 1; i >= 0; i--) {
     // if there is a match and it's not the first character, replace it
-    if(module[i] == platform_separator){
-      module.replace(i, 1, match_count == 0 ? file_delimiter : path_delimiter);
+    if(module[i] == kPlatformSeparator){
+      module.replace(i, 1, match_count == 0 ? kSentryFileDelimiter : kSentryPathDelimiter);
       match_count++;
     }
   }
+
+  #if defined _WIN32
+  // We will try and strip our the disk prefix
+  size_t disk_prefix_pos = module.find_first_of(kWinDiskPrefix);
+  if(module[0] == kWinDiskPrefix){
+    module = module.substr(disk_prefix_pos + 2);
+  }
+  #endif
 }
 
 static napi_value GetFrameModuleWrapped(napi_env env, napi_callback_info info){
