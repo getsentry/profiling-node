@@ -147,7 +147,7 @@ public:
   }
 };
 
-napi_value CreateFrameNode(const napi_env& env, const v8::CpuProfileNode& node, const std::string& app_root_dir) {
+napi_value CreateFrameNode(const napi_env& env, const v8::CpuProfileNode& node, const std::string& app_root_dir, std::unordered_map<std::string, std::string>& module_cache) {
   napi_value js_node;
   napi_create_object(env, &js_node);
 
@@ -166,7 +166,12 @@ napi_value CreateFrameNode(const napi_env& env, const v8::CpuProfileNode& node, 
     std::string module;
     std::string resource_str = std::string(resource);
 
-    GetFrameModule(resource_str, app_root_dir, module);
+    if(module_cache.find(resource_str) != module_cache.end()){
+      module = module_cache[resource_str];
+    } else {
+      GetFrameModule(resource_str, app_root_dir, module);
+      module_cache.insert({resource_str, module});
+    }
 
     if(!module.empty()){
       napi_value filename_prop;
@@ -239,6 +244,7 @@ static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const
   // in the sample format we are using to optimize for size.
   std::unordered_map<uint32_t, uint32_t> frame_lookup_table;
   std::unordered_map<std::string, int> stack_lookup_table;
+  std::unordered_map<std::string, std::string> module_cache;
 
   std::string node_hash = "";
 
@@ -303,7 +309,7 @@ static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const
         status = napi_set_property(env, stack, depth, frame_id);
         assert(status == napi_ok);
 
-        status = napi_set_property(env, frames, frame_id, CreateFrameNode(env, *node, app_root_dir));
+        status = napi_set_property(env, frames, frame_id, CreateFrameNode(env, *node, app_root_dir, module_cache));
         assert(status == napi_ok);
         
         unique_frame_id++;
