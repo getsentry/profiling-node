@@ -17,8 +17,35 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-2019, ubuntu-latest]
-        node-version: [14.x, 16.x, 18.x, 19.x]
+        os: [macos-latest, windows-2019, ubuntu-latest, ubuntu-20.04]
+        container: ${{ matrix.container }}
+        node-version: [14.x, 16.x, 18.x]
+        include:
+          # linux aarch64 musl
+          - os: ubuntu-22.04
+            container: node:14-alpine3.16
+            arch: arm64
+            node: 14
+          - os: ubuntu-22.04
+            container: node:16-alpine3.16
+            arch: arm64
+            node: 16
+          - os: ubuntu-22.04
+            arch: arm64
+            container: node:18-alpine3.17
+            node: 18
+          
+          # linux x64 musl
+          - os: ubuntu-22.04
+            container: node:14-alpine3.16
+            node: 14
+          - os: ubuntu-22.04
+            container: node:16-alpine3.16
+            node: 16
+          - os: ubuntu-22.04
+            container: node:18-alpine3.17
+            node: 18
+
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
