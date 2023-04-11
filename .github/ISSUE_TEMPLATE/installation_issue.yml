@@ -1,0 +1,77 @@
+name: 🐞 Installation issue
+description: The package failed to install or compile
+labels: ["Type: Bug"]
+body:
+  - type: checkboxes
+    attributes:
+      label: Is there an existing issue for this?
+      description: Please search to see if an issue already exists for the bug you encountered.
+      options:
+        - label: I have checked for existing issues https://github.com/getsentry/profiling-node/issues
+          required: true
+        - label: I have reviewed the documentation https://docs.sentry.io/
+          required: true
+        - label: I am using the latest SDK release https://github.com/getsentry/profiling-node/releases
+          required: true
+  - type: input
+    id: sdk-version
+    attributes:
+      label: SDK Version
+      description: What version of the profiling SDK are you using?
+      placeholder: ex. 1.0.0
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: What environment is your node script running in?
+      description: Docker container, lambda functions or platforms like Vercel?
+    validations:
+      required: true
+  - type: checkboxes
+    attributes:
+      label: Are you using an alpine based docker image?
+      description: Are you installing the dependencies on remote (postinstall is required to run so bindings compile) or bundling the code and trying to upload as a single index.js file?
+      options:
+        - label: Yes
+        - label: No
+  - type: checkboxes
+    attributes:
+      label: Does the failure occur on a remote environment only?
+      options:
+        - label: Yes
+        - label: No
+  - type: textarea
+    id: alpine
+    attributes:
+      label: Are you using alpine based node docker image. If so, what version are you using? e.g node:16-alpine3.12
+  - type: checkboxes
+    id: alpine-latest
+    attributes:
+      label: If you are using alpine, have you tried using latest version of alpine or (currently alpine3.16 or alpine3.17)?
+      options:
+        - label: Yes
+        - label: No
+  - type: checkboxes
+    id: node-latest
+    attributes:
+      label: Have you tried using the latest minor version of node (currently 16.20 or 18.15)?
+      options:
+        - label: Yes
+        - label: No
+  - type: textarea
+    id: npm-report
+    attributes:
+      label: If you run npm install --verbose --foreground-scripts @sentry/profiling-node in an empty directory, what is the output?
+      description: Logs? Screenshots? Yes, please 👏
+    validations:
+      required: true
+  - type: textarea
+    id: report
+    attributes:
+      label: Crash report
+      description: Logs? Screenshots? Yes, please.
+  - type: markdown
+    attributes:
+      value: |-
+        ## Thanks 🙏
