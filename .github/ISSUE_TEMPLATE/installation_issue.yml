@@ -1,6 +1,6 @@
-name: 🐞 Installation issue
+name: 👾 Installation issue
 description: The package failed to install or compile
-labels: ["Type: Bug"]
+labels: ["Type: Installation issue"]
 body:
   - type: checkboxes
     attributes:
