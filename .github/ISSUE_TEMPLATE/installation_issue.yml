@@ -33,14 +33,14 @@ body:
       label: Are you using an alpine based docker image?
       description: Are you installing the dependencies on remote (postinstall is required to run so bindings compile) or bundling the code and trying to upload as a single index.js file?
       options:
-        - label: Yes
-        - label: No
+        - label: Yes (please specify the version)
+        - label: No (please describe your environment)
   - type: checkboxes
     attributes:
       label: Does the failure occur on a remote environment only?
       options:
-        - label: Yes
-        - label: No
+        - label: Yes (please describe your environment)
+        - label: No (please describe your local environment)
   - type: textarea
     id: alpine
     attributes:
@@ -50,15 +50,15 @@ body:
     attributes:
       label: If you are using alpine, have you tried using latest version of alpine or (currently alpine3.16 or alpine3.17)?
       options:
-        - label: Yes
-        - label: No
+        - label: Yes (please specify the version)"
+        - label: No, and I cannot upgrade
   - type: checkboxes
     id: node-latest
     attributes:
       label: Have you tried using the latest minor version of node (currently 16.20 or 18.15)?
       options:
-        - label: Yes
-        - label: No
+        - label: Yes (please specify the version)
+        - label: No, and I cannot upgrade
   - type: textarea
     id: npm-report
     attributes:
