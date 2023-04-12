@@ -1,6 +1,6 @@
 {
   "name": "@sentry/profiling-node",
-  "version": "0.3.0",
+  "version": "1.0.0-alpha.1",
   "description": "Sampling based nodejs profiler.",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",

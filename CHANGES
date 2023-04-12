@@ -1,3 +1,23 @@
+## 1.0.0-alpha.1
+
+### Various fixes & improvements
+
+- fix(ci): unpack binaries to lib/binaries (5bbf957f) by @JonasBa
+- gh: fix label for install issue (d0602b40) by @JonasBa
+- gh: fix label for install issue (ca82e73f) by @JonasBa
+- gh: add installation issue template (d1f0a304) by @JonasBa
+- ci: downgrade to ubuntu 20.04 (8364deba) by @JonasBa
+- fix(status): inline status assertions (#133) by @JonasBa
+- perf: use a module cache (#131) by @JonasBa
+- ci: bump and pin node images (#130) by @JonasBa
+- feat(module): parse module (#129) by @JonasBa
+- fix(precompile): fix dir sync (#128) by @JonasBa
+- ref: remove test log (c7529b14) by @JonasBa
+- ref(profiling): drop nan for node abi (#127) by @JonasBa
+- feat(build): output esm and cjs modules (#126) by @JonasBa
+- Check if module exists before loading. Compile if missing (#122) by @vidhu
+- Add @sentry/core as dep (#125) by @vidhu
+
 ## 0.3.0
 
 ### Various fixes & improvements
