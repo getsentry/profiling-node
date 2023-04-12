@@ -31,7 +31,7 @@
     "clean": "rm -rf ./lib && rm -rf build",
     "lint": "eslint ./src --ext .ts",
     "build": "npm run build:bindings && npm run build:lib",
-    "build:lib": "tsc -p ./tsconfig.cjs.json && tsc -p tsconfig.esm.json && tsc -p ./tsconfig.types.json",
+    "build:lib": "tsc -p tsconfig.esm.json && node scripts/cjsmod.js && tsc -p ./tsconfig.cjs.json && tsc -p ./tsconfig.types.json",
     "build:configure": "node-gyp configure",
     "build:configure:arm64": "node-gyp configure --arch=arm64",
     "build:bindings": "node-gyp build && node scripts/copy-target.js",
