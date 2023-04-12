@@ -7,26 +7,25 @@ import { threadId } from 'worker_threads';
 import { getProjectRootDirectory } from './utils';
 
 export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
+  if (process.env['SENTRY_PROFILER_BINARY_PATH']) {
+    return require(process.env['SENTRY_PROFILER_BINARY_PATH']);
+  }
+
   const family = familySync();
-  const userArchitecture = process.env['BUILD_ARCH'] || arch();
   const userPlatform = platform();
+  const binariesDirectory = join(__dirname, '..', 'binaries');
+  const userArchitecture = process.env['BUILD_ARCH'] || arch();
 
   if (family === null) {
     // If we did not find libc or musl, we may be on Windows or some other platform.
     return require(join(
-      __dirname,
-      '..',
-      'lib',
-      'binaries',
+      binariesDirectory,
       `sentry_cpu_profiler-v${getAbi(process.versions.node, 'node')}-${userPlatform}-${userArchitecture}.node`
     ));
   }
 
   return require(join(
-    __dirname,
-    '..',
-    'lib',
-    'binaries',
+    binariesDirectory,
     `sentry_cpu_profiler-v${getAbi(process.versions.node, 'node')}-${userPlatform}-${userArchitecture}-${family}.node`
   ));
 }
