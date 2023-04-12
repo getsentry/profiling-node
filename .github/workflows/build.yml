@@ -174,7 +174,7 @@ jobs:
         with:
           name: binaries-${{ github.sha }}
           path: |
-            ${{ github.workspace }}/binaries/
+            ${{ github.workspace }}/lib/binaries/
 
   build-and-pack:
     runs-on: ubuntu-latest
@@ -195,7 +195,7 @@ jobs:
       - uses: actions/download-artifact@v3
         with: 
           name: binaries-${{ github.sha }}
-          path: binaries
+          path: lib/binaries
       - run: ls -l lib/binaries
       - run: npm pack
 
