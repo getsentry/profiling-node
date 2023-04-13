@@ -1,4 +1,3 @@
-/* eslint-env node */
 const cp = require('child_process');
 const { existsSync } = require('fs');
 

@@ -1,34 +1,34 @@
-import { getAbi } from 'node-abi';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { arch, platform } from 'os';
+import { env, versions } from 'process';
+import { threadId } from 'worker_threads';
+
+import { getAbi } from 'node-abi';
 import { familySync } from 'detect-libc';
 
-import { threadId } from 'worker_threads';
 import { getProjectRootDirectory } from './utils';
 
-export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
-  const family = familySync();
-  const userArchitecture = process.env['BUILD_ARCH'] || arch();
-  const userPlatform = platform();
+// Keep these in sync with the replacements in esmmod.js and cjsmod.js
+// __START__REPLACE__DIRNAME__
+const _dirname = __dirname;
+// __END__REPLACE__DIRNAME__
 
-  if (family === null) {
-    // If we did not find libc or musl, we may be on Windows or some other platform.
-    return require(join(
-      __dirname,
-      '..',
-      'lib',
-      'binaries',
-      `sentry_cpu_profiler-v${getAbi(process.versions.node, 'node')}-${userPlatform}-${userArchitecture}.node`
-    ));
+// __START__REPLACE__REQUIRE__
+const _require = require;
+// __END__REPLACE__REQUIRE__
+
+export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
+  if (env['SENTRY_PROFILER_BINARY_PATH']) {
+    return _require(env['SENTRY_PROFILER_BINARY_PATH'] as string);
   }
 
-  return require(join(
-    __dirname,
-    '..',
-    'lib',
-    'binaries',
-    `sentry_cpu_profiler-v${getAbi(process.versions.node, 'node')}-${userPlatform}-${userArchitecture}-${family}.node`
-  ));
+  const family = familySync();
+  const userPlatform = platform();
+  const binariesDirectory = env['SENTRY_PROFILER_BINARY_DIR'] || resolve(_dirname, '..', 'binaries');
+  const userArchitecture = env['BUILD_ARCH'] || arch();
+  const identifier = [userPlatform, userArchitecture, family].filter((c) => c !== undefined && c !== null).join('-');
+
+  return _require(join(binariesDirectory, `sentry_cpu_profiler-v${getAbi(versions.node, 'node')}-${identifier}.node`));
 }
 
 // Resolve the project root dir so we can try and compute a filename relative to it.

@@ -1,4 +1,4 @@
-import type { SdkMetadata, DsnComponents, Event, SdkInfo } from '@sentry/types';
+import type { SdkMetadata, DsnComponents, Event } from '@sentry/types';
 import { createEnvelope, uuid4, addItemToEnvelope } from '@sentry/utils';
 import type { ProfiledEvent, Profile } from './utils';
 import {

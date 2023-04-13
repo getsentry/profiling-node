@@ -1,6 +1,7 @@
 import { path as root_directory } from 'app-root-path';
 import { platform, arch, release, version, type, machine } from 'os';
 import { resolve } from 'path';
+import { versions, env } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 import type {
   SdkInfo,
@@ -261,7 +262,7 @@ function createProfilePayload(
     environment: environment,
     runtime: {
       name: 'node',
-      version: process.versions.node || ''
+      version: versions.node || ''
     },
     os: {
       name: PLATFORM,
@@ -269,8 +270,7 @@ function createProfilePayload(
       build_number: VERSION
     },
     device: {
-      locale:
-        (process.env['LC_ALL'] || process.env['LC_MESSAGES'] || process.env['LANG'] || process.env['LANGUAGE']) ?? '',
+      locale: (env['LC_ALL'] || env['LC_MESSAGES'] || env['LANG'] || env['LANGUAGE']) ?? '',
       model: MODEL,
       manufacturer: TYPE,
       architecture: ARCH,
