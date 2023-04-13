@@ -1,7 +1,7 @@
 /* eslint-env node */
 const os = require('os');
 const path = require('path');
-const getAbi = require('node-abi');
+const { getAbi } = require('node-abi');
 const { familySync } = require('detect-libc');
 
 function getModuleName() {

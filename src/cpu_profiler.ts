@@ -1,36 +1,34 @@
-import { getAbi } from 'node-abi';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { arch, platform } from 'os';
+import { env, versions } from 'process';
+import { threadId } from 'worker_threads';
+
+import { getAbi } from 'node-abi';
 import { familySync } from 'detect-libc';
 
-import { threadId } from 'worker_threads';
 import { getProjectRootDirectory } from './utils';
 
+// Keep these in sync with the replacements in esmmod.js and cjsmod.js
 // __START__REPLACE__DIRNAME__
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-const _dirname = dirname(fileURLToPath(import.meta.url));
+const _dirname = __dirname;
 // __END__REPLACE__DIRNAME__
 
-// __START___REPLACE__REQUIRE__
-import { createRequire } from 'module';
-const _require = createRequire(import.meta.url);
+// __START__REPLACE__REQUIRE__
+const _require = require;
 // __END__REPLACE__REQUIRE__
 
 export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
-  if (process.env['SENTRY_PROFILER_BINARY_PATH']) {
-    return _require(process.env['SENTRY_PROFILER_BINARY_PATH']);
+  if (env['SENTRY_PROFILER_BINARY_PATH']) {
+    return _require(env['SENTRY_PROFILER_BINARY_PATH'] as string);
   }
 
   const family = familySync();
   const userPlatform = platform();
-  const binariesDirectory = join(_dirname, '..', 'binaries');
-  const userArchitecture = process.env['BUILD_ARCH'] || arch();
+  const binariesDirectory = env['SENTRY_PROFILER_BINARY_DIR'] || resolve(_dirname, 'binaries');
+  const userArchitecture = env['BUILD_ARCH'] || arch();
   const identifier = [userPlatform, userArchitecture, family].filter((c) => c !== undefined && c !== null).join('-');
 
-  return _require(
-    join(binariesDirectory, `sentry_cpu_profiler-v${getAbi(process.versions.node, 'node')}-${identifier}.node`)
-  );
+  return _require(join(binariesDirectory, `sentry_cpu_profiler-v${getAbi(versions.node, 'node')}-${identifier}.node`));
 }
 
 // Resolve the project root dir so we can try and compute a filename relative to it.
