@@ -24,7 +24,7 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
 
   const family = familySync();
   const userPlatform = platform();
-  const binariesDirectory = env['SENTRY_PROFILER_BINARY_DIR'] || resolve(_dirname, 'binaries');
+  const binariesDirectory = env['SENTRY_PROFILER_BINARY_DIR'] || resolve(_dirname, '..', 'binaries');
   const userArchitecture = env['BUILD_ARCH'] || arch();
   const identifier = [userPlatform, userArchitecture, family].filter((c) => c !== undefined && c !== null).join('-');
 
