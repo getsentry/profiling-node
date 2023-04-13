@@ -9,7 +9,13 @@ const config: Config = {
   testPathIgnorePatterns: ['benchmarks/'],
   resetMocks: true,
   restoreMocks: true,
-  silent: false
+  silent: false,
+  extensionsToTreatAsEsm: ['.ts'],
+  globals: {
+    'ts-jest': {
+      tsconfig: '<rootDir>/tsconfig.test.json'
+    }
+  }
 };
 
 export default config;

@@ -1,0 +1,9 @@
+{
+    "extends": "./tsconfig.cjs.json",
+    "globals": {
+        "ts-jest": {
+          "useESM": true,
+          "tsConfig": "tsconfig.test.json"
+        }
+      }
+}

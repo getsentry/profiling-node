@@ -45,7 +45,7 @@
     "benchmark:format": "node benchmarks/format/benchmark.format.js",
     "benchmark:integration": "node benchmarks/cpu/benchmark.integration.base.js && node benchmarks/cpu/benchmark.integration.disabled.js && node benchmarks/cpu/benchmark.integration.js",
     "test:watch": "jest --watch",
-    "test": "jest --config jest.config.ts",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.config.ts",
     "prettier": "prettier --config ./.prettierrc --write"
   },
   "keywords": [

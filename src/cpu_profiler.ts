@@ -6,28 +6,31 @@ import { familySync } from 'detect-libc';
 import { threadId } from 'worker_threads';
 import { getProjectRootDirectory } from './utils';
 
+// __START__REPLACE__DIRNAME__
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+const _dirname = dirname(fileURLToPath(import.meta.url));
+// __END__REPLACE__DIRNAME__
+
+// __START___REPLACE__REQUIRE__
+import { createRequire } from 'module';
+const _require = createRequire(import.meta.url);
+// __END__REPLACE__REQUIRE__
+
 export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   if (process.env['SENTRY_PROFILER_BINARY_PATH']) {
-    return require(process.env['SENTRY_PROFILER_BINARY_PATH']);
+    return _require(process.env['SENTRY_PROFILER_BINARY_PATH']);
   }
 
   const family = familySync();
   const userPlatform = platform();
-  const binariesDirectory = join(__dirname, '..', 'binaries');
+  const binariesDirectory = join(_dirname, '..', 'binaries');
   const userArchitecture = process.env['BUILD_ARCH'] || arch();
+  const identifier = [userPlatform, userArchitecture, family].filter((c) => c !== undefined && c !== null).join('-');
 
-  if (family === null) {
-    // If we did not find libc or musl, we may be on Windows or some other platform.
-    return require(join(
-      binariesDirectory,
-      `sentry_cpu_profiler-v${getAbi(process.versions.node, 'node')}-${userPlatform}-${userArchitecture}.node`
-    ));
-  }
-
-  return require(join(
-    binariesDirectory,
-    `sentry_cpu_profiler-v${getAbi(process.versions.node, 'node')}-${userPlatform}-${userArchitecture}-${family}.node`
-  ));
+  return _require(
+    join(binariesDirectory, `sentry_cpu_profiler-v${getAbi(process.versions.node, 'node')}-${identifier}.node`)
+  );
 }
 
 // Resolve the project root dir so we can try and compute a filename relative to it.
