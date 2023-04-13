@@ -45,7 +45,7 @@
     "benchmark:format": "node benchmarks/format/benchmark.format.js",
     "benchmark:integration": "node benchmarks/cpu/benchmark.integration.base.js && node benchmarks/cpu/benchmark.integration.disabled.js && node benchmarks/cpu/benchmark.integration.js",
     "test:watch": "jest --watch",
-    "test": "SENTRY_PROFILER_BINARY_DIR=../lib/binaries jest --config jest.config.ts",
+    "test": "cross-env SENTRY_PROFILER_BINARY_DIR=../lib/binaries jest --config jest.config.ts",
     "prettier": "prettier --config ./.prettierrc --write"
   },
   "keywords": [
@@ -70,6 +70,7 @@
     "@sentry/types": "^7.44.1",
     "@sentry/utils": "^7.44.1",
     "app-root-path": "^3.1.0",
+    "cross-env": "^7.0.3",
     "detect-libc": "^2.0.1",
     "nan": "^2.17.0",
     "node-abi": "^3.28.0",
