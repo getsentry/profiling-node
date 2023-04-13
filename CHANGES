@@ -1,3 +1,9 @@
+## 1.0.0-alpha.2
+
+### Various fixes & improvements
+
+- feat(esm): build esm properly (#135) by @JonasBa
+
 ## 1.0.0-alpha.1
 
 ### Various fixes & improvements
