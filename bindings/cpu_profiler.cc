@@ -142,9 +142,9 @@ napi_value CreateFrameNode(const napi_env& env, const v8::CpuProfileNode& node, 
   napi_value js_node;
   napi_create_object(env, &js_node);
 
-  napi_value function_name_prop;
-  napi_create_string_utf8(env, node.GetFunctionNameStr(), NAPI_AUTO_LENGTH, &function_name_prop);
-  napi_set_named_property(env, js_node, "function_name", function_name_prop);
+  napi_value function;
+  napi_create_string_utf8(env, node.GetFunctionNameStr(), NAPI_AUTO_LENGTH, &function);
+  napi_set_named_property(env, js_node, "function", function);
 
   const char* resource = node.GetScriptResourceNameStr();
 
@@ -171,13 +171,13 @@ napi_value CreateFrameNode(const napi_env& env, const v8::CpuProfileNode& node, 
     }
   }
 
-  napi_value line_number_prop;
-  napi_create_int32(env, node.GetLineNumber(), &line_number_prop);
-  napi_set_named_property(env, js_node, "line_number", line_number_prop);
+  napi_value lineno_prop;
+  napi_create_int32(env, node.GetLineNumber(), &lineno_prop);
+  napi_set_named_property(env, js_node, "lineno", lineno_prop);
 
-  napi_value column_number_prop;
-  napi_create_int32(env, node.GetColumnNumber(), &column_number_prop);
-  napi_set_named_property(env, js_node, "column_number", column_number_prop);
+  napi_value colno_prop;
+  napi_create_int32(env, node.GetColumnNumber(), &colno_prop);
+  napi_set_named_property(env, js_node, "colno", colno_prop);
 
 
   if(node.GetSourceType() != v8::CpuProfileNode::SourceType::kScript){
