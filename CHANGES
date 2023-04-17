@@ -1,3 +1,9 @@
+## 1.0.0-alpha.3
+
+### Various fixes & improvements
+
+- fix(frames): fix frame attributes (afc1c7b0) by @JonasBa
+
 ## 1.0.0-alpha.2
 
 ### Various fixes & improvements
