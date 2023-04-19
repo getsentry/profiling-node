@@ -18,6 +18,7 @@ import type {
 import { createEnvelope, dropUndefinedKeys, dsnToString, logger, forEachEnvelopeItem } from '@sentry/utils';
 import type { ThreadCpuProfile, RawThreadCpuProfile } from './cpu_profiler';
 import { isDebugBuild } from './env';
+import { SDK_VERSION } from './sdk_version';
 
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.
@@ -257,7 +258,7 @@ function createProfilePayload(
     event_id: profile_id,
     timestamp: new Date(start_timestamp).toISOString(),
     platform: 'node',
-    version: '1',
+    version: SDK_VERSION,
     release: release,
     environment: environment,
     runtime: {
