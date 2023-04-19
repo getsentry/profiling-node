@@ -1,3 +1,9 @@
+## 1.0.0-alpha.4
+
+### Various fixes & improvements
+
+- fix(sdk): bump sdk version and read it (#137) by @JonasBa
+
 ## 1.0.0-alpha.3
 
 ### Various fixes & improvements
