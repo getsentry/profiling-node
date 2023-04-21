@@ -18,7 +18,6 @@ import type {
 import { createEnvelope, dropUndefinedKeys, dsnToString, logger, forEachEnvelopeItem } from '@sentry/utils';
 import type { ThreadCpuProfile, RawThreadCpuProfile } from './cpu_profiler';
 import { isDebugBuild } from './env';
-import { SDK_VERSION } from './sdk_version';
 
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.
@@ -26,6 +25,7 @@ import { SDK_VERSION } from './sdk_version';
 
 const THREAD_ID_STRING = String(threadId);
 const THREAD_NAME = isMainThread ? 'main' : 'worker';
+const FORMAT_VERSION = '1';
 
 // Machine properties (eval only once)
 const PLATFORM = platform();
@@ -258,7 +258,7 @@ function createProfilePayload(
     event_id: profile_id,
     timestamp: new Date(start_timestamp).toISOString(),
     platform: 'node',
-    version: SDK_VERSION,
+    version: FORMAT_VERSION,
     release: release,
     environment: environment,
     runtime: {
