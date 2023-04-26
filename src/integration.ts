@@ -118,6 +118,11 @@ export class ProfilingIntegration implements Integration {
             throw new TypeError('[Profiling] cannot find profile for a transaction without a profile context');
           }
 
+          // Remove the profile from the transaction context before sending, relay will take care of the rest.
+          if (profiledTransaction?.contexts?.profile) {
+            delete profiledTransaction.contexts.profile;
+          }
+
           // We need to find both a profile and a transaction event for the same profile_id.
           const profileIndex = PROFILE_QUEUE.findIndex((p) => p.profile_id === profile_id);
           if (profileIndex === -1) {
