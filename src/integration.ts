@@ -119,8 +119,8 @@ export class ProfilingIntegration implements Integration {
           }
 
           // Remove the profile from the transaction context before sending, relay will take care of the rest.
-          if (profiledTransaction?.contexts?.profile) {
-            delete profiledTransaction.contexts.profile;
+          if (profiledTransaction?.contexts?.['.profile']) {
+            delete profiledTransaction.contexts['profile'];
           }
 
           // We need to find both a profile and a transaction event for the same profile_id.
