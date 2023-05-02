@@ -15,7 +15,7 @@ import type {
   EventEnvelopeHeaders
 } from '@sentry/types';
 
-import { createEnvelope, dropUndefinedKeys, dsnToString, logger, forEachEnvelopeItem } from '@sentry/utils';
+import { GLOBAL_OBJ, createEnvelope, dropUndefinedKeys, dsnToString, logger, forEachEnvelopeItem } from '@sentry/utils';
 import type { ThreadCpuProfile, RawThreadCpuProfile } from './cpu_profiler';
 import { isDebugBuild } from './env';
 
@@ -434,4 +434,75 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
   });
 
   return events;
+}
+
+/**
+ * Applies debug metadata images to the event in order to apply source maps by looking up their debug ID.
+ */
+export function applyDebugMetadata(filenames: ReadonlyArray<string>): void {
+  const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
+
+  if (!debugIdMap) {
+    return;
+  }
+
+  let debugIdStackFramesCache: Map<string, StackFrame[]>;
+  const cachedDebugIdStackFrameCache = debugIdStackParserCache.get(stackParser);
+  if (cachedDebugIdStackFrameCache) {
+    debugIdStackFramesCache = cachedDebugIdStackFrameCache;
+  } else {
+    debugIdStackFramesCache = new Map<string, StackFrame[]>();
+    debugIdStackParserCache.set(stackParser, debugIdStackFramesCache);
+  }
+
+  // Build a map of filename -> debug_id
+  const filenameDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
+    let parsedStack: StackFrame[];
+    const cachedParsedStack = debugIdStackFramesCache.get(debugIdStackTrace);
+    if (cachedParsedStack) {
+      parsedStack = cachedParsedStack;
+    } else {
+      parsedStack = stackParser(debugIdStackTrace);
+      debugIdStackFramesCache.set(debugIdStackTrace, parsedStack);
+    }
+
+    for (let i = parsedStack.length - 1; i >= 0; i--) {
+      const stackFrame = parsedStack[i];
+      if (stackFrame.filename) {
+        acc[stackFrame.filename] = debugIdMap[debugIdStackTrace];
+        break;
+      }
+    }
+    return acc;
+  }, {});
+
+  // Get a Set of filenames in the stack trace
+  const errorFileNames = new Set<string>();
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    event!.exception!.values!.forEach((exception) => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      exception.stacktrace!.frames!.forEach((frame) => {
+        if (frame.filename) {
+          errorFileNames.add(frame.filename);
+        }
+      });
+    });
+  } catch (e) {
+    // To save bundle size we're just try catching here instead of checking for the existence of all the different objects.
+  }
+
+  // Fill debug_meta information
+  event.debug_meta = event.debug_meta || {};
+  event.debug_meta.images = event.debug_meta.images || [];
+  const images = event.debug_meta.images;
+  errorFileNames.forEach((filename) => {
+    if (filenameDebugIdMap[filename]) {
+      images.push({
+        type: 'sourcemap',
+        code_file: filename,
+        debug_id: filenameDebugIdMap[filename]
+      });
+    }
+  });
 }
