@@ -14,9 +14,12 @@ const cases = [
 
   //   Preserves non .js extensions
   ['/Users/jonas/code/src/file.ts', '/Users/jonas/code', 'src:file.ts'],
+  //   No extension
+  ['/Users/jonas/code/src/file', '/Users/jonas/code', 'src:file'],
   //   Edge cases that shouldn't happen in practice, but try and handle them so we dont crash
   ['/Users/jonas/code/src/file.js', '', 'Users.jonas.code.src:file'],
-  ['', '/Users/jonas/code', '']
+  ['', '/Users/jonas/code', ''],
+  ['', '', '']
 ];
 
 describe('GetFrameModule', () => {
