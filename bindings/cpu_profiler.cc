@@ -40,11 +40,11 @@ v8::CpuProfilingLoggingMode GetLoggingMode() {
     return kDefaultLoggingMode;
   }
 
-  std::string_view logging_mode_str_view(logging_mode);
+  std::string logging_mode_str(logging_mode);
   // other times it'll likely be set to lazy as eager is the default
-  if (logging_mode_str_view == kLazyLoggingMode) {
+  if (logging_mode_str == kLazyLoggingMode) {
     return v8::CpuProfilingLoggingMode::kLazyLogging;
-  } else if (logging_mode_str_view == kEagerLoggingMode) {
+  } else if (logging_mode_str == kEagerLoggingMode) {
     return v8::CpuProfilingLoggingMode::kEagerLogging;
   }
 
@@ -110,7 +110,6 @@ static void GetFrameModule(const std::string& abs_path, const std::string& root_
   if(module[1] ==kWinDiskPrefix){
     // We will try and strip our the disk prefix.
     module = module.substr(3);
-    break;
   }
   #endif
 }
