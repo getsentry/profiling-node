@@ -51,7 +51,7 @@ v8::CpuProfilingLoggingMode GetLoggingMode() {
   return kDefaultLoggingMode;
 }
 
-#if defined _WIN32
+#ifdef _WIN32
 static const char kPlatformSeparator = '\\';
 static const char kWinDiskPrefix = ':';
 #else
@@ -75,7 +75,7 @@ static void GetFrameModule(const std::string& abs_path, const std::string& root_
     return;
   }
 
-  if (abs_path_len > root_dir_len && abs_path.rfind(root_dir, 0) == 0) {
+  if (abs_path_len > root_dir_len && root_dir_len > 0 && abs_path.rfind(root_dir, 0) == 0) {
     // strip the base path + trailing /
     module = abs_path.substr(root_dir_len + 1);
   }
@@ -95,7 +95,7 @@ static void GetFrameModule(const std::string& abs_path, const std::string& root_
     module = module.substr(node_modules_pos + 13);
   }
 
-  // Replace all path separators with dots except the last one, that one is replaced with a dot
+  // Replace all path separators with dots except the last one, that one is replaced with a colon
   int match_count = 0;
   for (int pos = module.length() - 1; pos >= 0; pos--) {
     // if there is a match and it's not the first character, replace it
@@ -105,13 +105,17 @@ static void GetFrameModule(const std::string& abs_path, const std::string& root_
     }
   }
 
-  #if defined _WIN32
+  #ifdef _WIN32
   // Strip out C: prefix. On Windows, the drive letter is not part of the module name
-  if(module[1] ==kWinDiskPrefix){
+  if(module[1] == kWinDiskPrefix){
     // We will try and strip our the disk prefix.
-    module = module.substr(3);
+    module = module.substr(2, std::string::npos);
   }
   #endif
+
+  if(module[0] == '.'){
+    module = module.substr(1, std::string::npos);
+  }
 }
 
 static napi_value GetFrameModuleWrapped(napi_env env, napi_callback_info info) {
