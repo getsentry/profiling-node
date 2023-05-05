@@ -96,9 +96,6 @@ jobs:
           # - os: macos-m1
           #   node: 18
           #   arch: arm64
-    # Build artifacts are only needed for releasing workflow.
-    # if: startsWith(github.ref, 'refs/heads/release/')
-    # alpine build dependencies
     steps:
       - name: setup (alpine)
         if: contains(matrix.container, 'alpine')
