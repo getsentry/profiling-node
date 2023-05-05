@@ -41,6 +41,7 @@ jobs:
           path: |
             ${{ github.workspace }}/lib/binaries/*.node
   test:
+    needs: compile
     strategy:
       fail-fast: false
       matrix:
