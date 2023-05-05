@@ -60,7 +60,7 @@ jobs:
         if: ${{ runner.os == 'Windows' }}
 
       - run: npm install
-      - run: rm -rf lib/binaries
+      - run: rm -r lib/binaries
       - uses: actions/download-artifact@v3
         with: 
           name: compile-test-binaries-${{ github.sha }}
