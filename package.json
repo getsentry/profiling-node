@@ -2,12 +2,19 @@
   "name": "@sentry/profiling-node",
   "version": "1.0.0-alpha.5",
   "description": "Sampling based nodejs profiler.",
-  "main": "lib/cjs/index.js",
-  "module": "lib/esm/index.js",
-  "types": "lib/types/index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/getsentry/profiling-node.git"
+  },
+  "main": "lib/cjs/index.js",
+  "module": "lib/esm/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./lib/cjs/index.js",
+      "import": "./lib/esm/index.js",
+      "types": "./lib/types/index.d.ts"
+    }
   },
   "engines": {
     "node": ">=8.0.0"
