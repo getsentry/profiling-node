@@ -1,9 +1,8 @@
 import { join, resolve } from 'path';
 import { arch, platform } from 'os';
-import { env, versions } from 'process';
+import { env } from 'process';
 import { threadId } from 'worker_threads';
 
-import { getAbi } from 'node-abi';
 import { familySync } from 'detect-libc';
 
 import { getProjectRootDirectory } from './utils';
@@ -17,18 +16,17 @@ const _dirname = __dirname;
 const _require = require;
 // __END__REPLACE__REQUIRE__
 
+const family = familySync();
+const userPlatform = platform();
+const binariesDirectory = env['SENTRY_PROFILER_BINARY_DIR'] || resolve(_dirname, '..', 'binaries');
+const userArchitecture = env['BUILD_ARCH'] || arch();
+const identifier = [userPlatform, userArchitecture, family].filter((c) => c !== undefined && c !== null).join('-');
+
 export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   if (env['SENTRY_PROFILER_BINARY_PATH']) {
     return _require(env['SENTRY_PROFILER_BINARY_PATH'] as string);
   }
-
-  const family = familySync();
-  const userPlatform = platform();
-  const binariesDirectory = env['SENTRY_PROFILER_BINARY_DIR'] || resolve(_dirname, '..', 'binaries');
-  const userArchitecture = env['BUILD_ARCH'] || arch();
-  const identifier = [userPlatform, userArchitecture, family].filter((c) => c !== undefined && c !== null).join('-');
-
-  return _require(join(binariesDirectory, `sentry_cpu_profiler-v${getAbi(versions.node, 'node')}-${identifier}.node`));
+  return _require(join(binariesDirectory, `sentry_cpu_profiler-${identifier}.node`));
 }
 
 // Resolve the project root dir so we can try and compute a filename relative to it.
