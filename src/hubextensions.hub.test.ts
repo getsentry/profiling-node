@@ -4,6 +4,7 @@ import { addExtensionMethods } from '@sentry/tracing';
 import { ProfilingIntegration } from './index';
 import { importCppBindingsModule } from './cpu_profiler';
 import { logger, createEnvelope } from '@sentry/utils';
+import { GLOBAL_OBJ } from '@sentry/utils';
 import { NodeClient } from '@sentry/node';
 import { getMainCarrier } from '@sentry/core';
 import type { Transport } from '@sentry/types';
@@ -82,6 +83,7 @@ describe('hubextensions', () => {
     // We will mock the carrier as if it has been initialized by the SDK, else everything is short circuited
     getMainCarrier().__SENTRY__ = {};
     addExtensionMethods();
+    GLOBAL_OBJ._sentryDebugIds = undefined;
   });
   afterEach(() => {
     delete getMainCarrier().__SENTRY__;
@@ -323,6 +325,64 @@ describe('hubextensions', () => {
 
       transaction.finish();
       expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('enriches profile with debug_id', async () => {
+    GLOBAL_OBJ._sentryDebugIds = {
+      'Error\n    at filename.js (filename.js:36:15)': 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+      'Error\n    at filename2.js (filename2.js:36:15)': 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+      'Error\n    at filename3.js (filename3.js:36:15)': 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb'
+    };
+
+    jest.spyOn(profiler, 'stopProfiling').mockImplementation(() => {
+      return {
+        samples: [
+          {
+            stack_id: 0,
+            thread_id: '0',
+            elapsed_since_start_ns: '10'
+          },
+          {
+            stack_id: 0,
+            thread_id: '0',
+            elapsed_since_start_ns: '10'
+          }
+        ],
+        resources: ['filename.js', 'filename2.js'],
+        stacks: [[0]],
+        frames: [],
+        profiler_logging_mode: 'lazy'
+      };
+    });
+
+    const [client, transport] = makeClientWithHooks();
+    const hub = Sentry.getCurrentHub();
+    hub.bindClient(client);
+
+    const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve());
+
+    const transaction = hub.startTransaction({ name: 'profile_hub' });
+    await wait(500);
+    transaction.finish();
+
+    await Sentry.flush(1000);
+
+    expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[1]?.[1]).toMatchObject({
+      debug_meta: {
+        images: [
+          {
+            type: 'sourcemap',
+            debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+            code_file: 'filename.js'
+          },
+          {
+            type: 'sourcemap',
+            debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+            code_file: 'filename2.js'
+          }
+        ]
+      }
     });
   });
 });

@@ -6,6 +6,8 @@ import { isMainThread, threadId } from 'worker_threads';
 import type {
   SdkInfo,
   SdkMetadata,
+  StackParser,
+  StackFrame,
   DynamicSamplingContext,
   DsnComponents,
   Event,
@@ -15,7 +17,9 @@ import type {
   EventEnvelopeHeaders
 } from '@sentry/types';
 
+import * as Sentry from '@sentry/node';
 import { GLOBAL_OBJ, createEnvelope, dropUndefinedKeys, dsnToString, logger, forEachEnvelopeItem } from '@sentry/utils';
+
 import type { ThreadCpuProfile, RawThreadCpuProfile } from './cpu_profiler';
 import { isDebugBuild } from './env';
 
@@ -35,12 +39,12 @@ const MODEL = os.machine ? os.machine() : os.arch();
 const ARCH = os.arch();
 
 interface DebugImage {
-  debug_id: string;
-  image_addr: string;
   code_file: string;
   type: string;
-  image_size: number;
-  image_vmaddr: string;
+  debug_id: string;
+  image_addr?: string;
+  image_size?: number;
+  image_vmaddr?: string;
 }
 
 export interface Profile {
@@ -279,7 +283,7 @@ function createProfilePayload(
       is_emulator: false
     },
     debug_meta: {
-      images: applySourceMapDebugFiles(cpuProfile.resources)
+      images: applyDebugMetadata(cpuProfile.resources)
     },
     profile: enrichedThreadProfile,
     transaction: {
@@ -441,99 +445,66 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
   return events;
 }
 
-/**
- * Applies debug metadata images to the event in order to apply source maps by looking up their debug ID.
- */
-export function applySourceMapDebugFiles(
-  filenames: ReadonlyArray<string> | undefined
-): NonNullable<Profile['debug_meta']>['images'] {
-  if (!filenames || !GLOBAL_OBJ._sentryDebugIds) {
-    return [];
-  }
-
+const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
+export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): DebugImage[] {
   const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
 
   if (!debugIdMap) {
     return [];
   }
 
-  return [];
+  const stackParser = Sentry.getCurrentHub?.()?.getClient()?.getOptions()?.stackParser;
 
-  // filenames.forEach((filename) => {
-  //   if (filenameDebugIdMap[filename]) {
-  //     images.push({
-  //       type: 'sourcemap',
-  //       code_file: filename,
-  //       debug_id: filenameDebugIdMap[filename]
-  //     });
-  //   }
-  // });
+  if (!stackParser) {
+    return [];
+  }
+
+  let debugIdStackFramesCache: Map<string, StackFrame[]>;
+  const cachedDebugIdStackFrameCache = debugIdStackParserCache.get(stackParser);
+  if (cachedDebugIdStackFrameCache) {
+    debugIdStackFramesCache = cachedDebugIdStackFrameCache;
+  } else {
+    debugIdStackFramesCache = new Map<string, StackFrame[]>();
+    debugIdStackParserCache.set(stackParser, debugIdStackFramesCache);
+  }
+
+  // Build a map of filename -> debug_id
+  const filenameDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
+    let parsedStack: StackFrame[];
+
+    const cachedParsedStack = debugIdStackFramesCache.get(debugIdStackTrace);
+    if (cachedParsedStack) {
+      parsedStack = cachedParsedStack;
+    } else {
+      parsedStack = stackParser(debugIdStackTrace);
+      debugIdStackFramesCache.set(debugIdStackTrace, parsedStack);
+    }
+
+    for (let i = parsedStack.length - 1; i >= 0; i--) {
+      const stackFrame = parsedStack[i];
+      const file = stackFrame?.filename;
+
+      if (stackFrame && file) {
+        acc[file] = debugIdMap[debugIdStackTrace] as string;
+        break;
+      }
+    }
+    return acc;
+  }, {});
+
+  const images: DebugImage[] = [];
+
+  for (let i = 0; i < resource_paths.length; i++) {
+    const path = resource_paths[i];
+
+    if (path && filenameDebugIdMap[path]) {
+      images.push({
+        type: 'sourcemap',
+        code_file: path,
+        debug_id: filenameDebugIdMap[path] as string
+      });
+    }
+  }
+
+  return images;
 }
-
-// export function applyDebugMetadata(event: Event, stackParser: StackParser): void {
-//   const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
-
-//   if (!debugIdMap) {
-//     return;
-//   }
-
-//   let debugIdStackFramesCache: Map<string, StackFrame[]>;
-//   const cachedDebugIdStackFrameCache = debugIdStackParserCache.get(stackParser);
-//   if (cachedDebugIdStackFrameCache) {
-//     debugIdStackFramesCache = cachedDebugIdStackFrameCache;
-//   } else {
-//     debugIdStackFramesCache = new Map<string, StackFrame[]>();
-//     debugIdStackParserCache.set(stackParser, debugIdStackFramesCache);
-//   }
-
-//   // Build a map of filename -> debug_id
-//   const filenameDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
-//     let parsedStack: StackFrame[];
-//     const cachedParsedStack = debugIdStackFramesCache.get(debugIdStackTrace);
-//     if (cachedParsedStack) {
-//       parsedStack = cachedParsedStack;
-//     } else {
-//       parsedStack = stackParser(debugIdStackTrace);
-//       debugIdStackFramesCache.set(debugIdStackTrace, parsedStack);
-//     }
-
-//     for (let i = parsedStack.length - 1; i >= 0; i--) {
-//       const stackFrame = parsedStack[i];
-//       if (stackFrame.filename) {
-//         acc[stackFrame.filename] = debugIdMap[debugIdStackTrace];
-//         break;
-//       }
-//     }
-//     return acc;
-//   }, {});
-
-//   // Get a Set of filenames in the stack trace
-//   const errorFileNames = new Set<string>();
-//   try {
-//     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-//     event!.exception!.values!.forEach((exception) => {
-//       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-//       exception.stacktrace!.frames!.forEach((frame) => {
-//         if (frame.filename) {
-//           errorFileNames.add(frame.filename);
-//         }
-//       });
-//     });
-//   } catch (e) {
-//     // To save bundle size we're just try catching here instead of checking for the existence of all the different objects.
-//   }
-
-//   // Fill debug_meta information
-//   event.debug_meta = event.debug_meta || {};
-//   event.debug_meta.images = event.debug_meta.images || [];
-//   const images = event.debug_meta.images;
-//   errorFileNames.forEach((filename) => {
-//     if (filenameDebugIdMap[filename]) {
-//       images.push({
-//         type: 'sourcemap',
-//         code_file: filename,
-//         debug_id: filenameDebugIdMap[filename]
-//       });
-//     }
-//   });
-// }
