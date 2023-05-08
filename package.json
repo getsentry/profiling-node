@@ -7,12 +7,12 @@
     "url": "https://github.com/getsentry/profiling-node.git"
   },
   "main": "lib/cjs/index.js",
-  "module": "lib/esm/index.js",
+  "module": "lib/esm/index.mjs",
   "types": "lib/types/index.d.ts",
   "exports": {
     ".": {
       "require": "./lib/cjs/index.js",
-      "import": "./lib/esm/index.js",
+      "import": "./lib/esm/index.mjs",
       "types": "./lib/types/index.d.ts"
     }
   },
