@@ -34,6 +34,15 @@ const TYPE = os.type();
 const MODEL = os.machine ? os.machine() : os.arch();
 const ARCH = os.arch();
 
+interface DebugImage {
+  debug_id: string;
+  image_addr: string;
+  code_file: string;
+  type: string;
+  image_size: number;
+  image_vmaddr: string;
+}
+
 export interface Profile {
   event_id: string;
   version: string;
@@ -59,14 +68,7 @@ export interface Profile {
   platform: string;
   profile: ThreadCpuProfile;
   debug_meta?: {
-    images: {
-      debug_id: string;
-      image_addr: string;
-      code_file: string;
-      type: string;
-      image_size: number;
-      image_vmaddr: string;
-    }[];
+    images: DebugImage[];
   };
   transaction: {
     name: string;
@@ -276,6 +278,9 @@ function createProfilePayload(
       architecture: ARCH,
       is_emulator: false
     },
+    debug_meta: {
+      images: applySourceMapDebugFiles([])
+    },
     profile: enrichedThreadProfile,
     transaction: {
       name: transaction,
@@ -439,7 +444,33 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
 /**
  * Applies debug metadata images to the event in order to apply source maps by looking up their debug ID.
  */
-export function applyDebugMetadata(filenames: ReadonlyArray<string>): void {
+export function applySourceMapDebugFiles(
+  filenames: ReadonlyArray<string>
+): NonNullable<Profile['debug_meta']>['images'] {
+  const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
+
+  logger.log('[Profiling] Applying source maps to debug meta');
+  console.log(GLOBAL_OBJ);
+  logger.log(debugIdMap, filenames);
+
+  if (!debugIdMap) {
+    return [];
+  }
+
+  return [];
+
+  // filenames.forEach((filename) => {
+  //   if (filenameDebugIdMap[filename]) {
+  //     images.push({
+  //       type: 'sourcemap',
+  //       code_file: filename,
+  //       debug_id: filenameDebugIdMap[filename]
+  //     });
+  //   }
+  // });
+}
+
+export function applyDebugMetadata(event: Event, stackParser: StackParser): void {
   const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
 
   if (!debugIdMap) {
