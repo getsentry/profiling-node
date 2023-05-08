@@ -279,7 +279,7 @@ function createProfilePayload(
       is_emulator: false
     },
     debug_meta: {
-      images: applySourceMapDebugFiles([])
+      images: applySourceMapDebugFiles(cpuProfile.resources)
     },
     profile: enrichedThreadProfile,
     transaction: {
@@ -445,13 +445,13 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
  * Applies debug metadata images to the event in order to apply source maps by looking up their debug ID.
  */
 export function applySourceMapDebugFiles(
-  filenames: ReadonlyArray<string>
+  filenames: ReadonlyArray<string> | undefined
 ): NonNullable<Profile['debug_meta']>['images'] {
-  const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
+  if (!filenames || !GLOBAL_OBJ._sentryDebugIds) {
+    return [];
+  }
 
-  logger.log('[Profiling] Applying source maps to debug meta');
-  console.log(GLOBAL_OBJ);
-  logger.log(debugIdMap, filenames);
+  const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
 
   if (!debugIdMap) {
     return [];
@@ -470,70 +470,70 @@ export function applySourceMapDebugFiles(
   // });
 }
 
-export function applyDebugMetadata(event: Event, stackParser: StackParser): void {
-  const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
+// export function applyDebugMetadata(event: Event, stackParser: StackParser): void {
+//   const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
 
-  if (!debugIdMap) {
-    return;
-  }
+//   if (!debugIdMap) {
+//     return;
+//   }
 
-  let debugIdStackFramesCache: Map<string, StackFrame[]>;
-  const cachedDebugIdStackFrameCache = debugIdStackParserCache.get(stackParser);
-  if (cachedDebugIdStackFrameCache) {
-    debugIdStackFramesCache = cachedDebugIdStackFrameCache;
-  } else {
-    debugIdStackFramesCache = new Map<string, StackFrame[]>();
-    debugIdStackParserCache.set(stackParser, debugIdStackFramesCache);
-  }
+//   let debugIdStackFramesCache: Map<string, StackFrame[]>;
+//   const cachedDebugIdStackFrameCache = debugIdStackParserCache.get(stackParser);
+//   if (cachedDebugIdStackFrameCache) {
+//     debugIdStackFramesCache = cachedDebugIdStackFrameCache;
+//   } else {
+//     debugIdStackFramesCache = new Map<string, StackFrame[]>();
+//     debugIdStackParserCache.set(stackParser, debugIdStackFramesCache);
+//   }
 
-  // Build a map of filename -> debug_id
-  const filenameDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
-    let parsedStack: StackFrame[];
-    const cachedParsedStack = debugIdStackFramesCache.get(debugIdStackTrace);
-    if (cachedParsedStack) {
-      parsedStack = cachedParsedStack;
-    } else {
-      parsedStack = stackParser(debugIdStackTrace);
-      debugIdStackFramesCache.set(debugIdStackTrace, parsedStack);
-    }
+//   // Build a map of filename -> debug_id
+//   const filenameDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
+//     let parsedStack: StackFrame[];
+//     const cachedParsedStack = debugIdStackFramesCache.get(debugIdStackTrace);
+//     if (cachedParsedStack) {
+//       parsedStack = cachedParsedStack;
+//     } else {
+//       parsedStack = stackParser(debugIdStackTrace);
+//       debugIdStackFramesCache.set(debugIdStackTrace, parsedStack);
+//     }
 
-    for (let i = parsedStack.length - 1; i >= 0; i--) {
-      const stackFrame = parsedStack[i];
-      if (stackFrame.filename) {
-        acc[stackFrame.filename] = debugIdMap[debugIdStackTrace];
-        break;
-      }
-    }
-    return acc;
-  }, {});
+//     for (let i = parsedStack.length - 1; i >= 0; i--) {
+//       const stackFrame = parsedStack[i];
+//       if (stackFrame.filename) {
+//         acc[stackFrame.filename] = debugIdMap[debugIdStackTrace];
+//         break;
+//       }
+//     }
+//     return acc;
+//   }, {});
 
-  // Get a Set of filenames in the stack trace
-  const errorFileNames = new Set<string>();
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    event!.exception!.values!.forEach((exception) => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      exception.stacktrace!.frames!.forEach((frame) => {
-        if (frame.filename) {
-          errorFileNames.add(frame.filename);
-        }
-      });
-    });
-  } catch (e) {
-    // To save bundle size we're just try catching here instead of checking for the existence of all the different objects.
-  }
+//   // Get a Set of filenames in the stack trace
+//   const errorFileNames = new Set<string>();
+//   try {
+//     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+//     event!.exception!.values!.forEach((exception) => {
+//       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+//       exception.stacktrace!.frames!.forEach((frame) => {
+//         if (frame.filename) {
+//           errorFileNames.add(frame.filename);
+//         }
+//       });
+//     });
+//   } catch (e) {
+//     // To save bundle size we're just try catching here instead of checking for the existence of all the different objects.
+//   }
 
-  // Fill debug_meta information
-  event.debug_meta = event.debug_meta || {};
-  event.debug_meta.images = event.debug_meta.images || [];
-  const images = event.debug_meta.images;
-  errorFileNames.forEach((filename) => {
-    if (filenameDebugIdMap[filename]) {
-      images.push({
-        type: 'sourcemap',
-        code_file: filename,
-        debug_id: filenameDebugIdMap[filename]
-      });
-    }
-  });
-}
+//   // Fill debug_meta information
+//   event.debug_meta = event.debug_meta || {};
+//   event.debug_meta.images = event.debug_meta.images || [];
+//   const images = event.debug_meta.images;
+//   errorFileNames.forEach((filename) => {
+//     if (filenameDebugIdMap[filename]) {
+//       images.push({
+//         type: 'sourcemap',
+//         code_file: filename,
+//         debug_id: filenameDebugIdMap[filename]
+//       });
+//     }
+//   });
+// }

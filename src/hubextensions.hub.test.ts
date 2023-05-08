@@ -120,6 +120,7 @@ describe('hubextensions', () => {
         ],
         stacks: [[0]],
         frames: [],
+        resources: [],
         profiler_logging_mode: 'lazy'
       };
     });
@@ -157,6 +158,7 @@ describe('hubextensions', () => {
             elapsed_since_start_ns: '10'
           }
         ],
+        resources: [],
         stacks: [[0]],
         frames: [],
         profiler_logging_mode: 'lazy'

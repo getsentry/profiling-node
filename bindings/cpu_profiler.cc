@@ -44,7 +44,8 @@ v8::CpuProfilingLoggingMode GetLoggingMode() {
   // other times it'll likely be set to lazy as eager is the default
   if (logging_mode_str == kLazyLoggingMode) {
     return v8::CpuProfilingLoggingMode::kLazyLogging;
-  } else if (logging_mode_str == kEagerLoggingMode) {
+  }
+  else if (logging_mode_str == kEagerLoggingMode) {
     return v8::CpuProfilingLoggingMode::kEagerLogging;
   }
 
@@ -69,9 +70,9 @@ static void GetFrameModule(const std::string& abs_path, const std::string& root_
 
   size_t abs_path_len = abs_path.length();
   size_t root_dir_len = root_dir.length();
-  
+
   // Guard from possible SDK bug, should probably throw an error here.
-  if(root_dir_len > abs_path_len) {
+  if (root_dir_len > abs_path_len) {
     return;
   }
 
@@ -105,15 +106,15 @@ static void GetFrameModule(const std::string& abs_path, const std::string& root_
     }
   }
 
-  #ifdef _WIN32
+#ifdef _WIN32
   // Strip out C: prefix. On Windows, the drive letter is not part of the module name
-  if(module[1] == kWinDiskPrefix){
+  if (module[1] == kWinDiskPrefix) {
     // We will try and strip our the disk prefix.
     module = module.substr(2, std::string::npos);
   }
-  #endif
+#endif
 
-  if(module[0] == '.'){
+  if (module[0] == '.') {
     module = module.substr(1, std::string::npos);
   }
 }
@@ -144,7 +145,7 @@ static napi_value GetFrameModuleWrapped(napi_env env, napi_callback_info info) {
 
 class Profiler {
 public:
-  explicit Profiler(const napi_env& env, v8::Isolate* isolate):
+  explicit Profiler(const napi_env& env, v8::Isolate* isolate) :
     cpu_profiler(
       v8::CpuProfiler::New(isolate, kNamingMode, GetLoggingMode())) {
     napi_add_env_cleanup_hook(env, DeleteInstance, this);
@@ -159,7 +160,7 @@ public:
   }
 };
 
-napi_value CreateFrameNode(const napi_env& env, const v8::CpuProfileNode& node, const std::string& app_root_dir, std::unordered_map<std::string, std::string>& module_cache) {
+napi_value CreateFrameNode(const napi_env& env, const v8::CpuProfileNode& node, const std::string& app_root_dir, std::unordered_map<std::string, std::string>& module_cache, napi_value& resources) {
   napi_value js_node;
   napi_create_object(env, &js_node);
 
@@ -192,10 +193,18 @@ napi_value CreateFrameNode(const napi_env& env, const v8::CpuProfileNode& node, 
     std::string module;
     std::string resource_str = std::string(resource);
 
+    if (resource_str.empty()) {
+      return js_node;
+    }
+
     if (module_cache.find(resource_str) != module_cache.end()) {
       module = module_cache[resource_str];
     }
     else {
+      napi_value resource;
+      napi_create_string_utf8(env, resource_str.c_str(), NAPI_AUTO_LENGTH, &resource);
+      napi_set_element(env, resources, module_cache.size(), resource);
+
       GetFrameModule(resource_str, app_root_dir, module);
       module_cache.emplace(resource_str, module);
     }
@@ -209,7 +218,6 @@ napi_value CreateFrameNode(const napi_env& env, const v8::CpuProfileNode& node, 
 
   return js_node;
 };
-
 
 
 napi_value CreateSample(const napi_env& env, const uint32_t stack_id, const int64_t sample_timestamp_us, const uint32_t thread_id) {
@@ -243,7 +251,7 @@ std::string hashCpuProfilerNodeByPath(const v8::CpuProfileNode* node, std::strin
   return path;
 }
 
-static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const uint32_t thread_id, const std::string& app_root_dir, napi_value& samples, napi_value& stacks, napi_value& frames) {
+static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const uint32_t thread_id, const std::string& app_root_dir, napi_value& samples, napi_value& stacks, napi_value& frames, napi_value& resources) {
   const int64_t profile_start_time_us = profile->GetStartTime();
   const int sampleCount = profile->GetSamplesCount();
 
@@ -256,7 +264,7 @@ static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const
   std::unordered_map<std::string, uint32_t> stack_lookup_table;
   std::unordered_map<std::string, std::string> module_cache;
 
-  // At worst, we reserve the same amount of space as the number of samples
+  // At worst, all stacks are unique so reserve the maximum amount of space
   stack_lookup_table.reserve(sampleCount);
 
   std::string node_hash = "";
@@ -313,7 +321,7 @@ static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const
         napi_value depth;
         napi_create_uint32(env, stack_depth, &depth);
         napi_set_property(env, stack, depth, frame_id);
-        napi_set_property(env, frames, frame_id, CreateFrameNode(env, *node, app_root_dir, module_cache));
+        napi_set_property(env, frames, frame_id, CreateFrameNode(env, *node, app_root_dir, module_cache, resources));
 
         unique_frame_id++;
       }
@@ -346,7 +354,7 @@ static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const
 
 // StartProfiling(string title)
 // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#aedf6a5ca49432ab665bc3a1ccf46cca4
-static napi_value TranslateProfile(const napi_env& env, const v8::CpuProfile* profile, const uint32_t thread_id, const std::string& app_root_directory) {
+static napi_value TranslateProfile(const napi_env& env, const v8::CpuProfile* profile, const uint32_t thread_id, const std::string& app_root_directory, bool collect_resources) {
   napi_value js_profile;
 
   assert(napi_create_object(env, &js_profile) == napi_ok);
@@ -355,18 +363,29 @@ static napi_value TranslateProfile(const napi_env& env, const v8::CpuProfile* pr
   napi_value samples;
   napi_value stacks;
   napi_value frames;
+  napi_value resources;
 
   assert(napi_create_string_utf8(env, GetLoggingMode() == v8::CpuProfilingLoggingMode::kEagerLogging ? "eager" : "lazy", NAPI_AUTO_LENGTH, &logging_mode) == napi_ok);
 
   assert(napi_create_array(env, &samples) == napi_ok);
   assert(napi_create_array(env, &stacks) == napi_ok);
   assert(napi_create_array(env, &frames) == napi_ok);
+  assert(napi_create_array(env, &resources) == napi_ok);
+
   assert(napi_set_named_property(env, js_profile, "samples", samples) == napi_ok);
   assert(napi_set_named_property(env, js_profile, "stacks", stacks) == napi_ok);
   assert(napi_set_named_property(env, js_profile, "frames", frames) == napi_ok);
   assert(napi_set_named_property(env, js_profile, "profiler_logging_mode", logging_mode) == napi_ok);
 
-  GetSamples(env, profile, thread_id, app_root_directory, samples, stacks, frames);
+
+  GetSamples(env, profile, thread_id, app_root_directory, samples, stacks, frames, resources);
+
+  if(collect_resources){
+    napi_set_named_property(env, js_profile, "resources", resources);
+  } else {
+    napi_create_array(env, &resources);
+    napi_set_named_property(env, js_profile, "resources", resources);
+  }
 
   return js_profile;
 }
@@ -436,8 +455,8 @@ static napi_value StartProfiling(napi_env env, napi_callback_info info) {
 // StopProfiling(string title)
 // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#a40ca4c8a8aa4c9233aa2a2706457cc80
 static napi_value StopProfiling(napi_env env, napi_callback_info info) {
-  size_t argc = 3;
-  napi_value argv[3];
+  size_t argc = 4;
+  napi_value argv[4];
 
   assert(napi_get_cb_info(env, info, &argc, argv, NULL, NULL) == napi_ok);
 
@@ -540,7 +559,14 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
     app_root_directory_str = std::string(app_root_directory);
   }
 
-  napi_value js_profile = TranslateProfile(env, profile, thread_id, app_root_directory_str);
+  napi_valuetype callbacktype3;
+  assert(napi_typeof(env, argv[3], &callbacktype3) == napi_ok);
+  
+  bool collect_resources;
+  napi_get_value_bool(env, argv[3], &collect_resources);
+
+  napi_value js_profile = TranslateProfile(env, profile, thread_id, app_root_directory_str, collect_resources);
+  
   profile->Delete();
 
   return js_profile;

@@ -6,6 +6,7 @@ import { join, resolve } from 'path';
 import { familySync } from 'detect-libc';
 
 import { getProjectRootDirectory } from './utils';
+import { GLOBAL_OBJ } from '@sentry/utils';
 
 // Keep these in sync with the replacements in esmmod.js and cjsmod.js
 // __START__REPLACE__REQUIRE__
@@ -157,22 +158,28 @@ type Frame = {
 
 export interface RawThreadCpuProfile {
   profile_id?: string;
-  stacks: Stack[];
-  samples: Sample[];
-  frames: Frame[];
+  stacks: ReadonlyArray<Stack>;
+  samples: ReadonlyArray<Sample>;
+  frames: ReadonlyArray<Frame>;
+  resources: ReadonlyArray<string>;
   profiler_logging_mode: 'eager' | 'lazy';
 }
 export interface ThreadCpuProfile {
-  samples: Sample[];
-  stacks: Stack[];
-  frames: Frame[];
+  stacks: ReadonlyArray<Stack>;
+  samples: ReadonlyArray<Sample>;
+  frames: ReadonlyArray<Frame>;
   thread_metadata: Record<string, { name?: string; priority?: number }>;
   queue_metadata?: Record<string, { label: string }>;
 }
 
 interface PrivateV8CpuProfilerBindings {
   startProfiling(name: string): void;
-  stopProfiling(name: string, threadId: number, projectRootDir: string | null): RawThreadCpuProfile | null;
+  stopProfiling(
+    name: string,
+    threadId: number,
+    projectRootDir: string | null,
+    collectResources: boolean
+  ): RawThreadCpuProfile | null;
   getFrameModule(abs_path: string, root_dir: string): string;
 }
 
@@ -187,7 +194,7 @@ const CpuProfilerBindings: V8CpuProfilerBindings = {
     return privateBindings.startProfiling(name);
   },
   stopProfiling(name: string) {
-    return privateBindings.stopProfiling(name, threadId, projectRootDirectory);
+    return privateBindings.stopProfiling(name, threadId, projectRootDirectory, !!GLOBAL_OBJ._sentryDebugIds);
   }
 };
 export { CpuProfilerBindings };
