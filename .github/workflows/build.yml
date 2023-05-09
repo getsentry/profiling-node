@@ -191,6 +191,7 @@ jobs:
         with: 
           name: binaries-${{ github.sha }}
           path: lib/
+      - run: ls -l lib/
       - run: npm run test:bundle
 
   build-and-pack:
