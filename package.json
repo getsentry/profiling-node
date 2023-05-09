@@ -55,6 +55,7 @@
     "benchmark:format": "node benchmarks/format/benchmark.format.js",
     "benchmark:integration": "node benchmarks/cpu/benchmark.integration.base.js && node benchmarks/cpu/benchmark.integration.disabled.js && node benchmarks/cpu/benchmark.integration.js",
     "test:watch": "cross-env SENTRY_PROFILER_BINARY_DIR=./lib jest --watch",
+    "test:bundle": "node test-binaries.esbuild.js",
     "test": "cross-env SENTRY_PROFILER_BINARY_DIR=./lib jest --config jest.config.ts",
     "prettier": "prettier --config ./.prettierrc --write"
   },
