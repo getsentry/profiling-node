@@ -25,25 +25,26 @@ jobs:
           # distributions and container images.
 
           # linux x64 glibc
-          # - os: ubuntu-20.04
-          #   node: 14
-          # - os: ubuntu-20.04
-          #   node: 16
-          # - os: ubuntu-20.04
-          #   node: 18
+          - os: ubuntu-20.04
+            node: 14
+          - os: ubuntu-20.04
+            node: 16
+          - os: ubuntu-20.04
+            node: 18
 
-          # # linux x64 musl
-          # - os: ubuntu-20.04
-          #   container: node:14-alpine3.16
-          #   node: 14
-          # - os: ubuntu-20.04
-          #   container: node:16-alpine3.16
-          #   node: 16
-          # - os: ubuntu-20.04
-          #   container: node:18-alpine3.17
-          #   node: 18
+          # linux x64 musl
+          - os: ubuntu-20.04
+            container: node:14-alpine3.16
+            node: 14
+          - os: ubuntu-20.04
+            container: node:16-alpine3.16
+            node: 16
+          - os: ubuntu-20.04
+            container: node:18-alpine3.17
+            node: 18
 
-          # linux aarch64 glibc
+          # Since github does not support arm64 runners, we cross compile from x64 using node_gyp --target_arch=arm64
+          # linux arm64 glibc
           - os: ubuntu-20.04
             arch: arm64
             node: 14
@@ -54,7 +55,7 @@ jobs:
             arch: arm64
             node: 18
 
-          # linux aarch64 musl
+          # linux arm64 musl
           - os: ubuntu-20.04
             container: node:14-alpine3.16
             arch: arm64
@@ -69,29 +70,29 @@ jobs:
             node: 18
 
             # macos x64
-          # - os: macos-11
-          #   node: 16
-          #   arch: x64
-          # - os: macos-11
-          #   node: 18
-          #   arch: x64
-          #   # windows x86 
-          #   # We are not precompiling binaries for node v14 on windows x86 and x64
-          #   # because the combined size of those two binaries is 2x the size of all the
-          #   # other binaries combined.
-          # - os: windows-2019
-          #   node: 16
-          #   arch: x86
-          # - os: windows-2019
-          #   node: 18
-          #   arch: x86
-          #   # windows x64
-          # - os: windows-2019
-          #   node: 16
-          #   arch: x64
-          # - os: windows-2019
-          #   node: 18
-          #   arch: x64
+          - os: macos-11
+            node: 16
+            arch: x64
+          - os: macos-11
+            node: 18
+            arch: x64
+            # windows x86 
+            # We are not precompiling binaries for node v14 on windows x86 and x64
+            # because the combined size of those two binaries is 2x the size of all the
+            # other binaries combined.
+          - os: windows-2019
+            node: 16
+            arch: x86
+          - os: windows-2019
+            node: 18
+            arch: x86
+            # windows x64
+          - os: windows-2019
+            node: 16
+            arch: x64
+          - os: windows-2019
+            node: 18
+            arch: x64
           # For some reason it seems like it takes forever for 
           # the macos-m1 runners to start up, so we'll just skip it
           # - os: macos-m1
