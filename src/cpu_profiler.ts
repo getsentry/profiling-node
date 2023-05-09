@@ -1,34 +1,102 @@
-import { join, resolve } from 'path';
 import { arch, platform } from 'os';
 import { env, versions } from 'process';
 import { threadId } from 'worker_threads';
-
 import { getAbi } from 'node-abi';
 import { familySync } from 'detect-libc';
 
 import { getProjectRootDirectory } from './utils';
 
 // Keep these in sync with the replacements in esmmod.js and cjsmod.js
-// __START__REPLACE__DIRNAME__
-const _dirname = __dirname;
-// __END__REPLACE__DIRNAME__
-
 // __START__REPLACE__REQUIRE__
-const _require = require;
+import { createRequire as aliasedCreateRequire } from 'module';
+const require = aliasedCreateRequire(import.meta.url);
 // __END__REPLACE__REQUIRE__
 
+// @ts-expect-error whataa
 export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   if (env['SENTRY_PROFILER_BINARY_PATH']) {
-    return _require(env['SENTRY_PROFILER_BINARY_PATH'] as string);
+    return require(env['SENTRY_PROFILER_BINARY_PATH'] as string);
   }
 
-  const family = familySync();
+  const stdlib = familySync();
   const userPlatform = platform();
-  const binariesDirectory = env['SENTRY_PROFILER_BINARY_DIR'] || resolve(_dirname, '..', 'binaries');
   const userArchitecture = env['BUILD_ARCH'] || arch();
-  const identifier = [userPlatform, userArchitecture, family].filter((c) => c !== undefined && c !== null).join('-');
+  const identifier = [userPlatform, userArchitecture, stdlib].filter((c) => c !== undefined && c !== null).join('-');
+  const abi = getAbi(versions.node, 'node');
 
-  return _require(join(binariesDirectory, `sentry_cpu_profiler-v${getAbi(versions.node, 'node')}-${identifier}.node`));
+  switch (userPlatform) {
+    case 'darwin': {
+      switch (userArchitecture) {
+        case 'x64': {
+          switch (abi) {
+            case '83': {
+              return require('./sentry_cpu_profiler-darwin-x64-83.node');
+            }
+            case '93': {
+              return require('./sentry_cpu_profiler-darwin-x64-93.node');
+            }
+            case '108': {
+              return require('./sentry_cpu_profiler-darwin-x64-108.node');
+            }
+          }
+          break;
+        }
+        case 'arm64': {
+          switch (abi) {
+            case '83': {
+              return require('./sentry_cpu_profiler-darwin-arm64-83.node');
+            }
+            case '93': {
+              return require('./sentry_cpu_profiler-darwin-arm64-93.node');
+            }
+            case '108': {
+              return require('./sentry_cpu_profiler-darwin-arm64-108.node');
+            }
+          }
+          break;
+        }
+      }
+      break;
+    }
+
+    // case 'linux': {
+    //   switch (userArchitecture) {
+    //     case 'x64': {
+    //       switch (stdlib) {
+    //         case 'musl': {
+    //           break;
+    //         }
+    //         case 'glibc': {
+    //           break;
+    //         }
+    //       }
+    //     }
+    //     case 'arm64': {
+    //       break;
+    //     }
+    //   }
+    //   break;
+    // }
+
+    // case 'win32': {
+    //   switch (userArchitecture) {
+    //     case 'x64': {
+    //       break;
+    //     }
+    //     case 'ia32': {
+    //       break;
+    //     }
+    //     case 'arm64': {
+    //       break;
+    //     }
+    //   }
+    //   break;
+    // }
+
+    default: {
+      return require(`./sentry_cpu_profiler-v${getAbi(versions.node, 'node')}-${identifier}.node`);
+    }
+  }
 }
 
 // Resolve the project root dir so we can try and compute a filename relative to it.

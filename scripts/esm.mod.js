@@ -9,7 +9,7 @@ contents = contents.replace(
 
 contents = contents.replace(
   /\/\/\s+__START__REPLACE__REQUIRE__((.|\r|\n)*)__END__REPLACE__REQUIRE__/gm,
-  `// __START__REPLACE__REQUIRE__\nimport { createRequire as aliasedCreateRequire } from 'module';\nconst _require = aliasedCreateRequire(import.meta.url);\n// __END__REPLACE__REQUIRE__`
+  `// __START__REPLACE__REQUIRE__\nimport { createRequire as aliasedCreateRequire } from 'module';\nconst require = aliasedCreateRequire(import.meta.url);\n// __END__REPLACE__REQUIRE__`
 );
 
 fs.writeFileSync('./src/cpu_profiler.ts', contents, 'utf8');

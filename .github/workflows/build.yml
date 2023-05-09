@@ -167,14 +167,14 @@ jobs:
 
       # continue with common steps
       - name: Log binary
-        run: du -sh lib/binaries/*
+        run: du -sh lib/*
 
       - name: Archive binary
         uses: actions/upload-artifact@v3
         with:
           name: binaries-${{ github.sha }}
           path: |
-            ${{ github.workspace }}/lib/binaries/
+            ${{ github.workspace }}/lib/*.node
 
   build-and-pack:
     runs-on: ubuntu-latest
@@ -195,8 +195,8 @@ jobs:
       - uses: actions/download-artifact@v3
         with: 
           name: binaries-${{ github.sha }}
-          path: lib/binaries
-      - run: ls -l lib/binaries
+          path: lib/
+      - run: ls -l lib/
       - run: npm pack
 
       - name: Archive artifacts

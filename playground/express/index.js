@@ -1,7 +1,7 @@
 const express = require('express');
 const Sentry = require('@sentry/node');
 const Tracing = require('@sentry/tracing');
-const { ProfilingIntegration } = require('../../lib/cjs');
+const { ProfilingIntegration } = require('../../lib');
 
 const app = express();
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
