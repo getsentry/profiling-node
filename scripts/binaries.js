@@ -10,7 +10,7 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 export function getModuleName() {
   const stdlib = familySync();
   const platform = os.platform();
-  const arch = process.env.BUILD_ARCH || os.arch();
+  const arch = process.env['BUILD_ARCH'] || os.arch();
 
   const identifier = [platform, arch, stdlib, getAbi(process.versions.node, 'node')]
     .filter((c) => c !== undefined && c !== null)
