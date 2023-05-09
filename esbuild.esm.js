@@ -1,4 +1,5 @@
-// eslint-env node
+import esbuild from 'esbuild';
+
 let missingBindingsPlugin = {
   name: 'MissingBindings',
   setup(build) {
@@ -10,7 +11,7 @@ let missingBindingsPlugin = {
   }
 };
 
-require('esbuild').build({
+esbuild.build({
   platform: 'node',
   entryPoints: ['./src/index.ts'],
   outfile: './lib/index.mjs',

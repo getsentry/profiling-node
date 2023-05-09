@@ -1,4 +1,4 @@
-import { arch, platform } from 'os';
+import { arch as _arch, platform as _platform } from 'os';
 import { env, versions } from 'process';
 import { threadId } from 'worker_threads';
 import { getAbi } from 'node-abi';
@@ -13,32 +13,27 @@ import { getProjectRootDirectory } from './utils';
 // __END__REPLACE__REQUIRE__
 
 export function importCppBindingsModule(): any {
+  // If a binary path is specified, use that.
   if (env['SENTRY_PROFILER_BINARY_PATH']) {
     return require(env['SENTRY_PROFILER_BINARY_PATH'] as string);
   }
 
   const stdlib = familySync();
-  const userPlatform = platform();
-  const userArchitecture = env['BUILD_ARCH'] || arch();
+  const platform = _platform();
+  const arch = env['BUILD_ARCH'] || _arch();
   const abi = getAbi(versions.node, 'node');
-  const identifier = [userPlatform, userArchitecture, stdlib, abi]
-    .filter((c) => c !== undefined && c !== null)
-    .join('-');
+  const identifier = [platform, arch, stdlib, abi].filter((c) => c !== undefined && c !== null).join('-');
 
+  // If a user specifies a different binary dir, they are in control of the binaries being moved there
   if (env['SENTRY_PROFILER_BINARY_DIR']) {
-    const path = join(resolve(env['SENTRY_PROFILER_BINARY_DIR']), `sentry_cpu_profiler-${identifier}.node`);
-
-    return require(path);
+    return require(join(resolve(env['SENTRY_PROFILER_BINARY_DIR']), `sentry_cpu_profiler-${identifier}.node`));
   }
 
-  switch (userPlatform) {
+  switch (platform) {
     case 'darwin': {
-      switch (userArchitecture) {
+      switch (arch) {
         case 'x64': {
           switch (abi) {
-            case '83': {
-              return require('./sentry_cpu_profiler-darwin-x64-83.node');
-            }
             case '93': {
               return require('./sentry_cpu_profiler-darwin-x64-93.node');
             }
@@ -48,16 +43,19 @@ export function importCppBindingsModule(): any {
           }
           break;
         }
-        case 'arm64': {
+      }
+      break;
+    }
+
+    case 'win32': {
+      switch (arch) {
+        case 'x64': {
           switch (abi) {
-            case '83': {
-              return require('./sentry_cpu_profiler-darwin-arm64-83.node');
-            }
             case '93': {
-              return require('./sentry_cpu_profiler-darwin-arm64-93.node');
+              return require('./sentry_cpu_profiler-win32-x64-93.node');
             }
             case '108': {
-              return require('./sentry_cpu_profiler-darwin-arm64-108.node');
+              return require('./sentry_cpu_profiler-win32-x64-108.node');
             }
           }
           break;
@@ -65,40 +63,77 @@ export function importCppBindingsModule(): any {
       }
       break;
     }
-
-    // case 'linux': {
-    //   switch (userArchitecture) {
-    //     case 'x64': {
-    //       switch (stdlib) {
-    //         case 'musl': {
-    //           break;
-    //         }
-    //         case 'glibc': {
-    //           break;
-    //         }
-    //       }
-    //     }
-    //     case 'arm64': {
-    //       break;
-    //     }
-    //   }
-    //   break;
-    // }
-
-    // case 'win32': {
-    //   switch (userArchitecture) {
-    //     case 'x64': {
-    //       break;
-    //     }
-    //     case 'ia32': {
-    //       break;
-    //     }
-    //     case 'arm64': {
-    //       break;
-    //     }
-    //   }
-    //   break;
-    // }
+    case 'linux': {
+      switch (arch) {
+        case 'x64': {
+          switch (stdlib) {
+            case 'musl': {
+              switch (abi) {
+                case '83': {
+                  return require('./sentry_cpu_profiler-linux-x64-musl-83.node');
+                }
+                case '93': {
+                  return require('./sentry_cpu_profiler-linux-x64-musl-93.node');
+                }
+                case '108': {
+                  return require('./sentry_cpu_profiler-linux-x64-musl-108.node');
+                }
+              }
+              break;
+            }
+            case 'glibc': {
+              switch (abi) {
+                case '83': {
+                  return require('./sentry_cpu_profiler-linux-x64-glibc-83.node');
+                }
+                case '93': {
+                  return require('./sentry_cpu_profiler-linux-x64-glibc-93.node');
+                }
+                case '108': {
+                  return require('./sentry_cpu_profiler-linux-x64-glibc-108.node');
+                }
+              }
+              break;
+            }
+          }
+          break;
+        }
+        case 'arm64': {
+          switch (stdlib) {
+            case 'musl': {
+              switch (abi) {
+                case '83': {
+                  return require('./sentry_cpu_profiler-linux-arm64-musl-83.node');
+                }
+                case '93': {
+                  return require('./sentry_cpu_profiler-linux-arm64-musl-93.node');
+                }
+                case '108': {
+                  return require('./sentry_cpu_profiler-linux-arm64-musl-108.node');
+                }
+              }
+              break;
+            }
+            case 'glibc': {
+              switch (abi) {
+                case '83': {
+                  return require('./sentry_cpu_profiler-linux-arm64-glibc-83.node');
+                }
+                case '93': {
+                  return require('./sentry_cpu_profiler-linux-arm64-glibc-93.node');
+                }
+                case '108': {
+                  return require('./sentry_cpu_profiler-linux-arm64-glibc-108.node');
+                }
+              }
+              break;
+            }
+          }
+          break;
+        }
+      }
+      break;
+    }
 
     default: {
       return require(`./sentry_cpu_profiler-v${getAbi(versions.node, 'node')}-${identifier}.node`);

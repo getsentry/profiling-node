@@ -6,6 +6,7 @@
     "type": "git",
     "url": "https://github.com/getsentry/profiling-node.git"
   },
+  "type": "module",
   "main": "lib/index.js",
   "module": "lib/index.mjs",
   "types": "lib/index.d.ts",

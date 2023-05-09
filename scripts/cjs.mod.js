@@ -1,4 +1,4 @@
-const fs = require('fs');
+import fs from 'fs';
 let contents = fs.readFileSync('./src/cpu_profiler.ts', 'utf8');
 
 // Convert to CJS

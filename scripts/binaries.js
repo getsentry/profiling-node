@@ -1,10 +1,13 @@
-/* eslint-env node */
-const os = require('os');
-const path = require('path');
-const { getAbi } = require('node-abi');
-const { familySync } = require('detect-libc');
+import os from 'os';
+import path from 'path';
+import { getAbi } from 'node-abi';
+import { familySync } from 'detect-libc';
+import process from 'process';
+import { fileURLToPath, URL } from 'url';
 
-function getModuleName() {
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
+
+export function getModuleName() {
   const stdlib = familySync();
   const userPlatform = os.platform();
   const userArchitecture = process.env.BUILD_ARCH || os.arch();
@@ -16,9 +19,5 @@ function getModuleName() {
   return `sentry_cpu_profiler-${identifier}.node`;
 }
 
-const source = path.join(__dirname, '..', 'build', 'Release', 'sentry_cpu_profiler.node');
-const target = path.join(__dirname, '..', 'lib', getModuleName());
-
-module.exports.getModuleName = getModuleName;
-module.exports.target = target;
-module.exports.source = source;
+export const source = path.join(__dirname, '..', 'build', 'Release', 'sentry_cpu_profiler.node');
+export const target = path.join(__dirname, '..', 'lib', getModuleName());

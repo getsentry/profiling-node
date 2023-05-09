@@ -1,9 +1,10 @@
-/* eslint-env node */
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath, URL } from 'url';
 
-const { getModuleName } = require('./binaries');
+import { getModuleName } from './binaries.js';
 
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const lib = path.resolve(__dirname, '..', 'lib');
 
 if (!fs.existsSync(lib)) {
