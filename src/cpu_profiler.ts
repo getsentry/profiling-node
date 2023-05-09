@@ -20,7 +20,7 @@ export function importCppBindingsModule(): any {
 
   const stdlib = familySync();
   const platform = _platform();
-  const arch = env['BUILD_ARCH'] || _arch();
+  const arch = _arch();
   const abi = getAbi(versions.node, 'node');
   const identifier = [platform, arch, stdlib, abi].filter((c) => c !== undefined && c !== null).join('-');
 
