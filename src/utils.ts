@@ -1,5 +1,5 @@
 import { path as root_directory } from 'app-root-path';
-import { platform, arch, release, version, type, machine } from 'os';
+import * as os from 'os';
 import { resolve } from 'path';
 import { versions, env } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
@@ -22,18 +22,17 @@ import { isDebugBuild } from './env';
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.
 // eslint-disable-next-line
-
 const THREAD_ID_STRING = String(threadId);
 const THREAD_NAME = isMainThread ? 'main' : 'worker';
 const FORMAT_VERSION = '1';
 
 // Machine properties (eval only once)
-const PLATFORM = platform();
-const RELEASE = release();
-const VERSION = version();
-const TYPE = type();
-const MODEL = machine ? machine() : arch();
-const ARCH = arch();
+const PLATFORM = os.platform();
+const RELEASE = os.release();
+const VERSION = os.version();
+const TYPE = os.type();
+const MODEL = os.machine ? os.machine() : os.arch();
+const ARCH = os.arch();
 
 export interface Profile {
   event_id: string;
