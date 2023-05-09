@@ -78,8 +78,7 @@ describe('hubextensions', () => {
 
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).not.toHaveBeenCalled();
-
-    expect(transaction.metadata?.profile).toBeUndefined();
+    expect((transaction.metadata as any)?.profile).toBeUndefined();
   });
   it('skips profiling if profilesSampleRate is set to 0', () => {
     const hub = makeHubMock({ profilesSampleRate: 0 });
@@ -93,7 +92,7 @@ describe('hubextensions', () => {
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).not.toHaveBeenCalled();
 
-    expect(transaction.metadata?.profile).toBeUndefined();
+    expect((transaction.metadata as any)?.profile).toBeUndefined();
   });
   it('skips profiling when random > sampleRate', () => {
     const hub = makeHubMock({ profilesSampleRate: 0.5 });
@@ -108,7 +107,7 @@ describe('hubextensions', () => {
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).not.toHaveBeenCalled();
 
-    expect(transaction.metadata?.profile).toBeUndefined();
+    expect((transaction.metadata as any)?.profile).toBeUndefined();
   });
   it('starts the profiler', () => {
     const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
@@ -125,7 +124,7 @@ describe('hubextensions', () => {
     expect(startProfilingSpy).toHaveBeenCalledTimes(1);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
 
-    expect(transaction.metadata?.profile).toBeDefined();
+    expect((transaction.metadata as any)?.profile).toBeDefined();
   });
 
   it('does not start the profiler if transaction is sampled', () => {

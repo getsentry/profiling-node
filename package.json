@@ -40,7 +40,7 @@
     "build": "npm run build:bindings && npm run build:lib",
     "build:lib:esm": "node scripts/esm.mod.js && node ./esbuild.esm.js",
     "build:lib:cjs": "node scripts/cjs.mod.js && node ./esbuild.cjs.js",
-    "build:lib": "tsc -p ./tsconfig.types.json && npm run build:lib:cjs && npm run build:lib:esm",
+    "build:lib": "tsc -p ./tsconfig.types.json && npm run build:lib:esm && npm run build:lib:cjs",
     "build:configure": "node-gyp configure",
     "build:configure:arm64": "node-gyp configure --arch=arm64",
     "build:bindings": "node-gyp build && node scripts/copy-target.js",
@@ -53,8 +53,8 @@
     "benchmark:server": "node benchmarks/cpu/benchmark.server.js",
     "benchmark:format": "node benchmarks/format/benchmark.format.js",
     "benchmark:integration": "node benchmarks/cpu/benchmark.integration.base.js && node benchmarks/cpu/benchmark.integration.disabled.js && node benchmarks/cpu/benchmark.integration.js",
-    "test:watch": "cross-env SENTRY_PROFILER_BINARY_DIR=../lib jest --watch",
-    "test": "cross-env SENTRY_PROFILER_BINARY_DIR=../lib jest --config jest.config.ts",
+    "test:watch": "cross-env SENTRY_PROFILER_BINARY_DIR=./lib jest --watch",
+    "test": "cross-env SENTRY_PROFILER_BINARY_DIR=./lib jest --config jest.config.ts",
     "prettier": "prettier --config ./.prettierrc --write"
   },
   "keywords": [

@@ -2,18 +2,17 @@ import { arch, platform } from 'os';
 import { env, versions } from 'process';
 import { threadId } from 'worker_threads';
 import { getAbi } from 'node-abi';
+import { join, resolve } from 'path';
 import { familySync } from 'detect-libc';
 
 import { getProjectRootDirectory } from './utils';
 
 // Keep these in sync with the replacements in esmmod.js and cjsmod.js
 // __START__REPLACE__REQUIRE__
-import { createRequire as aliasedCreateRequire } from 'module';
-const require = aliasedCreateRequire(import.meta.url);
+
 // __END__REPLACE__REQUIRE__
 
-// @ts-expect-error whataa
-export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
+export function importCppBindingsModule(): any {
   if (env['SENTRY_PROFILER_BINARY_PATH']) {
     return require(env['SENTRY_PROFILER_BINARY_PATH'] as string);
   }
@@ -21,8 +20,16 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   const stdlib = familySync();
   const userPlatform = platform();
   const userArchitecture = env['BUILD_ARCH'] || arch();
-  const identifier = [userPlatform, userArchitecture, stdlib].filter((c) => c !== undefined && c !== null).join('-');
   const abi = getAbi(versions.node, 'node');
+  const identifier = [userPlatform, userArchitecture, stdlib, abi]
+    .filter((c) => c !== undefined && c !== null)
+    .join('-');
+
+  if (env['SENTRY_PROFILER_BINARY_DIR']) {
+    const path = join(resolve(env['SENTRY_PROFILER_BINARY_DIR']), `sentry_cpu_profiler-${identifier}.node`);
+
+    return require(path);
+  }
 
   switch (userPlatform) {
     case 'darwin': {

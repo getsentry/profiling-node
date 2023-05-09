@@ -6,7 +6,6 @@
 
 coverage/
 lib/
-binaries/
 
 node_modules/
 memory_db
