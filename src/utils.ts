@@ -1,5 +1,5 @@
 import { path as root_directory } from 'app-root-path';
-import os from 'os';
+import * as os from 'os';
 import { resolve } from 'path';
 import { versions, env } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
