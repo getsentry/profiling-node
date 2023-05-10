@@ -29,9 +29,9 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
     return require(join(resolve(env['SENTRY_PROFILER_BINARY_DIR']), `sentry_cpu_profiler-${identifier}.node`));
   }
 
-  /* eslint-disable no-fallthrough */
   // We need the fallthrough so that in the end, we can fallback to the require dynamice require.
   // This is for cases where precompiled binaries were not provided, but may have been compiled from source.
+  /* eslint-disable no-fallthrough */
   switch (platform) {
     case 'darwin': {
       switch (arch) {
