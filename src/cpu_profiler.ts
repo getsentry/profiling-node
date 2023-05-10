@@ -12,17 +12,17 @@ import { getProjectRootDirectory } from './utils';
 
 // __END__REPLACE__REQUIRE__
 
+const stdlib = familySync();
+const platform = _platform();
+const arch = _arch();
+const abi = getAbi(versions.node, 'node');
+const identifier = [platform, arch, stdlib, abi].filter((c) => c !== undefined && c !== null).join('-');
+
 export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   // If a binary path is specified, use that.
   if (env['SENTRY_PROFILER_BINARY_PATH']) {
     return require(env['SENTRY_PROFILER_BINARY_PATH'] as string);
   }
-
-  const stdlib = familySync();
-  const platform = _platform();
-  const arch = process.env['BUILD_ARCH'] || _arch();
-  const abi = getAbi(versions.node, 'node');
-  const identifier = [platform, arch, stdlib, abi].filter((c) => c !== undefined && c !== null).join('-');
 
   // If a user specifies a different binary dir, they are in control of the binaries being moved there
   if (env['SENTRY_PROFILER_BINARY_DIR']) {
