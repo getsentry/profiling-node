@@ -29,6 +29,9 @@ export function importCppBindingsModule(): any {
     return require(join(resolve(env['SENTRY_PROFILER_BINARY_DIR']), `sentry_cpu_profiler-${identifier}.node`));
   }
 
+  /* eslint-disable no-fallthrough */
+  // We need the fallthrough so that in the end, we can fallback to the require dynamice require.
+  // This is for cases where precompiled binaries were not provided, but may have been compiled from source.
   switch (platform) {
     case 'darwin': {
       switch (arch) {
@@ -41,10 +44,8 @@ export function importCppBindingsModule(): any {
               return require('./sentry_cpu_profiler-darwin-x64-108.node');
             }
           }
-          break;
         }
       }
-      break;
     }
 
     case 'win32': {
@@ -58,11 +59,10 @@ export function importCppBindingsModule(): any {
               return require('./sentry_cpu_profiler-win32-x64-108.node');
             }
           }
-          break;
         }
       }
-      break;
     }
+
     case 'linux': {
       switch (arch) {
         case 'x64': {
@@ -93,10 +93,8 @@ export function importCppBindingsModule(): any {
                   return require('./sentry_cpu_profiler-linux-x64-glibc-108.node');
                 }
               }
-              break;
             }
           }
-          break;
         }
         case 'arm64': {
           switch (stdlib) {
@@ -112,7 +110,6 @@ export function importCppBindingsModule(): any {
                   return require('./sentry_cpu_profiler-linux-arm64-musl-108.node');
                 }
               }
-              break;
             }
             case 'glibc': {
               switch (abi) {
@@ -126,19 +123,17 @@ export function importCppBindingsModule(): any {
                   return require('./sentry_cpu_profiler-linux-arm64-glibc-108.node');
                 }
               }
-              break;
             }
           }
-          break;
         }
       }
-      break;
     }
 
     default: {
       return require(`./sentry_cpu_profiler-v${getAbi(versions.node, 'node')}-${identifier}.node`);
     }
   }
+  /* eslint-enable no-fallthrough */
 }
 
 // Resolve the project root dir so we can try and compute a filename relative to it.
