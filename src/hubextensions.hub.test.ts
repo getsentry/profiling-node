@@ -35,6 +35,7 @@ function makeClientWithoutHooks(): [NodeClient, Transport] {
       () => Sentry.getCurrentHub()
     );
   };
+  // @ts-expect-error override private
   client.on = undefined;
   return [client, transport];
 }

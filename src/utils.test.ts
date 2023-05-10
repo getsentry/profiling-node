@@ -84,9 +84,11 @@ describe('createProfilingEventEnvelope', () => {
   });
   it('throws if profile is undefined', () => {
     expect(() =>
+      // @ts-expect-error mock profile as undefined
       createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, undefined), makeDsn({}), makeSdkMetadata({}))
     ).toThrowError('Cannot construct profiling event envelope without a valid profile. Got undefined instead.');
     expect(() =>
+      // @ts-expect-error mock profile as null
       createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, null), makeDsn({}), makeSdkMetadata({}))
     ).toThrowError('Cannot construct profiling event envelope without a valid profile. Got null instead.');
   });
@@ -205,6 +207,7 @@ describe('createProfilingEventEnvelope', () => {
         makeEvent(
           // @ts-expect-error force invalid value
           { type: 'error' },
+          // @ts-expect-error mock tid as undefined
           makeProfile({ samples: [{ stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }] })
         ),
         makeDsn({}),
@@ -234,7 +237,9 @@ describe('createProfilingEventEnvelope', () => {
         },
         makeProfile({
           samples: [
+            // @ts-expect-error mock tid as undefined
             { stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' },
+            // @ts-expect-error mock tid as undefined
             { stack_id: 0, thread_id: undefined, elapsed_since_start_ns: '0' }
           ]
         })
@@ -282,7 +287,7 @@ describe('isValidProfile', () => {
   });
 
   it('is not valid if it does not have a profile_id', () => {
-    expect(isValidProfile(makeProfile({ samples: [], profile_id: undefined }))).toBe(false);
+    expect(isValidProfile(makeProfile({ samples: [], profile_id: undefined } as any))).toBe(false);
   });
 });
 

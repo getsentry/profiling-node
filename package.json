@@ -6,14 +6,15 @@
     "type": "git",
     "url": "https://github.com/getsentry/profiling-node.git"
   },
-  "main": "lib/cjs/index.js",
-  "module": "lib/esm/index.mjs",
-  "types": "lib/types/index.d.ts",
+  "type": "module",
+  "main": "lib/index.js",
+  "module": "lib/index.mjs",
+  "types": "lib/index.d.ts",
   "exports": {
     ".": {
-      "require": "./lib/cjs/index.js",
-      "import": "./lib/esm/index.mjs",
-      "types": "./lib/types/index.d.ts"
+      "require": "./lib/index.js",
+      "import": "./lib/index.mjs",
+      "types": "./lib/index.d.ts"
     }
   },
   "engines": {
@@ -44,7 +45,7 @@
     "build:configure": "node-gyp configure",
     "build:configure:arm64": "node-gyp configure --arch=arm64",
     "build:bindings": "node-gyp build && node scripts/copy-target.js",
-    "build:bindings:arm64": "node-gyp build --arch=arm64",
+    "build:bindings:arm64": "BUILD_ARCH=arm64 node-gyp build --arch=arm64 && node scripts/copy-target.js",
     "build:benchmark:format": "node-gyp -DFORMAT_BENCHMARK=1 build",
     "build:dev": "npm run clean && npm run build:configure && npm run build",
     "benchmark": "npm run benchmark:methods && npm run benchmark:profiler && npm run benchmark:server && npm run benchmark:format",
@@ -53,8 +54,9 @@
     "benchmark:server": "node benchmarks/cpu/benchmark.server.js",
     "benchmark:format": "node benchmarks/format/benchmark.format.js",
     "benchmark:integration": "node benchmarks/cpu/benchmark.integration.base.js && node benchmarks/cpu/benchmark.integration.disabled.js && node benchmarks/cpu/benchmark.integration.js",
-    "test:watch": "cross-env SENTRY_PROFILER_BINARY_DIR=../lib/binaries jest --watch",
-    "test": "cross-env SENTRY_PROFILER_BINARY_DIR=../lib/binaries jest --config jest.config.ts",
+    "test:watch": "cross-env SENTRY_PROFILER_BINARY_DIR=./lib jest --watch",
+    "test:bundle": "node test-binaries.esbuild.js",
+    "test": "cross-env SENTRY_PROFILER_BINARY_DIR=./lib jest --config jest.config.ts",
     "prettier": "prettier --config ./.prettierrc --write"
   },
   "keywords": [

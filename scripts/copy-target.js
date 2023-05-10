@@ -1,22 +1,18 @@
-/* eslint-env node */
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath, URL } from 'url';
 
-const { getModuleName } = require('./binaries');
+import { getModuleName } from './binaries.js';
 
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const lib = path.resolve(__dirname, '..', 'lib');
-const binaries = path.resolve(__dirname, '..', 'lib', 'binaries');
 
 if (!fs.existsSync(lib)) {
   fs.mkdirSync(lib);
 }
 
-if (!fs.existsSync(binaries)) {
-  fs.mkdirSync(binaries);
-}
-
 const source = path.join(__dirname, '..', 'build', 'Release', 'sentry_cpu_profiler.node');
-const target = path.join(__dirname, '..', 'lib', 'binaries', getModuleName());
+const target = path.join(__dirname, '..', 'lib', getModuleName());
 
 console.log('Renaming', source, 'to', target);
 fs.renameSync(source, target);

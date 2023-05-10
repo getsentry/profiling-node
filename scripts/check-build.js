@@ -1,7 +1,7 @@
-const cp = require('child_process');
-const { existsSync } = require('fs');
-
-const { target } = require('./binaries');
+import cp from 'child_process';
+import { existsSync } from 'fs';
+import process from 'process';
+import { target } from './binaries.js';
 
 function recompileFromSource() {
   try {

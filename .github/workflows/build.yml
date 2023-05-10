@@ -4,6 +4,7 @@ on:
    branches:
       - main
       - release/**
+      - jb/build/enum-binaries
   workflow_dispatch:
     inputs:
       commit:
@@ -42,7 +43,8 @@ jobs:
             container: node:18-alpine3.17
             node: 18
 
-          # linux aarch64 glibc
+          # Since github does not support arm64 runners, we cross compile from x64 using node_gyp --target_arch=arm64
+          # linux arm64 glibc
           - os: ubuntu-20.04
             arch: arm64
             node: 14
@@ -53,7 +55,7 @@ jobs:
             arch: arm64
             node: 18
 
-          # linux aarch64 musl
+          # linux arm64 musl
           - os: ubuntu-20.04
             container: node:14-alpine3.16
             arch: arm64
@@ -130,13 +132,13 @@ jobs:
         if: matrix.arch != 'arm64'
         run: npm run test --silent
       
-      # configure build test copy aarch64
-      - name: setup (aarch64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
+      # configure build test copy arm64
+      - name: setup (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
         if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine')
         run: |
           sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
           
-      - name: "Configure gyp (aarch64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
+      - name: "Configure gyp (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
         if: matrix.arch == 'arm64'
         run: npm run build:configure:arm64
 
@@ -147,17 +149,17 @@ jobs:
           tar -xzvf aarch64-linux-musl-cross.tgz
           $(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc --version
 
-      - name: "Build bindings (aarch64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
+      - name: "Build bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
         if: matrix.arch == 'arm64' && contains(matrix.container, 'alpine')
         run: |
           CC=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc \
           CXX=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-g++ \
-          npm run build:bindings
+          BUILD_ARCH=arm64 npm run build:bindings
 
-      - name: "Build bindings (aarch64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
+      - name: "Build bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
         if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine')
         run: |
-          npm run build:bindings:arm64
+          BUILD_ARCH=arm64 npm run build:bindings:arm64
 
       # This will obviously not work as we run on x64, but we should
       # investigate into adding qemu or equiv to run tests on compiled binaries
@@ -167,18 +169,35 @@ jobs:
 
       # continue with common steps
       - name: Log binary
-        run: du -sh lib/binaries/*
+        run: du -sh lib/*
 
       - name: Archive binary
         uses: actions/upload-artifact@v3
         with:
           name: binaries-${{ github.sha }}
           path: |
-            ${{ github.workspace }}/lib/binaries/
+            ${{ github.workspace }}/lib/*.node
+  test-bundle:
+    runs-on: ubuntu-latest
+    needs: [precompile-bindings]
+    # if: startsWith(github.ref, 'refs/heads/release/')
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - run: npm ci
+      - run: npm run build:lib
+      - uses: actions/download-artifact@v3
+        with: 
+          name: binaries-${{ github.sha }}
+          path: lib/
+      - run: ls -l lib/
+      - run: npm run test:bundle
 
   build-and-pack:
     runs-on: ubuntu-latest
-    needs: [precompile-bindings]
+    needs: [precompile-bindings, test-bundle]
     # Build artifacts are only needed for releasing workflow.
     if: startsWith(github.ref, 'refs/heads/release/')
     steps:
@@ -195,8 +214,8 @@ jobs:
       - uses: actions/download-artifact@v3
         with: 
           name: binaries-${{ github.sha }}
-          path: lib/binaries
-      - run: ls -l lib/binaries
+          path: lib/
+      - run: ls -l lib/
       - run: npm pack
 
       - name: Archive artifacts

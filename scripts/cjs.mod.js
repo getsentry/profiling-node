@@ -1,4 +1,4 @@
-const fs = require('fs');
+import fs from 'fs';
 let contents = fs.readFileSync('./src/cpu_profiler.ts', 'utf8');
 
 // Convert to CJS
@@ -9,7 +9,7 @@ contents = contents.replace(
 
 contents = contents.replace(
   /\/\/\s+__START__REPLACE__REQUIRE__((.|\r|\n)*)__END__REPLACE__REQUIRE__/gm,
-  `// __START__REPLACE__REQUIRE__\nconst _require = require;\n// __END__REPLACE__REQUIRE__`
+  `// __START__REPLACE__REQUIRE__\n\n// __END__REPLACE__REQUIRE__`
 );
 
 fs.writeFileSync('./src/cpu_profiler.ts', contents, 'utf8');
