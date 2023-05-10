@@ -1,6 +1,6 @@
 name: 'ci'
 on:
-  pull_request:
+  # pull_request:
   push:
     branches:
       - main
@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-node@v2
       - run: npm ci
       - run: npm run lint
-  build-test-matrix:
+  build-test:
     strategy:
       fail-fast: false
       matrix:

@@ -12,4 +12,9 @@ contents = contents.replace(
   `// __START__REPLACE__REQUIRE__\n\n// __END__REPLACE__REQUIRE__`
 );
 
+contents = contents.replace(
+  /\/\/\s+__START__STRIP__BUILD_ARCH__((.|\r|\n)*)__END__STRIP__BUILD_ARCH__/gm,
+  `// __START__STRIP__BUILD_ARCH__\nconst arch = _arch();\n// __END__STRIP__BUILD_ARCH__`
+);
+
 fs.writeFileSync('./src/cpu_profiler.ts', contents, 'utf8');

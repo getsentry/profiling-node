@@ -1,5 +1,5 @@
 import { arch as _arch, platform as _platform } from 'os';
-import { env, versions } from 'process';
+import process from 'process';
 import { threadId } from 'worker_threads';
 import { getAbi } from 'node-abi';
 import { join, resolve } from 'path';
@@ -12,21 +12,25 @@ import { getProjectRootDirectory } from './utils';
 
 // __END__REPLACE__REQUIRE__
 
-const stdlib = familySync();
+// We need to strip the process.env["BUILD_ARCH"] from the final bundle,
+// esbuild will only strip dead code when minify is enabled and we dont want to minify.
+// __START__STRIP__BUILD_ARCH__
+const arch = process.env['BUILD_ARCH'] || _arch();
+// __END__STRIP__BUILD_ARCH__
 const platform = _platform();
-const arch = _arch();
-const abi = getAbi(versions.node, 'node');
+const stdlib = familySync();
+const abi = getAbi(process.versions.node, 'node');
 const identifier = [platform, arch, stdlib, abi].filter((c) => c !== undefined && c !== null).join('-');
 
 export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   // If a binary path is specified, use that.
-  if (env['SENTRY_PROFILER_BINARY_PATH']) {
-    return require(env['SENTRY_PROFILER_BINARY_PATH'] as string);
+  if (process.env['SENTRY_PROFILER_BINARY_PATH']) {
+    return require(process.env['SENTRY_PROFILER_BINARY_PATH'] as string);
   }
 
   // If a user specifies a different binary dir, they are in control of the binaries being moved there
-  if (env['SENTRY_PROFILER_BINARY_DIR']) {
-    return require(join(resolve(env['SENTRY_PROFILER_BINARY_DIR']), `sentry_cpu_profiler-${identifier}.node`));
+  if (process.env['SENTRY_PROFILER_BINARY_DIR']) {
+    return require(join(resolve(process.env['SENTRY_PROFILER_BINARY_DIR']), `sentry_cpu_profiler-${identifier}.node`));
   }
 
   // We need the fallthrough so that in the end, we can fallback to the require dynamice require.
@@ -130,7 +134,7 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
     }
 
     default: {
-      return require(`./sentry_cpu_profiler-v${getAbi(versions.node, 'node')}-${identifier}.node`);
+      return require(`./sentry_cpu_profiler-${identifier}.node`);
     }
   }
   /* eslint-enable no-fallthrough */

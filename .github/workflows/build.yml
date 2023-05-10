@@ -124,18 +124,17 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
-          architecture: ${{ matrix.arch }}
 
       - name: Install dependencies
         run: npm install --unsafe-perm --build-from-source
 
       # configure build test copy x64
       - name: Configure gyp
-        if: matrix.arch != 'arm64'
+        if: matrix.arch != 'arm64' || contains(matrix.os, 'macos)
         run: npm run build:configure
 
       - name: Build bindings
-        if: matrix.arch != 'arm64'
+        if: matrix.arch != 'arm64' || contains(matrix.os, 'macos)
         run: npm run build:bindings
 
       - name: Test
@@ -144,12 +143,12 @@ jobs:
       
       # configure build test copy arm64
       - name: setup (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
-        if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine')
+        if: matrix.arch == 'arm64' && !contains(matrix.os, 'macos) && !contains(matrix.container, 'alpine')
         run: |
           sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
           
       - name: "Configure gyp (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
-        if: matrix.arch == 'arm64'
+        if: matrix.arch == 'arm64' && 
         run: npm run build:configure:arm64
 
       - name: Setup musl cross compiler
@@ -167,7 +166,7 @@ jobs:
           BUILD_ARCH=arm64 npm run build:bindings
 
       - name: "Build bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
-        if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine')
+        if: matrix.arch == 'arm64' && !contains(matrix.os, 'macos') && !contains(matrix.container, 'alpine')
         run: |
           BUILD_ARCH=arm64 npm run build:bindings:arm64
 
