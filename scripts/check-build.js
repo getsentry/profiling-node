@@ -3,6 +3,9 @@ import { existsSync } from 'fs';
 import process from 'process';
 import { target } from './binaries.js';
 
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+
 function recompileFromSource() {
   try {
     console.log('@sentry/profiling-node: Compiling from source...');
