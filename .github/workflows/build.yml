@@ -4,7 +4,7 @@ on:
    branches:
       - main
       - release/**
-      - jb/build/enum-binaries
+      - jb/binaries/m1
   workflow_dispatch:
     inputs:
       commit:
@@ -69,13 +69,22 @@ jobs:
             container: node:18-alpine3.17
             node: 18
 
-            # macos x64
-          - os: macos-11
+          # macos x64
+          - os: macos-12
             node: 16
             arch: x64
-          - os: macos-11
+          - os: macos-12
             node: 18
             arch: x64
+
+          # macos arm64
+          - os: macos-13
+            node: 16
+            arch: arm64
+          - os: macos-13
+            node: 16
+            arch: arm64
+
             # windows x86 
             # We are not precompiling binaries for node v14 on windows x86 and x64
             # because the combined size of those two binaries is 2x the size of all the
@@ -115,6 +124,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
+          architecture: ${{ matrix.arch }}
 
       - name: Install dependencies
         run: npm install --unsafe-perm --build-from-source
