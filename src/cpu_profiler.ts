@@ -12,7 +12,7 @@ import { getProjectRootDirectory } from './utils';
 
 // __END__REPLACE__REQUIRE__
 
-export function importCppBindingsModule(): any {
+export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   // If a binary path is specified, use that.
   if (env['SENTRY_PROFILER_BINARY_PATH']) {
     return require(env['SENTRY_PROFILER_BINARY_PATH'] as string);
