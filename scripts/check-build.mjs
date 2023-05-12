@@ -1,7 +1,7 @@
 import cp from 'child_process';
 import { existsSync } from 'fs';
 import process from 'process';
-import { target } from './binaries.js';
+import { target } from './binaries.mjs';
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);

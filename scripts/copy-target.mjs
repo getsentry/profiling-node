@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, URL } from 'url';
 
-import { getModuleName } from './binaries.js';
+import { getModuleName } from './binaries.mjs';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const lib = path.resolve(__dirname, '..', 'lib');
