@@ -4,7 +4,6 @@
 #include <v8-profiler.h>
 #include <v8.h>
 #include <string>
-
 #include <unordered_map>
 
 #define FORMAT_SAMPLED 2
@@ -420,9 +419,10 @@ static napi_value StartProfiling(napi_env env, napi_callback_info info) {
     return napi_null;
   }
 
-  profiler->cpu_profiler->StartProfiling(profile_title, {
+  profiler->cpu_profiler->StartProfiling(profile_title,
     v8::CpuProfilingMode::kCallerLineNumbers, v8::CpuProfilingOptions::kNoSampleLimit,
-    kSamplingInterval });
+    kSamplingInterval
+  );
 
   napi_value napi_null;
   assert(napi_get_null(env, &napi_null) == napi_ok);
