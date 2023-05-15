@@ -5,6 +5,7 @@
 #include <v8.h>
 #include <string>
 #include <unordered_map>
+#include <iostream>
 
 #define FORMAT_SAMPLED 2
 #define FORMAT_RAW 1
@@ -17,12 +18,12 @@
 #define FORMAT_BENCHMARK 0
 #endif
 
-static const uint8_t kMaxStackDepth = 128;
-static const float kSamplingFrequency = 99.0; // 99 to avoid lockstep sampling
-static const float kSamplingHz = 1 / kSamplingFrequency;
-static const int kSamplingInterval = kSamplingHz * 1e6;
-static const v8::CpuProfilingNamingMode kNamingMode = v8::CpuProfilingNamingMode::kDebugNaming;
-static const v8::CpuProfilingLoggingMode kDefaultLoggingMode = v8::CpuProfilingLoggingMode::kEagerLogging;
+static const uint8_t kMaxStackDepth(128);
+static const float kSamplingFrequency(99.0); // 99 to avoid lockstep sampling
+static const float kSamplingHz(1 / kSamplingFrequency);
+static const int kSamplingInterval(kSamplingHz * 1e6);
+static const v8::CpuProfilingNamingMode kNamingMode(v8::CpuProfilingNamingMode::kDebugNaming);
+static const v8::CpuProfilingLoggingMode kDefaultLoggingMode(v8::CpuProfilingLoggingMode::kEagerLogging);
 
 // Allow users to override the default logging mode via env variable. This is useful 
 // because sometimes the flow of the profiled program can be to execute many sequential 
@@ -419,11 +420,15 @@ static napi_value StartProfiling(napi_env env, napi_callback_info info) {
     return napi_null;
   }
 
-  profiler->cpu_profiler->StartProfiling(profile_title,
-    v8::CpuProfilingMode::kCallerLineNumbers, v8::CpuProfilingOptions::kNoSampleLimit,
+  v8::CpuProfilingOptions options(
+    v8::CpuProfilingMode::kCallerLineNumbers,
+    v8::CpuProfilingOptions::kNoSampleLimit,
     kSamplingInterval
   );
 
+  profiler->cpu_profiler->StartProfiling(profile_title, options);
+
+  
   napi_value napi_null;
   assert(napi_get_null(env, &napi_null) == napi_ok);
 
