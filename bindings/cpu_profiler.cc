@@ -420,13 +420,11 @@ static napi_value StartProfiling(napi_env env, napi_callback_info info) {
     return napi_null;
   }
 
-  v8::CpuProfilingOptions options(
+  profiler->cpu_profiler->StartProfiling(profile_title, {
     v8::CpuProfilingMode::kCallerLineNumbers,
     v8::CpuProfilingOptions::kNoSampleLimit,
     kSamplingInterval
-  );
-
-  profiler->cpu_profiler->StartProfiling(profile_title, options);
+  });
 
   
   napi_value napi_null;
