@@ -83,7 +83,7 @@ describe('hubextensions', () => {
     // We will mock the carrier as if it has been initialized by the SDK, else everything is short circuited
     getMainCarrier().__SENTRY__ = {};
     addExtensionMethods();
-    GLOBAL_OBJ._sentryDebugIds = undefined;
+    GLOBAL_OBJ._sentryDebugIds = undefined as any;
   });
   afterEach(() => {
     delete getMainCarrier().__SENTRY__;
