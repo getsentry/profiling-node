@@ -1,3 +1,24 @@
+## 1.0.0-alpha.6
+
+### Various fixes & improvements
+
+- readme: drop beta mentions (c3c66a72) by @JonasBa
+- ci: test on node20 (d33110de) by @JonasBa
+- ref: remove options options type (41b8544f) by @JonasBa
+- ref: use options type (154255d3) by @JonasBa
+- fix: segfault in node18 (95545180) by @JonasBa
+- fix identifier (21425e4f) by @JonasBa
+- rename to mjs (a4d50996) by @JonasBa
+- fallthrough in switch (e9f6a872) by @JonasBa
+- fix: add back return type (d7560395) by @JonasBa
+- fix: profiling binary fallthrough (beaf0c0a) by @JonasBa
+- fix: build needs require (bc39eaab) by @JonasBa
+- fix(build): enumerate precompiled binaries (#146) by @JonasBa
+- feat(profiling): bundle lib code (#145) by @JonasBa
+- fix(profiling): add exports to package.json (#142) by @JonasBa
+- perf: optimize string ops + remove nan (#140) by @JonasBa
+- ref: remove profile context before sending (#138) by @JonasBa
+
 ## 1.0.0-alpha.5
 
 ### Various fixes & improvements
