@@ -4,7 +4,7 @@
   </a>
 </p>
 
-# Official Sentry Profiling SDK for NodeJS (beta)
+# Official Sentry Profiling SDK for NodeJS
 
 [![npm version](https://img.shields.io/npm/v/@sentry/profiling-node.svg)](https://www.npmjs.com/package/@sentry/profiling-node)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/profiling-node.svg)](https://www.npmjs.com/package/@sentry/profiling-node)
@@ -85,10 +85,6 @@ SENTRY_PROFILER_LOGGING_MODE=lazy node server.js
 ```
 
 ## FAQ 💭
-
-### When should I not use this package
-
-The package is in beta stage, there is a possibility that adding this package may crash your entire node process (even when imported only in worker threads). We would also advise caution if you want to profile high throughput operations as starting the profiler adds some performance overhead and while we do have micro benchmarks to measure overhead, we have yet to properly test this on production system.
 
 ### Can the profiler leak PII to Sentry?
 
