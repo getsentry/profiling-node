@@ -27,12 +27,13 @@ for (let i = 0; i < argv.length; i++) {
   }
 
   if (arg.startsWith('--target_node=')) {
-    STDLIB = arg.split('=')[1];
+    NODE = arg.split('=')[1];
     continue;
   }
 
   if (arg === '--help' || arg === '-h') {
     HELP = true;
+    continue;
   }
 }
 
@@ -53,6 +54,34 @@ Arguments:\n
 }
 
 const ARGV_ERRORS = [];
+
+const NODE_TO_ABI = {
+  14: '83',
+  16: '93',
+  18: '108',
+  20: '115'
+};
+
+if (NODE) {
+  console.log('HAS TARGET');
+  if (NODE_TO_ABI[NODE]) {
+    NODE = NODE_TO_ABI[NODE];
+  } else if (NODE.startsWith('14')) {
+    NODE = NODE_TO_ABI['14'];
+  } else if (NODE.startsWith('16')) {
+    NODE = NODE_TO_ABI['16'];
+  } else if (NODE.startsWith('18')) {
+    NODE = NODE_TO_ABI['18'];
+  } else if (NODE.startsWith('20')) {
+    NODE = NODE_TO_ABI['20'];
+  } else {
+    ARGV_ERRORS.push(
+      `❌ Sentry: Invalid node version passed as argument, please make sure --target_node is a valid major node version. Supported versions are 14, 16, 18 and 20.`
+    );
+  }
+  console.log('RESOVLED TO', NODE);
+}
+
 if (!SOURCE_DIR) {
   ARGV_ERRORS.push(
     `❌ Sentry: Missing target_dir_path argument. target_dir_path should point to the directory containing the final bundled code. If you are using webpack, this would be the equivalent of output.path option.`
@@ -112,18 +141,10 @@ async function prune(binaries) {
   let bytesSaved = 0;
   let removedBinariesCount = 0;
 
+  const conditions = [PLATFORM, ARCH, STDLIB, NODE].filter((n) => !!n);
+  console.log(conditions);
   for (const binary of binaries) {
-    // Skip binaries that match the target argument and remove the rest
-    if (PLATFORM && binary.includes(PLATFORM)) {
-      continue;
-    }
-    if (ARCH && binary.includes(ARCH)) {
-      continue;
-    }
-    if (STDLIB && binary.includes(STDLIB)) {
-      continue;
-    }
-    if (NODE && binary.includes(NODE)) {
+    if (conditions.every((condition) => binary.includes(condition))) {
       continue;
     }
 
