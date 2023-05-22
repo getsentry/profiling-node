@@ -27,7 +27,6 @@ npm install --save @sentry/tracing @sentry/profiling-node
 ```javascript
 import * as Sentry from '@sentry/node';
 import { ProfilingIntegration } from '@sentry/profiling-node';
-import '@sentry/tracing';
 
 Sentry.init({
   dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
@@ -41,7 +40,7 @@ Sentry.init({
 Sentry SDK will now automatically profile all transactions, even the ones which may be started as a result of using an automatic instrumentation integration.
 
 ```javascript
-const transaction = Sentry.startTransaction({ name: 'I will do some work' });
+const transaction = Sentry.startTransaction({ name: 'some workflow' });
 
 // The code between startTransaction and transaction.finish will be profiled
 
@@ -73,6 +72,45 @@ We currently ship prebuilt binaries for a few of the most common platforms and n
 - Windows x86
 
 For a more detailed list, see our build.yml workflow.
+
+### Bundling
+
+If you are looking to squeeze some extra performance or improve cold start in your application (especially true for serverless environments where modules are often evaluates on a per request basis), then we recommend you look into bundling your code. Modern JS engines are much faster at parsing and compiling JS than following long module resolution chains and reading file contents from disk. Because @sentry/profiling-node is a package that uses native node modules, bundling it is slightly different than just bundling javascript. In other words, the bundler needs to recognize that a .node file is node native binding and move it to the correct location so that it can later be used. Failing to do so will result in a MODULE_NOT_FOUND error.
+
+The easiest way to make bundling work with @sentry/profiling-node and other modules which use native nodejs bindings is to mark the package as external - this will prevent the code from the package from being bundled, but it means that you will now need to rely on the package to be installed in your production environment.
+
+To mark the package as external, use the following configuration:
+
+Webpack
+```js
+externals: {
+  "@sentry/profiling-node": "commonjs @sentry/profiling-node",
+},
+```
+
+esbuild
+```js
+{
+  entryPoints: ['index.js'],
+  platform: 'node',
+  bundle: true,
+  external: ['@sentry/profiling-node'],
+}
+```
+
+serverless-esbuild (serverless.yml)
+```yml
+custom:
+  esbuild:
+    external:
+      - @sentry/profiling-node
+    packagerOptions:
+      scripts:
+        - npm install @sentry/profiling-node
+```
+
+@TODO turbopack
+@TODO vercel-ncc
 
 ### Environment flags
 
