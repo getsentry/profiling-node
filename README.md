@@ -81,24 +81,23 @@ The easiest way to make bundling work with @sentry/profiling-node and other modu
 
 To mark the package as external, use the following configuration:
 
-Webpack
+[webpack](https://webpack.js.org/configuration/externals/#externals)
 ```js
 externals: {
   "@sentry/profiling-node": "commonjs @sentry/profiling-node",
 },
 ```
 
-esbuild
+[esbuild](https://esbuild.github.io/api/#external)
 ```js
 {
   entryPoints: ['index.js'],
   platform: 'node',
-  bundle: true,
   external: ['@sentry/profiling-node'],
 }
 ```
 
-serverless-esbuild (serverless.yml)
+[serverless-esbuild (serverless.yml)](https://www.serverless.com/plugins/serverless-esbuild#external-dependencies)
 ```yml
 custom:
   esbuild:
@@ -109,8 +108,16 @@ custom:
         - npm install @sentry/profiling-node
 ```
 
-@TODO turbopack
-@TODO vercel-ncc
+[vercel-ncc](https://github.com/vercel/ncc#programmatically-from-nodejs)
+```js
+{
+  externals: ["@sentry/profiling-node"],
+}
+```
+
+Marking the package as external is the simplest and most future proof way of ensuring it will work, however if you want to bundle it, it is possible to do so too, just note that there will be only a very small benefit to startup as @sentry/profiling-node itself is already published as a bundled package.
+
+If you do decide to bundle everything, then you can use `sentry-prune-profiler-binaries` to clear unused binaries from the final output folder, just run `sentry-prune-profiler-binaries --help` to see the available options.
 
 ### Environment flags
 
