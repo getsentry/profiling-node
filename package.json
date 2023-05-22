@@ -16,6 +16,9 @@
       "types": "./lib/index.d.ts"
     }
   },
+  "bin": {
+    "sentry-prune-profiler-binaries": "scripts/prune-profiler-binaries.mjs"
+  },
   "engines": {
     "node": ">=8.0.0"
   },
@@ -30,7 +33,8 @@
     "scripts/binaries.mjs",
     "scripts/check-build.mjs",
     "scripts/copy-target.mjs",
-    "scripts/empty.js"
+    "scripts/empty.js",
+    "scripts/prune-profiler-binaries.js"
   ],
   "scripts": {
     "install": "node scripts/empty.js",
