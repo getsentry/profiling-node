@@ -46,9 +46,45 @@ describe('Private bindings', () => {
     privateBindings.startProfiling('profiled-program');
     await wait(100);
     expect(() => {
-      const profile = privateBindings.stopProfiling('profiled-program', 0, null);
+      const profile = privateBindings.stopProfiling('profiled-program', 0, null, false);
       if (!profile) throw new Error('No profile');
     }).not.toThrow();
+  });
+
+  it('does not crash if collect resources is false', async () => {
+    privateBindings.startProfiling('profiled-program');
+    await wait(100);
+    expect(() => {
+      const profile = privateBindings.stopProfiling('profiled-program', 0, null, false);
+      if (!profile) throw new Error('No profile');
+    }).not.toThrow();
+  });
+
+  it('collects resources', async () => {
+    privateBindings.startProfiling('profiled-program');
+    await wait(100);
+
+    const profile = privateBindings.stopProfiling('profiled-program', 0, null, true);
+    if (!profile) throw new Error('No profile');
+
+    expect(profile.resources.length).toBeGreaterThan(0);
+
+    expect(new Set(profile.resources).size).toBe(profile.resources.length);
+
+    for (const resource of profile.resources) {
+      expect(typeof resource).toBe('string');
+      expect(resource).not.toBe(undefined);
+    }
+  });
+
+  it('does not collect resources', async () => {
+    privateBindings.startProfiling('profiled-program');
+    await wait(100);
+
+    const profile = privateBindings.stopProfiling('profiled-program', 0, null, false);
+    if (!profile) throw new Error('No profile');
+
+    expect(profile.resources.length).toBe(0);
   });
 });
 

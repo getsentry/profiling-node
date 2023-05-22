@@ -30,7 +30,8 @@ function makeProfiledEvent(): ProfiledEvent {
           }
         ],
         frames: [],
-        stacks: []
+        stacks: [],
+        resources: []
       }
     }
   };

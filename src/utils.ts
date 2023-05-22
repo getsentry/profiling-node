@@ -6,6 +6,8 @@ import { isMainThread, threadId } from 'worker_threads';
 import type {
   SdkInfo,
   SdkMetadata,
+  StackParser,
+  StackFrame,
   DynamicSamplingContext,
   DsnComponents,
   Event,
@@ -15,7 +17,9 @@ import type {
   EventEnvelopeHeaders
 } from '@sentry/types';
 
-import { createEnvelope, dropUndefinedKeys, dsnToString, logger, forEachEnvelopeItem } from '@sentry/utils';
+import * as Sentry from '@sentry/node';
+import { GLOBAL_OBJ, createEnvelope, dropUndefinedKeys, dsnToString, logger, forEachEnvelopeItem } from '@sentry/utils';
+
 import type { ThreadCpuProfile, RawThreadCpuProfile } from './cpu_profiler';
 import { isDebugBuild } from './env';
 
@@ -33,6 +37,15 @@ const VERSION = os.version();
 const TYPE = os.type();
 const MODEL = os.machine ? os.machine() : os.arch();
 const ARCH = os.arch();
+
+interface DebugImage {
+  code_file: string;
+  type: string;
+  debug_id: string;
+  image_addr?: string;
+  image_size?: number;
+  image_vmaddr?: string;
+}
 
 export interface Profile {
   event_id: string;
@@ -59,14 +72,7 @@ export interface Profile {
   platform: string;
   profile: ThreadCpuProfile;
   debug_meta?: {
-    images: {
-      debug_id: string;
-      image_addr: string;
-      code_file: string;
-      type: string;
-      image_size: number;
-      image_vmaddr: string;
-    }[];
+    images: DebugImage[];
   };
   transaction: {
     name: string;
@@ -276,6 +282,9 @@ function createProfilePayload(
       architecture: ARCH,
       is_emulator: false
     },
+    debug_meta: {
+      images: applyDebugMetadata(cpuProfile.resources)
+    },
     profile: enrichedThreadProfile,
     transaction: {
       name: transaction,
@@ -434,4 +443,68 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
   });
 
   return events;
+}
+
+const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
+export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): DebugImage[] {
+  const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
+
+  if (!debugIdMap) {
+    return [];
+  }
+
+  const stackParser = Sentry.getCurrentHub?.()?.getClient()?.getOptions()?.stackParser;
+
+  if (!stackParser) {
+    return [];
+  }
+
+  let debugIdStackFramesCache: Map<string, StackFrame[]>;
+  const cachedDebugIdStackFrameCache = debugIdStackParserCache.get(stackParser);
+  if (cachedDebugIdStackFrameCache) {
+    debugIdStackFramesCache = cachedDebugIdStackFrameCache;
+  } else {
+    debugIdStackFramesCache = new Map<string, StackFrame[]>();
+    debugIdStackParserCache.set(stackParser, debugIdStackFramesCache);
+  }
+
+  // Build a map of filename -> debug_id
+  const filenameDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
+    let parsedStack: StackFrame[];
+
+    const cachedParsedStack = debugIdStackFramesCache.get(debugIdStackTrace);
+    if (cachedParsedStack) {
+      parsedStack = cachedParsedStack;
+    } else {
+      parsedStack = stackParser(debugIdStackTrace);
+      debugIdStackFramesCache.set(debugIdStackTrace, parsedStack);
+    }
+
+    for (let i = parsedStack.length - 1; i >= 0; i--) {
+      const stackFrame = parsedStack[i];
+      const file = stackFrame?.filename;
+
+      if (stackFrame && file) {
+        acc[file] = debugIdMap[debugIdStackTrace] as string;
+        break;
+      }
+    }
+    return acc;
+  }, {});
+
+  const images: DebugImage[] = [];
+
+  for (let i = 0; i < resource_paths.length; i++) {
+    const path = resource_paths[i];
+
+    if (path && filenameDebugIdMap[path]) {
+      images.push({
+        type: 'sourcemap',
+        code_file: path,
+        debug_id: filenameDebugIdMap[path] as string
+      });
+    }
+  }
+
+  return images;
 }
