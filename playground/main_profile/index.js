@@ -1,5 +1,4 @@
 const Sentry = require( '@sentry/node')
-require('@sentry/tracing');
 const { ProfilingIntegration } = require( '../../lib/index');
 const { writeFileSync } = require( 'node:fs')
 const path = require( 'path')

@@ -1,5 +1,4 @@
 const Sentry = require('@sentry/node');
-require('@sentry/tracing');
 
 function isNotTransaction(span) {
   return span.op !== 'jest test';

@@ -1,6 +1,5 @@
 import express from 'express';
 import * as Sentry from '@sentry/node';
-import * as Tracing from '@sentry/tracing';
 import { ProfilingIntegration } from '../../src/integration';
 
 const wait = (ms: any) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -15,7 +14,7 @@ Sentry.init({
     // enable HTTP calls tracing
     new Sentry.Integrations.Http({ tracing: true }),
     // enable Express.js middleware tracing
-    new Tracing.Integrations.Express({
+    new Sentry.Integrations.Express({
       // to trace all requests to the default router
       app
       // alternatively, you can specify the routes you want to trace:

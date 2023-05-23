@@ -10,7 +10,6 @@ Profiling worker threads requires the Sentry SDK to be initialized per thread. I
 // cpuintense.worker.js
 const Sentry = require('@sentry/node');
 const { parentPort } = require('node:worker_threads');
-require('@sentry/tracing'); // this has a addExtensionMethods side effect
 const { ProfilingIntegration } = require('@sentry/profiler-node'); // this has a addExtensionMethods side effect
 
 Sentry.init({

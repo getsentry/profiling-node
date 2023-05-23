@@ -1,6 +1,5 @@
 const express = require('express');
 const Sentry = require('@sentry/node');
-const Tracing = require('@sentry/tracing');
 const { ProfilingIntegration } = require('../../lib');
 
 const app = express();
@@ -15,7 +14,7 @@ Sentry.init({
     // enable HTTP calls tracing
     new Sentry.Integrations.Http({ tracing: true }),
     // enable Express.js middleware tracing
-    new Tracing.Integrations.Express({
+    new Sentry.Integrations.Express({
       // to trace all requests to the default router
       app
       // alternatively, you can specify the routes you want to trace:
