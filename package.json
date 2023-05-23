@@ -34,7 +34,7 @@
     "scripts/check-build.mjs",
     "scripts/copy-target.mjs",
     "scripts/empty.js",
-    "scripts/prune-profiler-binaries.js"
+    "scripts/prune-profiler-binaries.mjs"
   ],
   "scripts": {
     "install": "node scripts/empty.js",
@@ -65,6 +65,7 @@
   "keywords": [
     "profiling",
     "monitoring",
+    "apm",
     "cpu",
     "node",
     "performance"
@@ -77,14 +78,12 @@
   "author": "jonas.badalic@sentry.io",
   "license": "MIT",
   "dependencies": {
-    "@sentry/core": "^7.44.0",
-    "@sentry/hub": "^7.44.1",
-    "@sentry/node": "^7.44.1",
-    "@sentry/tracing": "^7.44.1",
-    "@sentry/types": "^7.44.1",
-    "@sentry/utils": "^7.44.1",
+    "@sentry/core": "^7.53.0",
+    "@sentry/hub": "^7.53.0",
+    "@sentry/node": "^7.53.0",
+    "@sentry/types": "^7.53.0",
+    "@sentry/utils": "^7.53.0",
     "app-root-path": "^3.1.0",
-    "cross-env": "^7.0.3",
     "detect-libc": "^2.0.1",
     "node-abi": "^3.28.0",
     "node-gyp": "^9.3.0"
@@ -98,6 +97,7 @@
     "@typescript-eslint/parser": "^5.36.2",
     "autocannon": "^7.9.0",
     "benchmark": "^2.1.4",
+    "cross-env": "^7.0.3",
     "esbuild": "^0.17.18",
     "eslint": "^8.23.0",
     "eslint-config-prettier": "^8.5.0",

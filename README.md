@@ -12,14 +12,14 @@
 
 ## Installation
 
-Profiling works as an extension of tracing so you will need both @sentry/tracing and @sentry/profiling-node installed. The minimum required major version of @sentry/node that supports profiling is 7.x.
+Profiling works as an extension of tracing so you will need both @sentry/node and @sentry/profiling-node installed. The minimum required major version of @sentry/node that supports profiling is 7.x.
 
 ```bash
 # Using yarn
-yarn add @sentry/tracing @sentry/profiling-node
+yarn add @sentry/node @sentry/profiling-node
 
 # Using npm
-npm install --save @sentry/tracing @sentry/profiling-node
+npm install --save @sentry/node @sentry/profiling-node
 ```
 
 ## Usage
