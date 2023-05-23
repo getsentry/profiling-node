@@ -1,3 +1,4 @@
+// See test-binaries.esbuild.mjs
 import * as Sentry from '@sentry/node';
 import { ProfilingIntegration } from './lib';
 import { setTimeout } from 'node:timers';
