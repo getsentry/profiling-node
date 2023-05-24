@@ -2,7 +2,6 @@ import path from 'path';
 import { writeFileSync, existsSync, unlinkSync } from 'node:fs';
 import { Worker } from 'node:worker_threads';
 import * as Sentry from '@sentry/node';
-import '@sentry/tracing';
 
 import { ProfilingIntegration } from '../../src/index';
 

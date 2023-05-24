@@ -233,9 +233,7 @@ function _addProfilingExtensionMethods(): void {
   carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};
   if (!carrier.__SENTRY__.extensions['startTransaction']) {
     if (isDebugBuild()) {
-      logger.log(
-        '[Profiling] startTransaction does not exists, profiling will not work. Make sure you import @sentry/tracing package before @sentry/profiling-node as import order matters.'
-      );
+      logger.log('[Profiling] startTransaction does not exists, profiling will not work.');
     }
     return;
   }
@@ -245,7 +243,7 @@ function _addProfilingExtensionMethods(): void {
   }
 
   carrier.__SENTRY__.extensions['startTransaction'] = __PRIVATE__wrapStartTransactionWithProfiling(
-    // This is already patched by sentry/tracing, we are going to re-patch it...
+    // This is patched by sentry/tracing, we are going to re-patch it...
     carrier.__SENTRY__.extensions['startTransaction'] as StartTransaction
   );
 }

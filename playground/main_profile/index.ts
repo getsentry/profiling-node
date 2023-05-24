@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/node';
-import '@sentry/tracing'; // this has a addExtensionMethods side effect
 import { ProfilingIntegration } from '../../src/index'; // this has a addExtensionMethods side effect
 import { writeFileSync } from 'node:fs';
 import path from 'path';

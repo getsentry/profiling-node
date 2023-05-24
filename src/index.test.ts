@@ -1,11 +1,9 @@
 import * as Sentry from '@sentry/node';
-import '@sentry/tracing';
 import type { Transport } from '@sentry/types';
 
 import { ProfilingIntegration } from './index';
 import type { Profile } from './utils';
 import { NodeClient } from '@sentry/node';
-import { addExtensionMethods } from '@sentry/tracing';
 import { getMainCarrier } from '@sentry/core';
 
 interface MockTransport extends Transport {
@@ -74,7 +72,6 @@ describe('Sentry - Profiling', () => {
     jest.useRealTimers();
     // We will mock the carrier as if it has been initialized by the SDK, else everything is short circuited
     getMainCarrier().__SENTRY__ = {};
-    addExtensionMethods();
   });
   afterEach(() => {
     delete getMainCarrier().__SENTRY__;

@@ -1,5 +1,4 @@
 const Sentry = require('@sentry/node');
-require('@sentry/tracing'); // this has a addExtensionMethods side effect
 const { writeFileSync, existsSync, unlinkSync } = require('fs');
 const { parentPort } = require('worker_threads');
 const { ProfilingIntegration } = require('../../lib/index'); // this has a addExtensionMethods side effect
