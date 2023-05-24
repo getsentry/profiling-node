@@ -1,3 +1,13 @@
+## 1.0.0-alpha.7
+
+### Various fixes & improvements
+
+- ref(tracing): drop @sentry/tracing (#153) by @JonasBa
+- fix(esm): fix esm compile error (1c4a3cc6) by @JonasBa
+- deps(tracing): remove tracing dependency (#152) by @JonasBa
+- feat(scripts): introduce a cleanup script (#151) by @JonasBa
+- feat(profiling): debug_id support (#144) by @JonasBa
+
 ## 1.0.0-alpha.6
 
 ### Various fixes & improvements
