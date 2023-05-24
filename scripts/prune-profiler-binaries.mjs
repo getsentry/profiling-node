@@ -63,7 +63,6 @@ const NODE_TO_ABI = {
 };
 
 if (NODE) {
-  console.log('HAS TARGET');
   if (NODE_TO_ABI[NODE]) {
     NODE = NODE_TO_ABI[NODE];
   } else if (NODE.startsWith('14')) {
@@ -79,7 +78,6 @@ if (NODE) {
       `❌ Sentry: Invalid node version passed as argument, please make sure --target_node is a valid major node version. Supported versions are 14, 16, 18 and 20.`
     );
   }
-  console.log('RESOVLED TO', NODE);
 }
 
 if (!SOURCE_DIR) {
@@ -142,7 +140,7 @@ async function prune(binaries) {
   let removedBinariesCount = 0;
 
   const conditions = [PLATFORM, ARCH, STDLIB, NODE].filter((n) => !!n);
-  console.log(conditions);
+
   for (const binary of binaries) {
     if (conditions.every((condition) => binary.includes(condition))) {
       continue;

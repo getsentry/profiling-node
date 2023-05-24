@@ -117,7 +117,77 @@ custom:
 
 Marking the package as external is the simplest and most future proof way of ensuring it will work, however if you want to bundle it, it is possible to do so too, just note that there will be only a very small benefit to startup as @sentry/profiling-node itself is already published as a bundled package.
 
-If you do decide to bundle everything, then you can use `sentry-prune-profiler-binaries` to clear unused binaries from the final output folder, just run `sentry-prune-profiler-binaries --help` to see the available options.
+Example of bundling @sentry/profiling-node
+
+```json
+// package.json
+{
+  "scripts": "node esbuild.serverless.js"
+}
+```
+
+```js
+// esbuild.serverless.js
+const { sentryEsbuildPlugin } = require("@sentry/esbuild-plugin");
+
+require("esbuild").build({
+  entryPoints: ["./index.js"],
+  outfile: "./dist",
+  platform: "node",
+  bundle: true,
+  minify: true,
+  sourcemap: true, 
+  // This is no longer necessary
+  // external: ["@sentry/profiling-node"],
+  loader: {
+    // ensures .node binaries are copied to ./dist
+    '.node': 'copy',
+  },
+  plugins: [
+    // See https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/esbuild/
+    sentryEsbuildPlugin({
+      project: "",
+      org: "",
+      authToken:"",
+      release: "",
+      sourcemaps: {
+        // Specify the directory containing build artifacts
+        assets: "./dist/**",
+      },
+    }),
+  ],
+});
+```
+
+Once you run `node esbuild.serverless.js` esbuild wil bundle and output the files to ./dist folder, but note that all of the binaries will be copied. This is wasteful as you will likely only need one of these libraries to be available during runtime.
+
+To prune the other libraries, profiling-node ships with a small utility script that helps you prune unused binaries.
+The script can be invoked via `sentry-prune-profiler-binaries`, use `--help` to see a list of available options or `--dry-run` if you want it to log the binaries that would have been deleted.
+
+Example of only preserving a binary to run node16 on linux x64 musl.
+```bash
+sentry-prune-profiler-binaries --target_dir_path=./dist/esbuild-serverless --target_platform=linux --target_node=16 --target_stdlib=musl --target_arch=x64
+```
+
+Which will output something like
+```
+Sentry: pruned ./dist/esbuild-serverless/sentry_cpu_profiler-darwin-x64-108-IFGH3SUR.node (90.41 KiB)
+Sentry: pruned ./dist/esbuild-serverless/sentry_cpu_profiler-darwin-x64-93-Q7KBVHSP.node (74.16 KiB)
+Sentry: pruned ./dist/esbuild-serverless/sentry_cpu_profiler-linux-arm64-glibc-108-NXSISRTB.node (52.17 KiB)
+Sentry: pruned ./dist/esbuild-serverless/sentry_cpu_profiler-linux-arm64-glibc-83-OEQT5HUK.node (52.08 KiB)
+Sentry: pruned ./dist/esbuild-serverless/sentry_cpu_profiler-linux-arm64-glibc-93-IIXXW2PN.node (52.06 KiB)
+Sentry: pruned ./dist/esbuild-serverless/sentry_cpu_profiler-linux-arm64-musl-108-DSILNYHA.node (48.46 KiB)
+Sentry: pruned ./dist/esbuild-serverless/sentry_cpu_profiler-linux-arm64-musl-83-4CNOBNC3.node (48.37 KiB)
+Sentry: pruned ./dist/esbuild-serverless/sentry_cpu_profiler-linux-arm64-musl-93-JA5PKNWQ.node (48.38 KiB)
+Sentry: pruned ./dist/esbuild-serverless/sentry_cpu_profiler-linux-x64-glibc-108-NXSISRTB.node (52.17 KiB)
+Sentry: pruned ./dist/esbuild-serverless/sentry_cpu_profiler-linux-x64-glibc-83-OEQT5HUK.node (52.08 KiB)
+Sentry: pruned ./dist/esbuild-serverless/sentry_cpu_profiler-linux-x64-glibc-93-IIXXW2PN.node (52.06 KiB)
+Sentry: pruned ./dist/esbuild-serverless/sentry_cpu_profiler-linux-x64-musl-108-CX7SL27U.node (51.50 KiB)
+Sentry: pruned ./dist/esbuild-serverless/sentry_cpu_profiler-linux-x64-musl-83-YD7ZQK2E.node (51.53 KiB)
+Sentry: pruned ./dist/esbuild-serverless/sentry_cpu_profiler-win32-x64-108-P7V3URQV.node (181.50 KiB)
+Sentry: pruned ./dist/esbuild-serverless/sentry_cpu_profiler-win32-x64-93-3PKQDSGE.node (181.50 KiB)
+✅ Sentry: pruned 15 binaries, saved 1.06 MiB in total.
+```
 
 ### Environment flags
 
