@@ -303,7 +303,7 @@ static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const
 
     if (stack_index != unique_stack_id) {
       napi_value index;
-      napi_create_uint32(env, i, &index);
+      napi_create_uint32(env, i-1, &index);
       napi_set_property(env, samples, index, sample);
       continue;
     }
@@ -350,7 +350,7 @@ static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const
     napi_value napi_sample_index;
     napi_value napi_stack_index;
 
-    napi_create_uint32(env, i, &napi_sample_index);
+    napi_create_uint32(env, i-1, &napi_sample_index);
     napi_set_property(env, samples, napi_sample_index, sample);
     napi_create_uint32(env, stack_index, &napi_stack_index);
     napi_set_property(env, stacks, napi_stack_index, stack);

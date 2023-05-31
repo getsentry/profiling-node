@@ -15,6 +15,13 @@ const fibonacci = (n: number): number => {
 };
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const syncWait = (ms: number) => {
+  const start = Date.now();
+  while (Date.now() - start < ms) {
+    // do nothing
+  }
+};
+
 const profiled = async (name: string, fn: () => void) => {
   CpuProfilerBindings.startProfiling(name);
   await fn();
@@ -62,7 +69,7 @@ describe('Private bindings', () => {
 
   it('collects resources', async () => {
     privateBindings.startProfiling('profiled-program');
-    await wait(100);
+    syncWait(100);
 
     const profile = privateBindings.stopProfiling('profiled-program', 0, null, true);
     if (!profile) throw new Error('No profile');
@@ -79,7 +86,7 @@ describe('Private bindings', () => {
 
   it('does not collect resources', async () => {
     privateBindings.startProfiling('profiled-program');
-    await wait(100);
+    syncWait(100);
 
     const profile = privateBindings.stopProfiling('profiled-program', 0, null, false);
     if (!profile) throw new Error('No profile');
@@ -95,8 +102,8 @@ describe('Profiler bindings', () => {
   });
 
   it('profiles a program', async () => {
-    const profile = await profiled('profiled-program', async () => {
-      await wait(100);
+    const profile = await profiled('profiled-program', () => {
+      syncWait(100);
     });
 
     if (!profile) fail('Profile is null');
