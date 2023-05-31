@@ -25,7 +25,7 @@ esbuild.build({
     // if we remove it, we get a cannot use dynamic require error
     js: `
     import {dirname as pathDirname} from 'path';
-    import { fileURLToPat as topLevelFileToUrlPath } from 'url';
+    import { fileURLToPath as topLevelFileToUrlPath } from 'url';
     import { createRequire as topLevelCreateRequire } from 'module';
     const require = topLevelCreateRequire(import.meta.url);
     const __filename = topLevelFileToUrlPath(import.meta.url);
