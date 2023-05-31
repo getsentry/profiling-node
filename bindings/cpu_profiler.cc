@@ -252,9 +252,16 @@ std::string hashCpuProfilerNodeByPath(const v8::CpuProfileNode* node, std::strin
 }
 
 static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const uint32_t thread_id, const std::string& app_root_dir, napi_value& samples, napi_value& stacks, napi_value& frames, napi_value& resources) {
-  const int64_t profile_start_time_us = profile->GetStartTime();
+  // We require at least 3 samples because we are discarding the first sample as
+  // it will always point to our profiling js code calling into the v8 profiler. 
+  // Since this is not useful information we will discard it. We then require
+  // at least 2 more samples to be able to build a stack representation of a profile.
   const int sampleCount = profile->GetSamplesCount();
+  if(sampleCount < 3){
+    return;
+  }
 
+  const int64_t profile_start_time_us = profile->GetSampleTimestamp(0);
   uint32_t unique_stack_id = 0;
   uint32_t unique_frame_id = 0;
 
@@ -269,7 +276,7 @@ static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const
 
   std::string node_hash = "";
 
-  for (int i = 0; i < sampleCount; i++) {
+  for (int i = 1; i < sampleCount; i++) {
     uint32_t stack_index = unique_stack_id;
 
     const v8::CpuProfileNode* node = profile->GetSample(i);
