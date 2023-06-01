@@ -83,7 +83,6 @@
     "@sentry/node": "^7.53.0",
     "@sentry/types": "^7.53.0",
     "@sentry/utils": "^7.53.0",
-    "app-root-path": "^3.1.0",
     "detect-libc": "^2.0.1",
     "node-abi": "^3.28.0",
     "node-gyp": "^9.3.0"

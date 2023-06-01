@@ -63,27 +63,13 @@ static const char kSentryPathDelimiter = '.';
 static const char kSentryFileDelimiter = ':';
 static const std::string kNodeModulesPath = std::string("node_modules") + kPlatformSeparator;
 
-static void GetFrameModule(const std::string& abs_path, const std::string& root_dir, std::string& module) {
+static void GetFrameModule(const std::string& abs_path, std::string& module) {
   if (abs_path.empty()) {
     return;
   }
 
-  size_t abs_path_len = abs_path.length();
-  size_t root_dir_len = root_dir.length();
-
-  // Guard from possible SDK bug, should probably throw an error here.
-  if (root_dir_len > abs_path_len) {
-    return;
-  }
-
-  if (abs_path_len > root_dir_len && root_dir_len > 0 && abs_path.rfind(root_dir, 0) == 0) {
-    // strip the base path + trailing /
-    module = abs_path.substr(root_dir_len + 1);
-  }
-  else {
-    module = abs_path;
-  }
-
+  module = abs_path;
+  
   // Drop .js extension
   size_t module_len = module.length();
   if (module.compare(module_len - 3, 3, ".js") == 0) {
@@ -120,8 +106,8 @@ static void GetFrameModule(const std::string& abs_path, const std::string& root_
 }
 
 static napi_value GetFrameModuleWrapped(napi_env env, napi_callback_info info) {
-  size_t argc = 3;
-  napi_value argv[3];
+  size_t argc = 2;
+  napi_value argv[2];
   napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
 
   size_t len;
@@ -131,13 +117,10 @@ static napi_value GetFrameModuleWrapped(napi_env env, napi_callback_info info) {
   assert(napi_get_value_string_utf8(env, argv[0], abs_path, len + 1, &len) == napi_ok);
   assert(napi_get_value_string_utf8(env, argv[1], NULL, 0, &len) == napi_ok);
 
-  char* root_dir = (char*)malloc(len + 1);
-  assert(napi_get_value_string_utf8(env, argv[1], root_dir, len + 1, &len) == napi_ok);
-
   std::string module;
   napi_value napi_module;
 
-  GetFrameModule(abs_path, root_dir, module);
+  GetFrameModule(abs_path, module);
 
   assert(napi_create_string_utf8(env, module.c_str(), NAPI_AUTO_LENGTH, &napi_module) == napi_ok);
   return napi_module;
@@ -160,7 +143,7 @@ public:
   }
 };
 
-napi_value CreateFrameNode(const napi_env& env, const v8::CpuProfileNode& node, const std::string& app_root_dir, std::unordered_map<std::string, std::string>& module_cache, napi_value& resources) {
+napi_value CreateFrameNode(const napi_env& env, const v8::CpuProfileNode& node, std::unordered_map<std::string, std::string>& module_cache, napi_value& resources) {
   napi_value js_node;
   napi_create_object(env, &js_node);
 
@@ -189,6 +172,9 @@ napi_value CreateFrameNode(const napi_env& env, const v8::CpuProfileNode& node, 
     napi_value abs_path_prop;
     napi_create_string_utf8(env, resource, NAPI_AUTO_LENGTH, &abs_path_prop);
     napi_set_named_property(env, js_node, "abs_path", abs_path_prop);
+    // Error stack traces are not relative to root dir, doing our own path normalization
+    // breaks people's code mapping configs so we need to leave it as is.
+    napi_set_named_property(env, js_node, "filename", abs_path_prop);
 
     std::string module;
     std::string resource_str = std::string(resource);
@@ -205,7 +191,7 @@ napi_value CreateFrameNode(const napi_env& env, const v8::CpuProfileNode& node, 
       napi_create_string_utf8(env, resource_str.c_str(), NAPI_AUTO_LENGTH, &resource);
       napi_set_element(env, resources, module_cache.size(), resource);
 
-      GetFrameModule(resource_str, app_root_dir, module);
+      GetFrameModule(resource_str, module);
       module_cache.emplace(resource_str, module);
     }
 
@@ -251,7 +237,7 @@ std::string hashCpuProfilerNodeByPath(const v8::CpuProfileNode* node, std::strin
   return path;
 }
 
-static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const uint32_t thread_id, const std::string& app_root_dir, napi_value& samples, napi_value& stacks, napi_value& frames, napi_value& resources) {
+static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const uint32_t thread_id, napi_value& samples, napi_value& stacks, napi_value& frames, napi_value& resources) {
   const int64_t profile_start_time_us = profile->GetStartTime();
   const int sampleCount = profile->GetSamplesCount();
 
@@ -321,7 +307,7 @@ static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const
         napi_value depth;
         napi_create_uint32(env, stack_depth, &depth);
         napi_set_property(env, stack, depth, frame_id);
-        napi_set_property(env, frames, frame_id, CreateFrameNode(env, *node, app_root_dir, module_cache, resources));
+        napi_set_property(env, frames, frame_id, CreateFrameNode(env, *node, module_cache, resources));
 
         unique_frame_id++;
       }
@@ -354,7 +340,7 @@ static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const
 
 // StartProfiling(string title)
 // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#aedf6a5ca49432ab665bc3a1ccf46cca4
-static napi_value TranslateProfile(const napi_env& env, const v8::CpuProfile* profile, const uint32_t thread_id, const std::string& app_root_directory, bool collect_resources) {
+static napi_value TranslateProfile(const napi_env& env, const v8::CpuProfile* profile, const uint32_t thread_id, bool collect_resources) {
   napi_value js_profile;
 
   assert(napi_create_object(env, &js_profile) == napi_ok);
@@ -378,7 +364,7 @@ static napi_value TranslateProfile(const napi_env& env, const v8::CpuProfile* pr
   assert(napi_set_named_property(env, js_profile, "profiler_logging_mode", logging_mode) == napi_ok);
 
 
-  GetSamples(env, profile, thread_id, app_root_directory, samples, stacks, frames, resources);
+  GetSamples(env, profile, thread_id, samples, stacks, frames, resources);
 
   if(collect_resources){
     napi_set_named_property(env, js_profile, "resources", resources);
@@ -455,13 +441,14 @@ static napi_value StartProfiling(napi_env env, napi_callback_info info) {
 // StopProfiling(string title)
 // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#a40ca4c8a8aa4c9233aa2a2706457cc80
 static napi_value StopProfiling(napi_env env, napi_callback_info info) {
-  size_t argc = 4;
-  napi_value argv[4];
+  size_t argc = 3;
+  napi_value argv[3];
 
   assert(napi_get_cb_info(env, info, &argc, argv, NULL, NULL) == napi_ok);
 
+
   if (argc < 2) {
-    napi_throw_error(env, "NAPI_ERROR", "StopProfiling expects two arguments.");
+    napi_throw_error(env, "NAPI_ERROR", "StopProfiling expects at least two arguments.");
 
     napi_value napi_null;
     assert(napi_get_null(env, &napi_null) == napi_ok);
@@ -497,7 +484,6 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
 
   // Get the value of the first argument and convert it to v8::String
   v8::Isolate* isolate = v8::Isolate::GetCurrent();
-  assert(isolate != 0);
 
   size_t len;
   assert(napi_get_value_string_utf8(env, argv[0], NULL, 0, &len) == napi_ok);
@@ -544,28 +530,13 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
     return napi_null;
   };
 
-  std::string app_root_directory_str = std::string("");
-
-  napi_valuetype callbacktype2;
-  assert(napi_typeof(env, argv[2], &callbacktype2) == napi_ok);
-
-  if (callbacktype2 == napi_string) {
-    size_t len;
-    assert(napi_get_value_string_utf8(env, argv[2], NULL, 0, &len) == napi_ok);
-
-    char* app_root_directory = (char*)malloc(len + 1);
-    assert(napi_get_value_string_utf8(env, argv[2], app_root_directory, len + 1, &len) == napi_ok);
-
-    app_root_directory_str = std::string(app_root_directory);
-  }
-
   napi_valuetype callbacktype3;
-  assert(napi_typeof(env, argv[3], &callbacktype3) == napi_ok);
+  assert(napi_typeof(env, argv[2], &callbacktype3) == napi_ok);
   
   bool collect_resources;
-  napi_get_value_bool(env, argv[3], &collect_resources);
+  napi_get_value_bool(env, argv[2], &collect_resources);
 
-  napi_value js_profile = TranslateProfile(env, profile, thread_id, app_root_directory_str, collect_resources);
+  napi_value js_profile = TranslateProfile(env, profile, thread_id, collect_resources);
   
   profile->Delete();
 
