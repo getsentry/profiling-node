@@ -115,7 +115,6 @@ static napi_value GetFrameModuleWrapped(napi_env env, napi_callback_info info) {
 
   char* abs_path = (char*)malloc(len + 1);
   assert(napi_get_value_string_utf8(env, argv[0], abs_path, len + 1, &len) == napi_ok);
-  assert(napi_get_value_string_utf8(env, argv[1], NULL, 0, &len) == napi_ok);
 
   std::string module;
   napi_value napi_module;
