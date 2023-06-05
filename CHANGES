@@ -1,3 +1,13 @@
+## 1.0.0-beta.1
+
+### Various fixes & improvements
+
+- build: run update before installing tooling to fix stale index (e4c0916e) by @JonasBa
+- fix broken reference to copy-target script (#156) by @alekitto
+- fix(profiling): remove app_root relative dir detection (#155) by @JonasBa
+- fix(profiling): fix build banner typo (47da6797) by @JonasBa
+- readme: add prune docs (9e4a0f3f) by @JonasBa
+
 ## 1.0.0-alpha.7
 
 ### Various fixes & improvements
