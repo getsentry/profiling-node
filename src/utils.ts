@@ -1,6 +1,4 @@
-import { path as root_directory } from 'app-root-path';
 import * as os from 'os';
-import { resolve } from 'path';
 import { versions, env } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 import type {
@@ -346,11 +344,6 @@ export function maybeRemoveProfileFromSdkMetadata(event: Event | ProfiledEvent):
 
   delete event.sdkProcessingMetadata['profile'];
   return event;
-}
-
-export function getProjectRootDirectory(): string | null {
-  const components = resolve(root_directory).split('/node_modules');
-  return components?.[0] ?? null;
 }
 
 /**

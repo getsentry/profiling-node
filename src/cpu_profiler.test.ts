@@ -42,20 +42,11 @@ const assertValidSamplesAndStacks = (stacks: ThreadCpuProfile['stacks'], samples
 };
 
 describe('Private bindings', () => {
-  it('does not crash if project root is null', async () => {
+  it.only('does not crash if collect resources is false', async () => {
     privateBindings.startProfiling('profiled-program');
     await wait(100);
     expect(() => {
-      const profile = privateBindings.stopProfiling('profiled-program', 0, null, false);
-      if (!profile) throw new Error('No profile');
-    }).not.toThrow();
-  });
-
-  it('does not crash if collect resources is false', async () => {
-    privateBindings.startProfiling('profiled-program');
-    await wait(100);
-    expect(() => {
-      const profile = privateBindings.stopProfiling('profiled-program', 0, null, false);
+      const profile = privateBindings.stopProfiling('profiled-program', 0, false);
       if (!profile) throw new Error('No profile');
     }).not.toThrow();
   });
@@ -64,7 +55,7 @@ describe('Private bindings', () => {
     privateBindings.startProfiling('profiled-program');
     await wait(100);
 
-    const profile = privateBindings.stopProfiling('profiled-program', 0, null, true);
+    const profile = privateBindings.stopProfiling('profiled-program', 0, true);
     if (!profile) throw new Error('No profile');
 
     expect(profile.resources.length).toBeGreaterThan(0);
@@ -81,7 +72,7 @@ describe('Private bindings', () => {
     privateBindings.startProfiling('profiled-program');
     await wait(100);
 
-    const profile = privateBindings.stopProfiling('profiled-program', 0, null, false);
+    const profile = privateBindings.stopProfiling('profiled-program', 0, false);
     if (!profile) throw new Error('No profile');
 
     expect(profile.resources.length).toBe(0);

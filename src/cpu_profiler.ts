@@ -5,7 +5,6 @@ import { getAbi } from 'node-abi';
 import { join, resolve } from 'path';
 import { familySync } from 'detect-libc';
 
-import { getProjectRootDirectory } from './utils';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
 // Keep these in sync with the replacements in esmmod.js and cjsmod.js
@@ -137,10 +136,6 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   /* eslint-enable no-fallthrough */
 }
 
-// Resolve the project root dir so we can try and compute a filename relative to it.
-// We forward this to C++ code so we dont end up post-processing frames in JS.
-const projectRootDirectory = getProjectRootDirectory();
-
 interface Sample {
   stack_id: number;
   thread_id: string;
@@ -174,13 +169,8 @@ export interface ThreadCpuProfile {
 
 interface PrivateV8CpuProfilerBindings {
   startProfiling(name: string): void;
-  stopProfiling(
-    name: string,
-    threadId: number,
-    projectRootDir: string | null,
-    collectResources: boolean
-  ): RawThreadCpuProfile | null;
-  getFrameModule(abs_path: string, root_dir: string): string;
+  stopProfiling(name: string, threadId: number, collectResources: boolean): RawThreadCpuProfile | null;
+  getFrameModule(abs_path: string): string;
 }
 
 interface V8CpuProfilerBindings {
@@ -194,7 +184,7 @@ const CpuProfilerBindings: V8CpuProfilerBindings = {
     return privateBindings.startProfiling(name);
   },
   stopProfiling(name: string) {
-    return privateBindings.stopProfiling(name, threadId, projectRootDirectory, !!GLOBAL_OBJ._sentryDebugIds);
+    return privateBindings.stopProfiling(name, threadId, !!GLOBAL_OBJ._sentryDebugIds);
   }
 };
 export { CpuProfilerBindings };
