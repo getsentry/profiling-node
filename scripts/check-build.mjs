@@ -11,7 +11,7 @@ function recompileFromSource() {
     console.log('@sentry/profiling-node: Compiling from source...');
     cp.execSync(`npm run build:configure`, { env: process.env });
     cp.execSync(`npm run build:bindings`, { env: process.env });
-    cp.execSync('node scripts/copy-target.js', { env: process.env });
+    cp.execSync('node scripts/copy-target.mjs', { env: process.env });
     return true;
   } catch (e) {
     console.error(
