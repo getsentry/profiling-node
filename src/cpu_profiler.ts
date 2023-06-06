@@ -7,26 +7,21 @@ import { familySync } from 'detect-libc';
 
 import { GLOBAL_OBJ } from '@sentry/utils';
 
-// Keep these in sync with the replacements in esmmod.js and cjsmod.js
-// __START__REPLACE__REQUIRE__
-
-// __END__REPLACE__REQUIRE__
-
 const stdlib = familySync();
 const platform = _platform();
 const arch = process.env['BUILD_ARCH'] || _arch();
 const abi = getAbi(versions.node, 'node');
 const identifier = [platform, arch, stdlib, abi].filter((c) => c !== undefined && c !== null).join('-');
 
-export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
+export async function importCppBindingsModule(): Promise<PrivateV8CpuProfilerBindings> {
   // If a binary path is specified, use that.
   if (env['SENTRY_PROFILER_BINARY_PATH']) {
-    return require(env['SENTRY_PROFILER_BINARY_PATH'] as string);
+    return (await import(env['SENTRY_PROFILER_BINARY_PATH'])) as PrivateV8CpuProfilerBindings;
   }
 
   // If a user specifies a different binary dir, they are in control of the binaries being moved there
   if (env['SENTRY_PROFILER_BINARY_DIR']) {
-    return require(join(resolve(env['SENTRY_PROFILER_BINARY_DIR']), `sentry_cpu_profiler-${identifier}.node`));
+    return await import(join(resolve(env['SENTRY_PROFILER_BINARY_DIR']), `sentry_cpu_profiler-${identifier}.node`));
   }
 
   /* eslint-disable no-fallthrough */
@@ -38,10 +33,10 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
         case 'x64': {
           switch (abi) {
             case '93': {
-              return require('./sentry_cpu_profiler-darwin-x64-93.node');
+              return await import('./sentry_cpu_profiler-darwin-x64-93.node');
             }
             case '108': {
-              return require('./sentry_cpu_profiler-darwin-x64-108.node');
+              return await import('./sentry_cpu_profiler-darwin-x64-108.node');
             }
           }
         }
@@ -53,10 +48,10 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
         case 'x64': {
           switch (abi) {
             case '93': {
-              return require('./sentry_cpu_profiler-win32-x64-93.node');
+              return await import('./sentry_cpu_profiler-win32-x64-93.node');
             }
             case '108': {
-              return require('./sentry_cpu_profiler-win32-x64-108.node');
+              return await import('./sentry_cpu_profiler-win32-x64-108.node');
             }
           }
         }
@@ -70,13 +65,13 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
             case 'musl': {
               switch (abi) {
                 case '83': {
-                  return require('./sentry_cpu_profiler-linux-x64-musl-83.node');
+                  return await import('./sentry_cpu_profiler-linux-x64-musl-83.node');
                 }
                 case '93': {
-                  return require('./sentry_cpu_profiler-linux-x64-musl-93.node');
+                  return await import('./sentry_cpu_profiler-linux-x64-musl-93.node');
                 }
                 case '108': {
-                  return require('./sentry_cpu_profiler-linux-x64-musl-108.node');
+                  return await import('./sentry_cpu_profiler-linux-x64-musl-108.node');
                 }
               }
               break;
@@ -84,13 +79,13 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
             case 'glibc': {
               switch (abi) {
                 case '83': {
-                  return require('./sentry_cpu_profiler-linux-x64-glibc-83.node');
+                  return await import('./sentry_cpu_profiler-linux-x64-glibc-83.node');
                 }
                 case '93': {
-                  return require('./sentry_cpu_profiler-linux-x64-glibc-93.node');
+                  return await import('./sentry_cpu_profiler-linux-x64-glibc-93.node');
                 }
                 case '108': {
-                  return require('./sentry_cpu_profiler-linux-x64-glibc-108.node');
+                  return await import('./sentry_cpu_profiler-linux-x64-glibc-108.node');
                 }
               }
             }
@@ -101,26 +96,26 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
             case 'musl': {
               switch (abi) {
                 case '83': {
-                  return require('./sentry_cpu_profiler-linux-arm64-musl-83.node');
+                  return await import('./sentry_cpu_profiler-linux-arm64-musl-83.node');
                 }
                 case '93': {
-                  return require('./sentry_cpu_profiler-linux-arm64-musl-93.node');
+                  return await import('./sentry_cpu_profiler-linux-arm64-musl-93.node');
                 }
                 case '108': {
-                  return require('./sentry_cpu_profiler-linux-arm64-musl-108.node');
+                  return await import('./sentry_cpu_profiler-linux-arm64-musl-108.node');
                 }
               }
             }
             case 'glibc': {
               switch (abi) {
                 case '83': {
-                  return require('./sentry_cpu_profiler-linux-arm64-glibc-83.node');
+                  return await import('./sentry_cpu_profiler-linux-arm64-glibc-83.node');
                 }
                 case '93': {
-                  return require('./sentry_cpu_profiler-linux-arm64-glibc-93.node');
+                  return await import('./sentry_cpu_profiler-linux-arm64-glibc-93.node');
                 }
                 case '108': {
-                  return require('./sentry_cpu_profiler-linux-arm64-glibc-108.node');
+                  return await import('./sentry_cpu_profiler-linux-arm64-glibc-108.node');
                 }
               }
             }
@@ -130,7 +125,7 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
     }
 
     default: {
-      return require(`./sentry_cpu_profiler-${identifier}.node`);
+      return await import(`./sentry_cpu_profiler-${identifier}.node`);
     }
   }
   /* eslint-enable no-fallthrough */
