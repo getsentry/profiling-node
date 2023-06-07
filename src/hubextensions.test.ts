@@ -10,9 +10,7 @@ import type {
 import type { NodeClient } from '@sentry/node';
 
 import { __PRIVATE__wrapStartTransactionWithProfiling } from './hubextensions';
-import { importCppBindingsModule } from './cpu_profiler';
-
-const profiler = importCppBindingsModule();
+import { CpuProfilerBindings } from './cpu_profiler';
 
 function makeTransactionMock(options = {}): Transaction {
   return {
@@ -70,7 +68,7 @@ describe('hubextensions', () => {
   it('skips profiling if profilesSampleRate is not set (undefined)', () => {
     const hub = makeHubMock({ profilesSampleRate: undefined });
     const startTransaction = jest.fn().mockImplementation(() => makeTransactionMock());
-    const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
+    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
 
     const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);
     const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, {});
@@ -83,7 +81,7 @@ describe('hubextensions', () => {
   it('skips profiling if profilesSampleRate is set to 0', () => {
     const hub = makeHubMock({ profilesSampleRate: 0 });
     const startTransaction = jest.fn().mockImplementation(() => makeTransactionMock());
-    const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
+    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
 
     const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);
     const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, {});
@@ -98,7 +96,7 @@ describe('hubextensions', () => {
     const hub = makeHubMock({ profilesSampleRate: 0.5 });
     jest.spyOn(global.Math, 'random').mockReturnValue(1);
     const startTransaction = jest.fn().mockImplementation(() => makeTransactionMock());
-    const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
+    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
 
     const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);
     const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, {});
@@ -110,8 +108,8 @@ describe('hubextensions', () => {
     expect((transaction.metadata as any)?.profile).toBeUndefined();
   });
   it('starts the profiler', () => {
-    const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
-    const stopProfilingSpy = jest.spyOn(profiler, 'stopProfiling');
+    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
+    const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
 
     const hub = makeHubMock({ profilesSampleRate: 1 });
     const startTransaction = jest.fn().mockImplementation(() => makeTransactionMock());
@@ -128,8 +126,8 @@ describe('hubextensions', () => {
   });
 
   it('does not start the profiler if transaction is sampled', () => {
-    const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
-    const stopProfilingSpy = jest.spyOn(profiler, 'stopProfiling');
+    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
+    const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
 
     const hub = makeHubMock({ profilesSampleRate: 1 });
     const startTransaction = jest.fn().mockImplementation(() => makeTransactionMock({ sampled: false }));
@@ -152,12 +150,12 @@ describe('hubextensions', () => {
     const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, samplingContext);
     transaction.finish();
 
-    const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
+    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
     expect(startProfilingSpy).not.toHaveBeenCalled();
   });
 
   it('does not call startProfiling if profilesSampler returns invalid rate', () => {
-    const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
+    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
     const options = { profilesSampler: jest.fn().mockReturnValue(NaN) };
     const hub = makeHubMock({
       profilesSampleRate: undefined,
@@ -178,7 +176,7 @@ describe('hubextensions', () => {
   });
 
   it('does not call startProfiling if profilesSampleRate is invalid', () => {
-    const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
+    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
     const options = { profilesSampler: jest.fn().mockReturnValue(NaN) };
     const hub = makeHubMock({
       profilesSampleRate: NaN,
@@ -221,7 +219,7 @@ describe('hubextensions', () => {
   });
 
   it('prioritizes profilesSampler outcome over profilesSampleRate', () => {
-    const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
+    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
     const options = { profilesSampler: jest.fn().mockReturnValue(1) };
     const hub = makeHubMock({
       profilesSampleRate: 0,

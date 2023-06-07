@@ -5,7 +5,8 @@ import { getAbi } from 'node-abi';
 import { join, resolve } from 'path';
 import { familySync } from 'detect-libc';
 
-import { GLOBAL_OBJ } from '@sentry/utils';
+import { GLOBAL_OBJ, logger } from '@sentry/utils';
+import { isDebugBuild } from './env';
 
 const stdlib = familySync();
 const platform = _platform();
@@ -33,9 +34,11 @@ export async function importCppBindingsModule(): Promise<PrivateV8CpuProfilerBin
         case 'x64': {
           switch (abi) {
             case '93': {
+              // @ts-expect-error - this is the correct path, we just dont have the binaries locally
               return await import('./sentry_cpu_profiler-darwin-x64-93.node');
             }
             case '108': {
+              // @ts-expect-error - this is the correct path, we just dont have the binaries locally
               return await import('./sentry_cpu_profiler-darwin-x64-108.node');
             }
           }
@@ -48,9 +51,11 @@ export async function importCppBindingsModule(): Promise<PrivateV8CpuProfilerBin
         case 'x64': {
           switch (abi) {
             case '93': {
+              // @ts-expect-error - this is the correct path, we just dont have the binaries locally
               return await import('./sentry_cpu_profiler-win32-x64-93.node');
             }
             case '108': {
+              // @ts-expect-error - this is the correct path, we just dont have the binaries locally
               return await import('./sentry_cpu_profiler-win32-x64-108.node');
             }
           }
@@ -65,12 +70,15 @@ export async function importCppBindingsModule(): Promise<PrivateV8CpuProfilerBin
             case 'musl': {
               switch (abi) {
                 case '83': {
+                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
                   return await import('./sentry_cpu_profiler-linux-x64-musl-83.node');
                 }
                 case '93': {
+                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
                   return await import('./sentry_cpu_profiler-linux-x64-musl-93.node');
                 }
                 case '108': {
+                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
                   return await import('./sentry_cpu_profiler-linux-x64-musl-108.node');
                 }
               }
@@ -79,12 +87,15 @@ export async function importCppBindingsModule(): Promise<PrivateV8CpuProfilerBin
             case 'glibc': {
               switch (abi) {
                 case '83': {
+                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
                   return await import('./sentry_cpu_profiler-linux-x64-glibc-83.node');
                 }
                 case '93': {
+                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
                   return await import('./sentry_cpu_profiler-linux-x64-glibc-93.node');
                 }
                 case '108': {
+                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
                   return await import('./sentry_cpu_profiler-linux-x64-glibc-108.node');
                 }
               }
@@ -96,12 +107,15 @@ export async function importCppBindingsModule(): Promise<PrivateV8CpuProfilerBin
             case 'musl': {
               switch (abi) {
                 case '83': {
+                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
                   return await import('./sentry_cpu_profiler-linux-arm64-musl-83.node');
                 }
                 case '93': {
+                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
                   return await import('./sentry_cpu_profiler-linux-arm64-musl-93.node');
                 }
                 case '108': {
+                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
                   return await import('./sentry_cpu_profiler-linux-arm64-musl-108.node');
                 }
               }
@@ -109,12 +123,15 @@ export async function importCppBindingsModule(): Promise<PrivateV8CpuProfilerBin
             case 'glibc': {
               switch (abi) {
                 case '83': {
+                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
                   return await import('./sentry_cpu_profiler-linux-arm64-glibc-83.node');
                 }
                 case '93': {
+                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
                   return await import('./sentry_cpu_profiler-linux-arm64-glibc-93.node');
                 }
                 case '108': {
+                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
                   return await import('./sentry_cpu_profiler-linux-arm64-glibc-108.node');
                 }
               }
@@ -173,13 +190,32 @@ interface V8CpuProfilerBindings {
   stopProfiling(name: string): RawThreadCpuProfile | null;
 }
 
-const privateBindings: PrivateV8CpuProfilerBindings = importCppBindingsModule();
+let PrivateCpuProfilerBindings: PrivateV8CpuProfilerBindings;
 const CpuProfilerBindings: V8CpuProfilerBindings = {
   startProfiling(name: string) {
-    return privateBindings.startProfiling(name);
+    if (!PrivateCpuProfilerBindings) {
+      if (isDebugBuild()) {
+        logger.log('[Profiling] Bindings not loaded, ignoring call to startProfiling.');
+      }
+      return;
+    }
+
+    return PrivateCpuProfilerBindings.startProfiling(name);
   },
   stopProfiling(name: string) {
-    return privateBindings.stopProfiling(name, threadId, !!GLOBAL_OBJ._sentryDebugIds);
+    if (!PrivateCpuProfilerBindings) {
+      if (isDebugBuild()) {
+        logger.log('[Profiling] Bindings not loaded or profile was never started, ignoring call to stopProfiling.');
+      }
+      return null;
+    }
+    return PrivateCpuProfilerBindings.stopProfiling(name, threadId, !!GLOBAL_OBJ._sentryDebugIds);
   }
 };
+
+(async () => {
+  PrivateCpuProfilerBindings = await importCppBindingsModule();
+})();
+
+export { PrivateCpuProfilerBindings };
 export { CpuProfilerBindings };

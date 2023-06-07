@@ -1,7 +1,5 @@
-import { CpuProfilerBindings, importCppBindingsModule } from './cpu_profiler';
+import { CpuProfilerBindings, PrivateCpuProfilerBindings } from './cpu_profiler';
 import type { ThreadCpuProfile } from './cpu_profiler';
-
-const privateBindings = importCppBindingsModule();
 
 function fail(message: string): never {
   throw new Error(message);
@@ -42,20 +40,20 @@ const assertValidSamplesAndStacks = (stacks: ThreadCpuProfile['stacks'], samples
 };
 
 describe('Private bindings', () => {
-  it.only('does not crash if collect resources is false', async () => {
-    privateBindings.startProfiling('profiled-program');
+  it('does not crash if collect resources is false', async () => {
+    PrivateCpuProfilerBindings.startProfiling('profiled-program');
     await wait(100);
     expect(() => {
-      const profile = privateBindings.stopProfiling('profiled-program', 0, false);
+      const profile = PrivateCpuProfilerBindings.stopProfiling('profiled-program', 0, false);
       if (!profile) throw new Error('No profile');
     }).not.toThrow();
   });
 
   it('collects resources', async () => {
-    privateBindings.startProfiling('profiled-program');
+    PrivateCpuProfilerBindings.startProfiling('profiled-program');
     await wait(100);
 
-    const profile = privateBindings.stopProfiling('profiled-program', 0, true);
+    const profile = PrivateCpuProfilerBindings.stopProfiling('profiled-program', 0, true);
     if (!profile) throw new Error('No profile');
 
     expect(profile.resources.length).toBeGreaterThan(0);
@@ -69,10 +67,10 @@ describe('Private bindings', () => {
   });
 
   it('does not collect resources', async () => {
-    privateBindings.startProfiling('profiled-program');
+    PrivateCpuProfilerBindings.startProfiling('profiled-program');
     await wait(100);
 
-    const profile = privateBindings.stopProfiling('profiled-program', 0, false);
+    const profile = PrivateCpuProfilerBindings.stopProfiling('profiled-program', 0, false);
     if (!profile) throw new Error('No profile');
 
     expect(profile.resources.length).toBe(0);

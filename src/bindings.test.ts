@@ -1,10 +1,8 @@
 // Contains unit tests for some of the C++ bindings. These functions
 // are exported on the private bindings object, so we can test them and
 // they should not be used outside of this file.
-import { importCppBindingsModule } from './cpu_profiler';
+import { PrivateCpuProfilerBindings } from './cpu_profiler';
 import { platform } from 'os';
-
-const privateBindings = importCppBindingsModule();
 
 const cases = [
   ['/Users/jonas/code/node_modules/@scope/package/file.js', '@scope.package:file'],
@@ -27,6 +25,6 @@ describe('GetFrameModule', () => {
       ? cases.map(([abs_path, expected]) => [abs_path ? 'C:' + abs_path.replace(/\//g, '\\') : '', expected])
       : cases
   )('%s => %s', (abs_path: string, expected: string) => {
-    expect(privateBindings.getFrameModule(abs_path)).toBe(expected);
+    expect(PrivateCpuProfilerBindings.getFrameModule(abs_path)).toBe(expected);
   });
 });
