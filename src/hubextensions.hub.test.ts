@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/node';
 
 import { ProfilingIntegration } from './index';
-import { importCppBindingsModule } from './cpu_profiler';
+import { CpuProfilerBindings } from './cpu_profiler';
 import { logger, createEnvelope } from '@sentry/utils';
 import { GLOBAL_OBJ } from '@sentry/utils';
 import { NodeClient } from '@sentry/node';
@@ -72,7 +72,6 @@ function makeClientWithHooks(): [NodeClient, Transport] {
   return [client, client.getTransport() as Transport];
 }
 
-const profiler = importCppBindingsModule();
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe('hubextensions', () => {
@@ -109,7 +108,7 @@ describe('hubextensions', () => {
     const hub = Sentry.getCurrentHub();
     hub.bindClient(client);
 
-    jest.spyOn(profiler, 'stopProfiling').mockImplementation(() => {
+    jest.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
       return {
         samples: [
           {
@@ -144,7 +143,7 @@ describe('hubextensions', () => {
     const hub = Sentry.getCurrentHub();
     hub.bindClient(client);
 
-    jest.spyOn(profiler, 'stopProfiling').mockImplementation(() => {
+    jest.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
       return {
         samples: [
           {
@@ -181,8 +180,8 @@ describe('hubextensions', () => {
       const hub = Sentry.getCurrentHub();
       hub.bindClient(client);
 
-      const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
-      const stopProfilingSpy = jest.spyOn(profiler, 'stopProfiling');
+      const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
+      const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
 
       jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve());
 
@@ -243,7 +242,7 @@ describe('hubextensions', () => {
       const hub = Sentry.getCurrentHub();
       hub.bindClient(client);
 
-      jest.spyOn(profiler, 'stopProfiling').mockReturnValue(null);
+      jest.spyOn(CpuProfilerBindings, 'stopProfiling').mockReturnValue(null);
       // Emit is sync, so we can just assert that we got here
       const transportSpy = jest.spyOn(transport, 'send').mockImplementation(() => {
         // Do nothing so we don't send events to Sentry
@@ -268,8 +267,8 @@ describe('hubextensions', () => {
       const hub = Sentry.getCurrentHub();
       hub.bindClient(client);
 
-      const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
-      const stopProfilingSpy = jest.spyOn(profiler, 'stopProfiling');
+      const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
+      const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
 
       const transaction = hub.startTransaction({ name: 'profile_hub' });
       await wait(500);
@@ -307,8 +306,8 @@ describe('hubextensions', () => {
       // so when useFakeTimers is called it throws an error because it cannot override
       // a readonly property of performance on global object. Use legacyFakeTimers for now
       jest.useFakeTimers({ legacyFakeTimers: true });
-      const startProfilingSpy = jest.spyOn(profiler, 'startProfiling');
-      const stopProfilingSpy = jest.spyOn(profiler, 'stopProfiling');
+      const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
+      const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
 
       const [client] = makeClientWithoutHooks();
       const hub = Sentry.getCurrentHub();
@@ -333,7 +332,7 @@ describe('hubextensions', () => {
       'Error\n    at filename3.js (filename3.js:36:15)': 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb'
     };
 
-    jest.spyOn(profiler, 'stopProfiling').mockImplementation(() => {
+    jest.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
       return {
         samples: [
           {

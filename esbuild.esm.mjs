@@ -19,17 +19,5 @@ esbuild.build({
   target: 'esnext',
   bundle: true,
   tsconfig: './tsconfig.esm.json',
-  plugins: [missingBindingsPlugin],
-  banner: {
-    // This is here to fix a require issue with detect-libc
-    // if we remove it, we get a cannot use dynamic require error
-    js: `
-    import {dirname as pathDirname} from 'path';
-    import { fileURLToPath as topLevelFileToUrlPath } from 'url';
-    import { createRequire as topLevelCreateRequire } from 'module';
-    const require = topLevelCreateRequire(import.meta.url);
-    const __filename = topLevelFileToUrlPath(import.meta.url);
-    const __dirname = pathDirname(__filename);
-    `
-  }
+  plugins: [missingBindingsPlugin]
 });
