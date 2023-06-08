@@ -1,3 +1,9 @@
+## 1.0.1
+
+### Various fixes & improvements
+
+- fix: polyfill to level createRequire for esm (#161) by @JonasBa
+
 ## 1.0.0
 
 - No documented changes.
