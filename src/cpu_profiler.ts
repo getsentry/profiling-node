@@ -14,15 +14,15 @@ const arch = process.env['BUILD_ARCH'] || _arch();
 const abi = getAbi(versions.node, 'node');
 const identifier = [platform, arch, stdlib, abi].filter((c) => c !== undefined && c !== null).join('-');
 
-export async function importCppBindingsModule(): Promise<PrivateV8CpuProfilerBindings> {
+export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   // If a binary path is specified, use that.
   if (env['SENTRY_PROFILER_BINARY_PATH']) {
-    return (await import(env['SENTRY_PROFILER_BINARY_PATH'])) as PrivateV8CpuProfilerBindings;
+    return require(env['SENTRY_PROFILER_BINARY_PATH']);
   }
 
   // If a user specifies a different binary dir, they are in control of the binaries being moved there
   if (env['SENTRY_PROFILER_BINARY_DIR']) {
-    return await import(join(resolve(env['SENTRY_PROFILER_BINARY_DIR']), `sentry_cpu_profiler-${identifier}.node`));
+    return require(join(resolve(env['SENTRY_PROFILER_BINARY_DIR']), `sentry_cpu_profiler-${identifier}.node`));
   }
 
   /* eslint-disable no-fallthrough */
@@ -34,12 +34,10 @@ export async function importCppBindingsModule(): Promise<PrivateV8CpuProfilerBin
         case 'x64': {
           switch (abi) {
             case '93': {
-              // @ts-expect-error - this is the correct path, we just dont have the binaries locally
-              return await import('./sentry_cpu_profiler-darwin-x64-93.node');
+              return require('./sentry_cpu_profiler-darwin-x64-93.node');
             }
             case '108': {
-              // @ts-expect-error - this is the correct path, we just dont have the binaries locally
-              return await import('./sentry_cpu_profiler-darwin-x64-108.node');
+              return require('./sentry_cpu_profiler-darwin-x64-108.node');
             }
           }
         }
@@ -51,12 +49,10 @@ export async function importCppBindingsModule(): Promise<PrivateV8CpuProfilerBin
         case 'x64': {
           switch (abi) {
             case '93': {
-              // @ts-expect-error - this is the correct path, we just dont have the binaries locally
-              return await import('./sentry_cpu_profiler-win32-x64-93.node');
+              return require('./sentry_cpu_profiler-win32-x64-93.node');
             }
             case '108': {
-              // @ts-expect-error - this is the correct path, we just dont have the binaries locally
-              return await import('./sentry_cpu_profiler-win32-x64-108.node');
+              return require('./sentry_cpu_profiler-win32-x64-108.node');
             }
           }
         }
@@ -70,16 +66,13 @@ export async function importCppBindingsModule(): Promise<PrivateV8CpuProfilerBin
             case 'musl': {
               switch (abi) {
                 case '83': {
-                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
-                  return await import('./sentry_cpu_profiler-linux-x64-musl-83.node');
+                  return require('./sentry_cpu_profiler-linux-x64-musl-83.node');
                 }
                 case '93': {
-                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
-                  return await import('./sentry_cpu_profiler-linux-x64-musl-93.node');
+                  return require('./sentry_cpu_profiler-linux-x64-musl-93.node');
                 }
                 case '108': {
-                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
-                  return await import('./sentry_cpu_profiler-linux-x64-musl-108.node');
+                  return require('./sentry_cpu_profiler-linux-x64-musl-108.node');
                 }
               }
               break;
@@ -87,16 +80,13 @@ export async function importCppBindingsModule(): Promise<PrivateV8CpuProfilerBin
             case 'glibc': {
               switch (abi) {
                 case '83': {
-                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
-                  return await import('./sentry_cpu_profiler-linux-x64-glibc-83.node');
+                  return require('./sentry_cpu_profiler-linux-x64-glibc-83.node');
                 }
                 case '93': {
-                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
-                  return await import('./sentry_cpu_profiler-linux-x64-glibc-93.node');
+                  return require('./sentry_cpu_profiler-linux-x64-glibc-93.node');
                 }
                 case '108': {
-                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
-                  return await import('./sentry_cpu_profiler-linux-x64-glibc-108.node');
+                  return require('./sentry_cpu_profiler-linux-x64-glibc-108.node');
                 }
               }
             }
@@ -107,32 +97,26 @@ export async function importCppBindingsModule(): Promise<PrivateV8CpuProfilerBin
             case 'musl': {
               switch (abi) {
                 case '83': {
-                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
-                  return await import('./sentry_cpu_profiler-linux-arm64-musl-83.node');
+                  return require('./sentry_cpu_profiler-linux-arm64-musl-83.node');
                 }
                 case '93': {
-                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
-                  return await import('./sentry_cpu_profiler-linux-arm64-musl-93.node');
+                  return require('./sentry_cpu_profiler-linux-arm64-musl-93.node');
                 }
                 case '108': {
-                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
-                  return await import('./sentry_cpu_profiler-linux-arm64-musl-108.node');
+                  return require('./sentry_cpu_profiler-linux-arm64-musl-108.node');
                 }
               }
             }
             case 'glibc': {
               switch (abi) {
                 case '83': {
-                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
-                  return await import('./sentry_cpu_profiler-linux-arm64-glibc-83.node');
+                  return require('./sentry_cpu_profiler-linux-arm64-glibc-83.node');
                 }
                 case '93': {
-                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
-                  return await import('./sentry_cpu_profiler-linux-arm64-glibc-93.node');
+                  return require('./sentry_cpu_profiler-linux-arm64-glibc-93.node');
                 }
                 case '108': {
-                  // @ts-expect-error - this is the correct path, we just dont have the binaries locally
-                  return await import('./sentry_cpu_profiler-linux-arm64-glibc-108.node');
+                  return require('./sentry_cpu_profiler-linux-arm64-glibc-108.node');
                 }
               }
             }
@@ -142,7 +126,7 @@ export async function importCppBindingsModule(): Promise<PrivateV8CpuProfilerBin
     }
 
     default: {
-      return await import(`./sentry_cpu_profiler-${identifier}.node`);
+      return require(`./sentry_cpu_profiler-${identifier}.node`);
     }
   }
   /* eslint-enable no-fallthrough */
@@ -190,7 +174,7 @@ interface V8CpuProfilerBindings {
   stopProfiling(name: string): RawThreadCpuProfile | null;
 }
 
-let PrivateCpuProfilerBindings: PrivateV8CpuProfilerBindings;
+const PrivateCpuProfilerBindings: PrivateV8CpuProfilerBindings = importCppBindingsModule();
 const CpuProfilerBindings: V8CpuProfilerBindings = {
   startProfiling(name: string) {
     if (!PrivateCpuProfilerBindings) {
@@ -212,10 +196,6 @@ const CpuProfilerBindings: V8CpuProfilerBindings = {
     return PrivateCpuProfilerBindings.stopProfiling(name, threadId, !!GLOBAL_OBJ._sentryDebugIds);
   }
 };
-
-(async () => {
-  PrivateCpuProfilerBindings = await importCppBindingsModule();
-})();
 
 export { PrivateCpuProfilerBindings };
 export { CpuProfilerBindings };
