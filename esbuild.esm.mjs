@@ -19,5 +19,10 @@ esbuild.build({
   target: 'esnext',
   bundle: true,
   tsconfig: './tsconfig.esm.json',
-  plugins: [missingBindingsPlugin]
+  plugins: [missingBindingsPlugin],
+  banner: {
+    js: `
+      import { createRequire } from 'module';
+      const require = createRequire(import.meta.url);`
+  }
 });
