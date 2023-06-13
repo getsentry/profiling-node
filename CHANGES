@@ -1,3 +1,9 @@
+## 1.0.4
+
+### Various fixes & improvements
+
+- fix: check compile on install instead of postinstall (#163) by @JonasBa
+
 ## 1.0.3
 
 ### Various fixes & improvements
