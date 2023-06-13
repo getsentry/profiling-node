@@ -33,12 +33,10 @@
     "scripts/binaries.mjs",
     "scripts/check-build.mjs",
     "scripts/copy-target.mjs",
-    "scripts/empty.js",
     "scripts/prune-profiler-binaries.mjs"
   ],
   "scripts": {
-    "install": "node scripts/empty.js",
-    "postinstall": "node scripts/check-build.mjs",
+    "install": "node scripts/check-build.mjs",
     "clean": "rm -rf ./lib && rm -rf build",
     "lint": "eslint ./src --ext .ts",
     "build": "npm run build:bindings && npm run build:lib",
