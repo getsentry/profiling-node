@@ -6,18 +6,11 @@ import { target } from './binaries.mjs';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 
-function recompileFromSource() {
-  try {
-    console.log('@sentry/profiling-node: Compiling from source...');
-    cp.execSync(`npm run build:configure`, { env: process.env });
-    cp.execSync(`npm run build:bindings`, { env: process.env });
-    cp.execSync('node scripts/copy-target.mjs', { env: process.env });
-  } catch (e) {
-    console.error(
-      '@sentry/profiling-node: Failed to build from source, please report this a bug at https://github.com/getsentry/profiling-node/issues/new?assignees=&labels=Type%3A+Bug&template=bug.yml'
-    );
-    return e;
-  }
+function recompileFromSource() {g
+  console.log('@sentry/profiling-node: Compiling from source...');
+  cp.execSync(`npm run build:configure`, { env: process.env });
+  cp.execSync(`npm run build:bindings`, { env: process.env });
+  cp.execSync('node scripts/copy-target.mjs', { env: process.env });
 }
 
 try {
@@ -27,28 +20,24 @@ try {
     console.log('@sentry/profiling-node: Precompiled binary found, skipping build from source.');
   } else {
     console.log('@sentry/profiling-node: Precompiled binary not found, attempting to compile...');
-    const error = recompileFromSource();
-    if (error) throw error;
+    recompileFromSource();
   }
 } catch (e) {
   console.log('@sentry/profiling-node: Precompiled binary found but failed loading');
 
   // Check for node version missmatch
   if (/was compiled against a different Node.js/.test(e.message)) {
-    const error = recompileFromSource();
-    if (error) throw error;
+    recompileFromSource();
   }
 
   // Not sure if this could even happen, but just in case it somehow does,
   // we can provide a better experience than just crashing with cannot find module message.
   if (/Cannot find module/.test(e.message)) {
-    const error = recompileFromSource();
-    if (error) throw error;
+    recompileFromSource();
   }
 
   if (/cannot open shared object file/.test(e.message)) {
-    const error = recompileFromSource();
-    if (error) throw error;
+    recompileFromSource();
   }
 
   // re-throw so we dont end up swallowing errors
