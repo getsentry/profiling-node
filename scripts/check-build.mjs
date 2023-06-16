@@ -6,7 +6,7 @@ import { target } from './binaries.mjs';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 
-function recompileFromSource() {g
+function recompileFromSource() {
   console.log('@sentry/profiling-node: Compiling from source...');
   cp.execSync(`npm run build:configure`, { env: process.env });
   cp.execSync(`npm run build:bindings`, { env: process.env });
