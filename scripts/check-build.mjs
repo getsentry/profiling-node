@@ -15,7 +15,7 @@ function recompileFromSource() {
 
 try {
   if (existsSync(target)) {
-    console.log('@sentry/profiling-node: Precompiled binary found, attempting to load...');
+    console.log(`@sentry/profiling-node: Precompiled binary found, attempting to load ${target}`);
     require(target);
     console.log('@sentry/profiling-node: Precompiled binary found, skipping build from source.');
   } else {
