@@ -8,12 +8,6 @@
   },
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
-  "exports": {
-    ".": {
-      "require": "./lib/index.js",
-      "types": "./lib/index.d.ts"
-    }
-  },
   "bin": {
     "sentry-prune-profiler-binaries": "scripts/prune-profiler-binaries.mjs"
   },
