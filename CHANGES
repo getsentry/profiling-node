@@ -1,3 +1,9 @@
+## 1.0.6
+
+### Various fixes & improvements
+
+- build: drop exports entirely (28db74c6) by @JonasBa
+
 ## 1.0.5
 
 ### Various fixes & improvements
