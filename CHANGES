@@ -1,3 +1,9 @@
+## 1.0.5
+
+### Various fixes & improvements
+
+- build: drop esm support (#166) by @JonasBa
+
 ## 1.0.4
 
 ### Various fixes & improvements
