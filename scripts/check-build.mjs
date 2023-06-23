@@ -8,12 +8,9 @@ const require = createRequire(import.meta.url);
 
 function recompileFromSource() {
   console.log('@sentry/profiling-node: Compiling from source...');
-  cp.spawnSync(`npm run build:configure`, { env: process.env });
-  console.log('@sentry/profiling-node: Configured gyp');
-  cp.spawnSync(`npm run build:bindings`, { env: process.env });
-  console.log('@sentry/profiling-node: Built binary');
-  cp.spawnSync('node scripts/copy-target.mjs', { env: process.env });
-  console.log('@sentry/profiling-node: Moved binary');
+  cp.spawnSync(`npm run build:configure && npm run build:bindings && node scripts/copy-target.mjs`, {
+    env: process.env
+  });
 }
 
 if (existsSync(target)) {
