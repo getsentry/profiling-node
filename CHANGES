@@ -1,3 +1,14 @@
+## 1.0.7
+
+### Various fixes & improvements
+
+- fix(build): overwrited dest target (b741891d) by @JonasBa
+- fix(build): run as single spawn cmd and fail if target already exists (#169) by @JonasBa
+- build: stop error handling and just propagate all errors (#167) by @JonasBa
+- build: fix typo (9dbc32fb) by @JonasBa
+- build: just dont handle errors (ee0f9b95) by @JonasBa
+- build: improve recompile error handling (07f2fd4d) by @JonasBa
+
 ## 1.0.6
 
 ### Various fixes & improvements
