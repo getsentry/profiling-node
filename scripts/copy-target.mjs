@@ -15,15 +15,13 @@ if (!existsSync(lib)) {
 const source = path.join(__dirname, '..', 'build', 'Release', 'sentry_cpu_profiler.node');
 const target = path.join(__dirname, '..', 'lib', getModuleName());
 
-if (existsSync(target)) {
-  console.log('Target file already exists:', target);
-  exit(1);
-}
-
 if (!existsSync(source)) {
   console.log('Source file does not exist:', source);
   exit(1);
 } else {
+  if (existsSync(target)) {
+    console.log('Target file already exists, overwriting it');
+  }
   console.log('Renaming', source, 'to', target);
   renameSync(source, target);
 }
