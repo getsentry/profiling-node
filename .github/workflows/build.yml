@@ -160,6 +160,8 @@ jobs:
       - name: "Build bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
         if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine')
         run: |
+          CC=aarch64-linux-gnu-gcc \
+          CXX=aarch64-linux-gnu-g++ \
           BUILD_ARCH=arm64 npm run build:bindings:arm64
 
       # This will obviously not work as we run on x64, but we should
