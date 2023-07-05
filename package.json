@@ -1,6 +1,6 @@
 {
   "name": "@sentry/profiling-node",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Sampling based nodejs profiler.",
   "repository": {
     "type": "git",
