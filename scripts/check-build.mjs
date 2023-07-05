@@ -8,9 +8,9 @@ const require = createRequire(import.meta.url);
 
 function recompileFromSource() {
   console.log('@sentry/profiling-node: Compiling from source...');
-  cp.spawnSync(`npm run build:configure && npm run build:bindings && node scripts/copy-target.mjs`, {
-    env: process.env
-  });
+  cp.spawnSync('npm', ['run', 'build:configure'], { env: process.env });
+  cp.spawnSync('npm', ['run', 'build:bindings'], { env: process.env });
+  cp.spawnSync('node', ['scripts/copy-target.mjs'], { env: process.env });
 }
 
 if (existsSync(target)) {
