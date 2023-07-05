@@ -1,3 +1,10 @@
+## 1.0.8
+
+### Various fixes & improvements
+
+- fix: use gnu aarch compiler for arm64 binary (#172) by @bohdanw2
+- fix: Issue fixed for building binary with recompileFromSource (#173) by @whaagmans
+
 ## 1.0.7
 
 ### Various fixes & improvements
