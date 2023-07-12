@@ -14,6 +14,8 @@ const arch = process.env['BUILD_ARCH'] || _arch();
 const abi = getAbi(versions.node, 'node');
 const identifier = [platform, arch, stdlib, abi].filter((c) => c !== undefined && c !== null).join('-');
 
+const defaultPath = `./sentry_cpu_profiler-${identifier}.node`;
+
 export async function importCppBindingsModule(): Promise<PrivateV8CpuProfilerBindings> {
   // If a binary path is specified, use that.
   if (env['SENTRY_PROFILER_BINARY_PATH']) {
@@ -22,7 +24,8 @@ export async function importCppBindingsModule(): Promise<PrivateV8CpuProfilerBin
 
   // If a user specifies a different binary dir, they are in control of the binaries being moved there
   if (env['SENTRY_PROFILER_BINARY_DIR']) {
-    return await import(join(resolve(env['SENTRY_PROFILER_BINARY_DIR']), `sentry_cpu_profiler-${identifier}.node`));
+    const binaryPath = join(resolve(env['SENTRY_PROFILER_BINARY_DIR']), `sentry_cpu_profiler-${identifier}.node`);
+    return await import(binaryPath);
   }
 
   /* eslint-disable no-fallthrough */
@@ -142,7 +145,7 @@ export async function importCppBindingsModule(): Promise<PrivateV8CpuProfilerBin
     }
 
     default: {
-      return await import(`./sentry_cpu_profiler-${identifier}.node`);
+      return await import(defaultPath);
     }
   }
   /* eslint-enable no-fallthrough */
