@@ -2,9 +2,9 @@ import * as Sentry from '@sentry/node';
 import type { Transport } from '@sentry/types';
 
 import { ProfilingIntegration } from './index';
-import type { Profile } from './utils';
 import { NodeClient } from '@sentry/node';
 import { getMainCarrier } from '@sentry/core';
+import type { Profile } from './types';
 
 interface MockTransport extends Transport {
   events: any[];

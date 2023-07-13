@@ -1,6 +1,6 @@
 import type { SdkMetadata, DsnComponents, Event } from '@sentry/types';
 import { createEnvelope, uuid4, addItemToEnvelope } from '@sentry/utils';
-import type { ProfiledEvent, Profile } from './utils';
+
 import {
   isValidSampleRate,
   isValidProfile,
@@ -9,6 +9,7 @@ import {
 } from './utils';
 
 import { maybeRemoveProfileFromSdkMetadata, isProfiledTransactionEvent, createProfilingEventEnvelope } from './utils';
+import type { Profile, ProfiledEvent } from './types';
 
 function makeSdkMetadata(props: Partial<SdkMetadata['sdk']>): SdkMetadata {
   return {

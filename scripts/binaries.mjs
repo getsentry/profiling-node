@@ -9,8 +9,15 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export function getModuleName() {
   const stdlib = familySync();
-  const platform = os.platform();
+  const platform = process.env['BUILD_PLATFORM'] || os.platform();
   const arch = process.env['BUILD_ARCH'] || os.arch();
+
+  if (platform === 'darwin' && arch === 'arm64') {
+    const identifier = [platform, 'arm64', getAbi(process.versions.node, 'node')]
+      .filter((c) => c !== undefined && c !== null)
+      .join('-');
+    return `sentry_cpu_profiler-${identifier}.node`;
+  }
 
   const identifier = [platform, arch, stdlib, getAbi(process.versions.node, 'node')]
     .filter((c) => c !== undefined && c !== null)

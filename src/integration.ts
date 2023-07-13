@@ -4,6 +4,7 @@ import type { Integration, EventProcessor, Hub, Event, Transaction } from '@sent
 import { logger } from '@sentry/utils';
 
 import { isDebugBuild } from './env';
+import type { RawThreadCpuProfile, Profile } from './types';
 import {
   addProfilingExtensionMethods,
   maybeProfileTransaction,
@@ -11,8 +12,6 @@ import {
   MAX_PROFILE_DURATION_MS
 } from './hubextensions';
 
-import type { RawThreadCpuProfile } from './cpu_profiler';
-import type { Profile } from './utils';
 import {
   addProfilesToEnvelope,
   maybeRemoveProfileFromSdkMetadata,

@@ -69,7 +69,6 @@ We currently ship prebuilt binaries for a few of the most common platforms and n
 - Linux ARM64 (musl)
 - Linux x64 (glibc)
 - Windows x64
-- Windows x86
 
 For a more detailed list, see our build.yml workflow.
 

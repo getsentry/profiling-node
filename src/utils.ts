@@ -18,8 +18,9 @@ import type {
 import * as Sentry from '@sentry/node';
 import { GLOBAL_OBJ, createEnvelope, dropUndefinedKeys, dsnToString, logger, forEachEnvelopeItem } from '@sentry/utils';
 
-import type { ThreadCpuProfile, RawThreadCpuProfile } from './cpu_profiler';
 import { isDebugBuild } from './env';
+import type { ProfiledEvent, RawThreadCpuProfile, Profile, ThreadCpuProfile } from './types';
+import type { DebugImage } from './types';
 
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.
@@ -35,50 +36,6 @@ const VERSION = os.version();
 const TYPE = os.type();
 const MODEL = os.machine ? os.machine() : os.arch();
 const ARCH = os.arch();
-
-interface DebugImage {
-  code_file: string;
-  type: string;
-  debug_id: string;
-  image_addr?: string;
-  image_size?: number;
-  image_vmaddr?: string;
-}
-
-export interface Profile {
-  event_id: string;
-  version: string;
-  os: {
-    name: string;
-    version: string;
-    build_number: string;
-  };
-  runtime: {
-    name: string;
-    version: string;
-  };
-  device: {
-    architecture: string;
-    is_emulator: boolean;
-    locale: string;
-    manufacturer: string;
-    model: string;
-  };
-  timestamp: string;
-  release: string;
-  environment: string;
-  platform: string;
-  profile: ThreadCpuProfile;
-  debug_meta?: {
-    images: DebugImage[];
-  };
-  transaction: {
-    name: string;
-    id: string;
-    trace_id: string;
-    active_thread_id: string;
-  };
-}
 
 function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile): profile is RawThreadCpuProfile {
   return !('thread_metadata' in profile);
@@ -100,14 +57,6 @@ export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThrea
         name: THREAD_NAME
       }
     }
-  };
-}
-
-// Profile is marked as optional because it is deleted from the metadata
-// by the integration before the event is processed by other integrations.
-export interface ProfiledEvent extends Event {
-  sdkProcessingMetadata: {
-    profile?: RawThreadCpuProfile;
   };
 }
 

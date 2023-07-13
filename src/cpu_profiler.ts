@@ -7,14 +7,15 @@ import { familySync } from 'detect-libc';
 
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 import { isDebugBuild } from './env';
+import type { PrivateV8CpuProfilerBindings, V8CpuProfilerBindings } from './types';
 
 const stdlib = familySync();
-const platform = _platform();
+const platform = process.env['BUILD_PLATFORM'] || _platform();
 const arch = process.env['BUILD_ARCH'] || _arch();
 const abi = getAbi(versions.node, 'node');
 const identifier = [platform, arch, stdlib, abi].filter((c) => c !== undefined && c !== null).join('-');
 
-const defaultPath = `./sentry_cpu_profiler-${identifier}.node`;
+const built_from_source_path = resolve(__dirname, `./sentry_cpu_profiler-${identifier}`);
 
 export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   // If a binary path is specified, use that.
@@ -25,8 +26,8 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
 
   // If a user specifies a different binary dir, they are in control of the binaries being moved there
   if (env['SENTRY_PROFILER_BINARY_DIR']) {
-    const binaryPath = join(resolve(env['SENTRY_PROFILER_BINARY_DIR']), `sentry_cpu_profiler-${identifier}.node`);
-    return require(`${binaryPath}`);
+    const binaryPath = join(resolve(env['SENTRY_PROFILER_BINARY_DIR']), `sentry_cpu_profiler-${identifier}`);
+    return require(binaryPath + '.node');
   }
 
   /* eslint-disable no-fallthrough */
@@ -42,6 +43,19 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
             }
             case '108': {
               return require('./sentry_cpu_profiler-darwin-x64-108.node');
+            }
+          }
+        }
+        case 'arm64': {
+          switch (abi) {
+            case '83': {
+              return require('./sentry_cpu_profiler-darwin-arm64-83.node');
+            }
+            case '93': {
+              return require('./sentry_cpu_profiler-darwin-arm64-93.node');
+            }
+            case '108': {
+              return require('./sentry_cpu_profiler-darwin-arm64-108.node');
             }
           }
         }
@@ -130,52 +144,10 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
     }
 
     default: {
-      return require(`${defaultPath}`);
+      return require(built_from_source_path + '.node');
     }
   }
   /* eslint-enable no-fallthrough */
-}
-
-interface Sample {
-  stack_id: number;
-  thread_id: string;
-  elapsed_since_start_ns: string;
-}
-
-type Stack = number[];
-
-type Frame = {
-  function: string;
-  file: string;
-  line: number;
-  column: number;
-};
-
-export interface RawThreadCpuProfile {
-  profile_id?: string;
-  stacks: ReadonlyArray<Stack>;
-  samples: ReadonlyArray<Sample>;
-  frames: ReadonlyArray<Frame>;
-  resources: ReadonlyArray<string>;
-  profiler_logging_mode: 'eager' | 'lazy';
-}
-export interface ThreadCpuProfile {
-  stacks: ReadonlyArray<Stack>;
-  samples: ReadonlyArray<Sample>;
-  frames: ReadonlyArray<Frame>;
-  thread_metadata: Record<string, { name?: string; priority?: number }>;
-  queue_metadata?: Record<string, { label: string }>;
-}
-
-interface PrivateV8CpuProfilerBindings {
-  startProfiling(name: string): void;
-  stopProfiling(name: string, threadId: number, collectResources: boolean): RawThreadCpuProfile | null;
-  getFrameModule(abs_path: string): string;
-}
-
-interface V8CpuProfilerBindings {
-  startProfiling(name: string): void;
-  stopProfiling(name: string): RawThreadCpuProfile | null;
 }
 
 const PrivateCpuProfilerBindings: PrivateV8CpuProfilerBindings = importCppBindingsModule();
