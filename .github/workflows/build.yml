@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - release/**
+      - jb/ref/darwin/node-20
   workflow_dispatch:
     inputs:
       commit:
