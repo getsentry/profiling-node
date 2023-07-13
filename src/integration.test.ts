@@ -4,13 +4,12 @@ import { logger } from '@sentry/utils';
 import type { Event, Hub, Transport } from '@sentry/types';
 
 import { ProfilingIntegration } from './integration';
-import type { ProfiledEvent } from './utils';
 
-function assertCleanProfile(event: ProfiledEvent | Event): void {
+function assertCleanProfile(event: SentryProfiling.ProfiledEvent | Event): void {
   expect(event.sdkProcessingMetadata?.profile).toBeUndefined();
 }
 
-function makeProfiledEvent(): ProfiledEvent {
+function makeProfiledEvent(): SentryProfiling.ProfiledEvent {
   return {
     type: 'transaction',
     sdkProcessingMetadata: {

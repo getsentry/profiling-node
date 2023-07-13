@@ -1,2 +1,1 @@
-import { ProfilingIntegration } from './integration';
-export { ProfilingIntegration };
+export { ProfilingIntegration } from './integration';

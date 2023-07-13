@@ -1,6 +1,6 @@
 import type { SdkMetadata, DsnComponents, Event } from '@sentry/types';
 import { createEnvelope, uuid4, addItemToEnvelope } from '@sentry/utils';
-import type { ProfiledEvent, Profile } from './utils';
+
 import {
   isValidSampleRate,
   isValidProfile,
@@ -28,15 +28,15 @@ function makeDsn(props: Partial<DsnComponents>): DsnComponents {
 }
 
 function makeEvent(
-  props: Partial<ProfiledEvent>,
-  profile: NonNullable<ProfiledEvent['sdkProcessingMetadata']['profile']>
-): ProfiledEvent {
+  props: Partial<SentryProfiling.ProfiledEvent>,
+  profile: NonNullable<SentryProfiling.ProfiledEvent['sdkProcessingMetadata']['profile']>
+): SentryProfiling.ProfiledEvent {
   return { ...props, sdkProcessingMetadata: { profile: profile } };
 }
 
 function makeProfile(
-  props: Partial<ProfiledEvent['sdkProcessingMetadata']['profile']>
-): NonNullable<ProfiledEvent['sdkProcessingMetadata']['profile']> {
+  props: Partial<SentryProfiling.ProfiledEvent['sdkProcessingMetadata']['profile']>
+): NonNullable<SentryProfiling.ProfiledEvent['sdkProcessingMetadata']['profile']> {
   return {
     profile_id: '1',
     profiler_logging_mode: 'lazy',
@@ -189,7 +189,7 @@ describe('createProfilingEventEnvelope', () => {
       makeDsn({}),
       makeSdkMetadata({})
     );
-    const profile = envelope?.[1][0]?.[1] as unknown as Profile;
+    const profile = envelope?.[1][0]?.[1] as unknown as SentryProfiling.Profile;
 
     expect(typeof profile.device.manufacturer).toBe('string');
     expect(typeof profile.device.model).toBe('string');

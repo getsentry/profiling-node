@@ -2,7 +2,6 @@ import * as Sentry from '@sentry/node';
 import type { Transport } from '@sentry/types';
 
 import { ProfilingIntegration } from './index';
-import type { Profile } from './utils';
 import { NodeClient } from '@sentry/node';
 import { getMainCarrier } from '@sentry/core';
 
@@ -50,13 +49,13 @@ function makeClientWithoutHooks(): [NodeClient, MockTransport] {
   return [client, transport];
 }
 
-function findAllProfiles(transport: MockTransport): [any, Profile][] | null {
+function findAllProfiles(transport: MockTransport): [any, SentryProfiling.Profile][] | null {
   return transport?.events.filter((call) => {
     return call[0][1][0][0].type === 'profile';
   });
 }
 
-function findProfile(transport: MockTransport): Profile | null {
+function findProfile(transport: MockTransport): SentryProfiling.Profile | null {
   return (
     transport?.events.find((call) => {
       return call[0][1][0][0].type === 'profile';

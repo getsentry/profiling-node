@@ -11,8 +11,6 @@ import {
   MAX_PROFILE_DURATION_MS
 } from './hubextensions';
 
-import type { RawThreadCpuProfile } from './cpu_profiler';
-import type { Profile } from './utils';
 import {
   addProfilesToEnvelope,
   maybeRemoveProfileFromSdkMetadata,
@@ -23,10 +21,10 @@ import {
 } from './utils';
 
 const MAX_PROFILE_QUEUE_LENGTH = 50;
-const PROFILE_QUEUE: RawThreadCpuProfile[] = [];
+const PROFILE_QUEUE: SentryProfiling.RawThreadCpuProfile[] = [];
 const PROFILE_TIMEOUTS: Record<string, NodeJS.Timeout> = {};
 
-function addToProfileQueue(profile: RawThreadCpuProfile): void {
+function addToProfileQueue(profile: SentryProfiling.RawThreadCpuProfile): void {
   PROFILE_QUEUE.push(profile);
 
   // We only want to keep the last n profiles in the queue.
@@ -108,7 +106,7 @@ export class ProfilingIntegration implements Integration {
           return;
         }
 
-        const profilesToAddToEnvelope: Profile[] = [];
+        const profilesToAddToEnvelope: SentryProfiling.Profile[] = [];
 
         for (let i = 0; i < profiledTransactionEvents.length; i++) {
           const profiledTransaction = profiledTransactionEvents[i];

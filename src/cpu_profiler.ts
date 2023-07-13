@@ -16,7 +16,7 @@ const identifier = [platform, arch, stdlib, abi].filter((c) => c !== undefined &
 
 const defaultPath = `./sentry_cpu_profiler-${identifier}.node`;
 
-export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
+export function importCppBindingsModule(): SentryProfiling.PrivateV8CpuProfilerBindings {
   // If a binary path is specified, use that.
   if (env['SENTRY_PROFILER_BINARY_PATH']) {
     const envPath = env['SENTRY_PROFILER_BINARY_PATH'];
@@ -136,50 +136,8 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   /* eslint-enable no-fallthrough */
 }
 
-interface Sample {
-  stack_id: number;
-  thread_id: string;
-  elapsed_since_start_ns: string;
-}
-
-type Stack = number[];
-
-type Frame = {
-  function: string;
-  file: string;
-  line: number;
-  column: number;
-};
-
-export interface RawThreadCpuProfile {
-  profile_id?: string;
-  stacks: ReadonlyArray<Stack>;
-  samples: ReadonlyArray<Sample>;
-  frames: ReadonlyArray<Frame>;
-  resources: ReadonlyArray<string>;
-  profiler_logging_mode: 'eager' | 'lazy';
-}
-export interface ThreadCpuProfile {
-  stacks: ReadonlyArray<Stack>;
-  samples: ReadonlyArray<Sample>;
-  frames: ReadonlyArray<Frame>;
-  thread_metadata: Record<string, { name?: string; priority?: number }>;
-  queue_metadata?: Record<string, { label: string }>;
-}
-
-interface PrivateV8CpuProfilerBindings {
-  startProfiling(name: string): void;
-  stopProfiling(name: string, threadId: number, collectResources: boolean): RawThreadCpuProfile | null;
-  getFrameModule(abs_path: string): string;
-}
-
-interface V8CpuProfilerBindings {
-  startProfiling(name: string): void;
-  stopProfiling(name: string): RawThreadCpuProfile | null;
-}
-
-const PrivateCpuProfilerBindings: PrivateV8CpuProfilerBindings = importCppBindingsModule();
-const CpuProfilerBindings: V8CpuProfilerBindings = {
+const PrivateCpuProfilerBindings: SentryProfiling.PrivateV8CpuProfilerBindings = importCppBindingsModule();
+const CpuProfilerBindings: SentryProfiling.V8CpuProfilerBindings = {
   startProfiling(name: string) {
     if (!PrivateCpuProfilerBindings) {
       if (isDebugBuild()) {

@@ -22,5 +22,6 @@
     "baseUrl": "./src",
     "typeRoots": ["node_modules/@types"],
   },
+  "types": ["./src/types.d.ts"],
   "exclude": ["src/**/*.test.ts", "scripts/**/*"]
 }
