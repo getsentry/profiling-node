@@ -19,7 +19,13 @@ if (existsSync(target)) {
     require(target);
     console.log('@sentry/profiling-node: Precompiled binary found, skipping build from source.');
   } catch (e) {
-    recompileFromSource();
+    console.log('@sentry/profiling-node: Precompiled binary found but failed loading');
+    try {
+      recompileFromSource();
+    } catch (e) {
+      console.log('@sentry/profiling-node: Failed to compile from source');
+      throw e;
+    }
   }
 } else {
   console.log('@sentry/profiling-node: No precompiled binary found');
