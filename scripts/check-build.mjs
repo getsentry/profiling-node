@@ -20,22 +20,12 @@ if (existsSync(target)) {
     console.log('@sentry/profiling-node: Precompiled binary found, skipping build from source.');
   } catch (e) {
     console.log('@sentry/profiling-node: Precompiled binary found but failed loading');
-    if (/was compiled against a different Node.js/.test(e.message)) {
+    try {
       recompileFromSource();
+    } catch (e) {
+      console.log('@sentry/profiling-node: Failed to compile from source');
+      throw e;
     }
-
-    // Not sure if this could even happen, but just in case it somehow does,
-    // we can provide a better experience than just crashing with cannot find module message.
-    if (/Cannot find module/.test(e.message)) {
-      recompileFromSource();
-    }
-
-    if (/cannot open shared object file/.test(e.message)) {
-      recompileFromSource();
-    }
-
-    // re-throw so we dont end up swallowing errors
-    throw e;
   }
 } else {
   console.log('@sentry/profiling-node: No precompiled binary found');
