@@ -1,10 +1,10 @@
 name: Precompile binaries
 on:
   push:
-   branches:
+    branches:
       - main
       - release/**
-      - jb/ref/profiling-type
+      - jb/ref/profiling/types
   workflow_dispatch:
     inputs:
       commit:
@@ -12,7 +12,7 @@ on:
         required: false
 jobs:
   precompile-bindings:
-    name: ${{ matrix.os }} (node=${{ matrix.node || matrix.container }}, arch=${{ matrix.arch || matrix.container }}, compiler=${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
+    name: ${{ matrix.os }} (${{ matrix.target_platform }} node=${{ matrix.node || matrix.container }}, arch=${{ matrix.arch || matrix.container }}, compiler=${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     strategy:
@@ -125,7 +125,7 @@ jobs:
           node-version: ${{ matrix.node }}
 
       - name: Install dependencies
-        run: npm install --unsafe-perm --build-from-source
+        run: npm install --ignore-scripts
 
       # configure build test copy x64
       - name: Configure gyp
@@ -149,7 +149,7 @@ jobs:
           
       # linux arm64
       - name: "Configure gyp (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
-        if: matrix.arch == 'arm64'
+        if: matrix.arch == 'arm64' && matrix.target_platform != 'darwin'
         run: npm run build:configure:arm64
 
       - name: Setup musl cross compiler
@@ -160,30 +160,27 @@ jobs:
           $(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc --version
 
       - name: "Build bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
-        if: matrix.arch == 'arm64' && contains(matrix.container, 'alpine')
+        if: matrix.arch == 'arm64' && contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
         run: |
           CC=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc \
           CXX=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-g++ \
           BUILD_ARCH=arm64 npm run build:bindings
 
       - name: "Build bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
-        if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine')
+        if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
         run: |
           CC=aarch64-linux-gnu-gcc \
           CXX=aarch64-linux-gnu-g++ \
           BUILD_ARCH=arm64 npm run build:bindings:arm64
 
       # linux arm64 target darwin
-      - name: "Configure gyp (arm64, ${{ contains(matrix.container, 'alpine') }})"
+      - name: "Configure gyp (arm64, darwin)"
         if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
         run: npm run build:configure:arm64
 
-      - name: "Build bindings (arm64)"
-        if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin')
-        run: |
-          CC=aarch64-linux-gnu-gcc \
-          CXX=aarch64-linux-gnu-g++ \
-          BUILD_PLATFORM=darwin BUILD_ARCH=arm64 npm run build:bindings:arm64
+      - name: "Build bindings (arm64, darwin)"
+        if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
+        run: BUILD_PLATFORM=darwin BUILD_ARCH=arm64 npm run build:bindings:arm64
 
       # continue with common steps
       - name: Log binary
