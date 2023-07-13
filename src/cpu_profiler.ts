@@ -48,6 +48,9 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
         }
         case 'arm64': {
           switch (abi) {
+            case '83': {
+              return require('./sentry_cpu_profiler-darwin-arm64-83.node');
+            }
             case '93': {
               return require('./sentry_cpu_profiler-darwin-arm64-93.node');
             }
