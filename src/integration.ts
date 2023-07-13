@@ -4,6 +4,7 @@ import type { Integration, EventProcessor, Hub, Event, Transaction } from '@sent
 import { logger } from '@sentry/utils';
 
 import { isDebugBuild } from './env';
+import type { RawThreadCpuProfile, Profile } from './types';
 import {
   addProfilingExtensionMethods,
   maybeProfileTransaction,
@@ -21,10 +22,10 @@ import {
 } from './utils';
 
 const MAX_PROFILE_QUEUE_LENGTH = 50;
-const PROFILE_QUEUE: SentryProfiling.RawThreadCpuProfile[] = [];
+const PROFILE_QUEUE: RawThreadCpuProfile[] = [];
 const PROFILE_TIMEOUTS: Record<string, NodeJS.Timeout> = {};
 
-function addToProfileQueue(profile: SentryProfiling.RawThreadCpuProfile): void {
+function addToProfileQueue(profile: RawThreadCpuProfile): void {
   PROFILE_QUEUE.push(profile);
 
   // We only want to keep the last n profiles in the queue.
@@ -106,7 +107,7 @@ export class ProfilingIntegration implements Integration {
           return;
         }
 
-        const profilesToAddToEnvelope: SentryProfiling.Profile[] = [];
+        const profilesToAddToEnvelope: Profile[] = [];
 
         for (let i = 0; i < profiledTransactionEvents.length; i++) {
           const profiledTransaction = profiledTransactionEvents[i];

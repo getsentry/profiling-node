@@ -19,6 +19,8 @@ import * as Sentry from '@sentry/node';
 import { GLOBAL_OBJ, createEnvelope, dropUndefinedKeys, dsnToString, logger, forEachEnvelopeItem } from '@sentry/utils';
 
 import { isDebugBuild } from './env';
+import type { ProfiledEvent, RawThreadCpuProfile, Profile, ThreadCpuProfile } from './types';
+import type { DebugImage } from './types';
 
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.
@@ -35,17 +37,13 @@ const TYPE = os.type();
 const MODEL = os.machine ? os.machine() : os.arch();
 const ARCH = os.arch();
 
-function isRawThreadCpuProfile(
-  profile: SentryProfiling.ThreadCpuProfile | SentryProfiling.RawThreadCpuProfile
-): profile is SentryProfiling.RawThreadCpuProfile {
+function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile): profile is RawThreadCpuProfile {
   return !('thread_metadata' in profile);
 }
 
 // Enriches the profile with threadId of the current thread.
 // This is done in node as we seem to not be able to get the info from C native code.
-export function enrichWithThreadInformation(
-  profile: SentryProfiling.ThreadCpuProfile | SentryProfiling.RawThreadCpuProfile
-): SentryProfiling.ThreadCpuProfile {
+export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThreadCpuProfile): ThreadCpuProfile {
   if (!isRawThreadCpuProfile(profile)) {
     return profile;
   }
@@ -113,7 +111,7 @@ function createEventEnvelopeHeaders(
  * @param event
  * @returns {Profile | null}
  */
-export function createProfilingEventFromTransaction(event: ProfiledEvent): SentryProfiling.Profile | null {
+export function createProfilingEventFromTransaction(event: ProfiledEvent): Profile | null {
   if (event.type !== 'transaction') {
     // createProfilingEventEnvelope should only be called for transactions,
     // we type guard this behavior with isProfiledTransactionEvent.
@@ -154,10 +152,7 @@ export function createProfilingEventFromTransaction(event: ProfiledEvent): Sentr
  * @param event
  * @returns {Profile | null}
  */
-export function createProfilingEvent(
-  profile: SentryProfiling.RawThreadCpuProfile,
-  event: Event
-): SentryProfiling.Profile | null {
+export function createProfilingEvent(profile: RawThreadCpuProfile, event: Event): Profile | null {
   if (!isValidProfile(profile)) {
     return null;
   }
@@ -181,7 +176,7 @@ export function createProfilingEvent(
  * @returns
  */
 function createProfilePayload(
-  cpuProfile: SentryProfiling.RawThreadCpuProfile,
+  cpuProfile: RawThreadCpuProfile,
   {
     release,
     environment,
@@ -199,7 +194,7 @@ function createProfilePayload(
     trace_id: string | undefined;
     profile_id: string;
   }
-): SentryProfiling.Profile {
+): Profile {
   // Log a warning if the profile has an invalid traceId (should be uuidv4).
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
@@ -211,7 +206,7 @@ function createProfilePayload(
 
   const enrichedThreadProfile = enrichWithThreadInformation(cpuProfile);
 
-  const profile: SentryProfiling.Profile = {
+  const profile: Profile = {
     event_id: profile_id,
     timestamp: new Date(start_timestamp).toISOString(),
     platform: 'node',
@@ -258,7 +253,7 @@ function createProfilePayload(
  * @returns
  */
 export function createProfilingEventEnvelope(
-  event: SentryProfiling.ProfiledEvent,
+  event: ProfiledEvent,
   dsn: DsnComponents,
   metadata?: SdkMetadata,
   tunnel?: string
@@ -284,14 +279,14 @@ export function createProfilingEventEnvelope(
   return createEnvelope<EventEnvelope>(envelopeHeaders, [envelopeItem]);
 }
 
-export function isProfiledTransactionEvent(event: Event): event is SentryProfiling.ProfiledEvent {
+export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent {
   return !!(event.sdkProcessingMetadata && event.sdkProcessingMetadata['profile']);
 }
 
 // Due to how profiles are attached to event metadata, we may sometimes want to remove them to ensure
 // they are not processed by other Sentry integrations. This can be the case when we cannot construct a valid
 // profile from the data we have or some of the mechanisms to send the event (Hub, Transport etc) are not available to us.
-export function maybeRemoveProfileFromSdkMetadata(event: Event | SentryProfiling.ProfiledEvent): Event {
+export function maybeRemoveProfileFromSdkMetadata(event: Event | ProfiledEvent): Event {
   if (!isProfiledTransactionEvent(event)) {
     return event;
   }
@@ -331,9 +326,7 @@ export function isValidSampleRate(rate: unknown): boolean {
   return true;
 }
 
-export function isValidProfile(
-  profile: SentryProfiling.RawThreadCpuProfile
-): profile is SentryProfiling.RawThreadCpuProfile & { profile_id: string } {
+export function isValidProfile(profile: RawThreadCpuProfile): profile is RawThreadCpuProfile & { profile_id: string } {
   if (profile.samples.length <= 1) {
     if (isDebugBuild()) {
       // Log a warning if the profile has less than 2 samples so users can know why
@@ -355,7 +348,7 @@ export function isValidProfile(
  * Adds items to envelope if they are not already present - mutates the envelope.
  * @param envelope
  */
-export function addProfilesToEnvelope(envelope: Envelope, profiles: SentryProfiling.Profile[]): Envelope {
+export function addProfilesToEnvelope(envelope: Envelope, profiles: Profile[]): Envelope {
   if (!profiles.length) {
     return envelope;
   }
@@ -395,7 +388,7 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
 }
 
 const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
-export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): SentryProfiling.DebugImage[] {
+export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): DebugImage[] {
   const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
 
   if (!debugIdMap) {
@@ -441,7 +434,7 @@ export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): Sentr
     return acc;
   }, {});
 
-  const images: SentryProfiling.DebugImage[] = [];
+  const images: DebugImage[] = [];
 
   for (let i = 0; i < resource_paths.length; i++) {
     const path = resource_paths[i];

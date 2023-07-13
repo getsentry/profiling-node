@@ -1,5 +1,5 @@
 import { CpuProfilerBindings, PrivateCpuProfilerBindings } from './cpu_profiler';
-import type { ThreadCpuProfile } from './cpu_profiler';
+import type { ThreadCpuProfile } from './types';
 
 function fail(message: string): never {
   throw new Error(message);

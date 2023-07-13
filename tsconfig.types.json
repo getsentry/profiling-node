@@ -5,7 +5,7 @@
         "outDir": "lib",
         "emitDeclarationOnly": true,
         "declaration": true,
-        "outFile": "lib/types.d.ts"
+        "outFile": "lib/index.d.ts"
     },
     "files": [
         "./src/index.ts",

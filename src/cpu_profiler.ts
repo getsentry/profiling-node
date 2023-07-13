@@ -7,16 +7,17 @@ import { familySync } from 'detect-libc';
 
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 import { isDebugBuild } from './env';
+import type { PrivateV8CpuProfilerBindings, V8CpuProfilerBindings } from './types';
 
 const stdlib = familySync();
-const platform = _platform();
+const platform = process.env['BUILD_PLATFORM'] || _platform();
 const arch = process.env['BUILD_ARCH'] || _arch();
 const abi = getAbi(versions.node, 'node');
 const identifier = [platform, arch, stdlib, abi].filter((c) => c !== undefined && c !== null).join('-');
 
-const defaultPath = `./sentry_cpu_profiler-${identifier}.node`;
+const built_from_source_path = resolve(__dirname, `./sentry_cpu_profiler-${identifier}`);
 
-export function importCppBindingsModule(): SentryProfiling.PrivateV8CpuProfilerBindings {
+export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   // If a binary path is specified, use that.
   if (env['SENTRY_PROFILER_BINARY_PATH']) {
     const envPath = env['SENTRY_PROFILER_BINARY_PATH'];
@@ -25,8 +26,8 @@ export function importCppBindingsModule(): SentryProfiling.PrivateV8CpuProfilerB
 
   // If a user specifies a different binary dir, they are in control of the binaries being moved there
   if (env['SENTRY_PROFILER_BINARY_DIR']) {
-    const binaryPath = join(resolve(env['SENTRY_PROFILER_BINARY_DIR']), `sentry_cpu_profiler-${identifier}.node`);
-    return require(`${binaryPath}`);
+    const binaryPath = join(resolve(env['SENTRY_PROFILER_BINARY_DIR']), `sentry_cpu_profiler-${identifier}`);
+    return require(binaryPath + '.node');
   }
 
   /* eslint-disable no-fallthrough */
@@ -42,6 +43,16 @@ export function importCppBindingsModule(): SentryProfiling.PrivateV8CpuProfilerB
             }
             case '108': {
               return require('./sentry_cpu_profiler-darwin-x64-108.node');
+            }
+          }
+        }
+        case 'arm64': {
+          switch (abi) {
+            case '93': {
+              return require('./sentry_cpu_profiler-darwin-arm64-93.node');
+            }
+            case '108': {
+              return require('./sentry_cpu_profiler-darwin-arm64-108.node');
             }
           }
         }
@@ -130,14 +141,14 @@ export function importCppBindingsModule(): SentryProfiling.PrivateV8CpuProfilerB
     }
 
     default: {
-      return require(`${defaultPath}`);
+      return require(built_from_source_path + '.node');
     }
   }
   /* eslint-enable no-fallthrough */
 }
 
-const PrivateCpuProfilerBindings: SentryProfiling.PrivateV8CpuProfilerBindings = importCppBindingsModule();
-const CpuProfilerBindings: SentryProfiling.V8CpuProfilerBindings = {
+const PrivateCpuProfilerBindings: PrivateV8CpuProfilerBindings = importCppBindingsModule();
+const CpuProfilerBindings: V8CpuProfilerBindings = {
   startProfiling(name: string) {
     if (!PrivateCpuProfilerBindings) {
       if (isDebugBuild()) {

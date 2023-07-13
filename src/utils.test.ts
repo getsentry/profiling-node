@@ -28,15 +28,15 @@ function makeDsn(props: Partial<DsnComponents>): DsnComponents {
 }
 
 function makeEvent(
-  props: Partial<SentryProfiling.ProfiledEvent>,
-  profile: NonNullable<SentryProfiling.ProfiledEvent['sdkProcessingMetadata']['profile']>
-): SentryProfiling.ProfiledEvent {
+  props: Partial<ProfiledEvent>,
+  profile: NonNullable<ProfiledEvent['sdkProcessingMetadata']['profile']>
+): ProfiledEvent {
   return { ...props, sdkProcessingMetadata: { profile: profile } };
 }
 
 function makeProfile(
-  props: Partial<SentryProfiling.ProfiledEvent['sdkProcessingMetadata']['profile']>
-): NonNullable<SentryProfiling.ProfiledEvent['sdkProcessingMetadata']['profile']> {
+  props: Partial<ProfiledEvent['sdkProcessingMetadata']['profile']>
+): NonNullable<ProfiledEvent['sdkProcessingMetadata']['profile']> {
   return {
     profile_id: '1',
     profiler_logging_mode: 'lazy',
@@ -189,7 +189,7 @@ describe('createProfilingEventEnvelope', () => {
       makeDsn({}),
       makeSdkMetadata({})
     );
-    const profile = envelope?.[1][0]?.[1] as unknown as SentryProfiling.Profile;
+    const profile = envelope?.[1][0]?.[1] as unknown as Profile;
 
     expect(typeof profile.device.manufacturer).toBe('string');
     expect(typeof profile.device.model).toBe('string');

@@ -49,13 +49,13 @@ function makeClientWithoutHooks(): [NodeClient, MockTransport] {
   return [client, transport];
 }
 
-function findAllProfiles(transport: MockTransport): [any, SentryProfiling.Profile][] | null {
+function findAllProfiles(transport: MockTransport): [any, Profile][] | null {
   return transport?.events.filter((call) => {
     return call[0][1][0][0].type === 'profile';
   });
 }
 
-function findProfile(transport: MockTransport): SentryProfiling.Profile | null {
+function findProfile(transport: MockTransport): Profile | null {
   return (
     transport?.events.find((call) => {
       return call[0][1][0][0].type === 'profile';
