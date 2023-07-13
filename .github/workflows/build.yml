@@ -175,11 +175,11 @@ jobs:
 
       # linux arm64 target darwin
       - name: "Configure gyp (arm64, ${{ contains(matrix.container, 'alpine') }})"
-        if: matrix.arch == 'arm64' && matrix.platform == 'darwin'
+        if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
         run: npm run build:configure:arm64
 
       - name: "Build bindings (arm64)"
-        if: matrix.arch == 'arm64' && matrix.platform == 'darwin')
+        if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin')
         run: |
           CC=aarch64-linux-gnu-gcc \
           CXX=aarch64-linux-gnu-g++ \
