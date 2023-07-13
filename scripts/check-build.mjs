@@ -21,17 +21,21 @@ if (existsSync(target)) {
   } catch (e) {
     console.log('@sentry/profiling-node: Precompiled binary found but failed loading');
     if (/was compiled against a different Node.js/.test(e.message)) {
-      recompileFromSource();
+      return recompileFromSource();
     }
 
     // Not sure if this could even happen, but just in case it somehow does,
     // we can provide a better experience than just crashing with cannot find module message.
     if (/Cannot find module/.test(e.message)) {
-      recompileFromSource();
+      return recompileFromSource();
     }
 
     if (/cannot open shared object file/.test(e.message)) {
-      recompileFromSource();
+      return recompileFromSource();
+    }
+
+    if (/ERR_DLOPEN_FAILED/.test(e.message)) {
+      return recompileFromSource();
     }
 
     // re-throw so we dont end up swallowing errors
