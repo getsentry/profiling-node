@@ -9,6 +9,7 @@ import {
 } from './utils';
 
 import { maybeRemoveProfileFromSdkMetadata, isProfiledTransactionEvent, createProfilingEventEnvelope } from './utils';
+import type { Profile, ProfiledEvent } from './types';
 
 function makeSdkMetadata(props: Partial<SdkMetadata['sdk']>): SdkMetadata {
   return {
