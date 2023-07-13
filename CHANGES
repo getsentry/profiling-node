@@ -1,3 +1,11 @@
+## 1.1.0
+
+### Various fixes & improvements
+
+- bindings: prebuild more binaries for node 20 (#177) by @JonasBa
+- build(deps): bump semver from 6.3.0 to 6.3.1 (#175) by @dependabot
+- ref(profiling): change import so contextReplacementPlugin can ignore warning and attempt to provide darwin binaries (#176) by @JonasBa
+
 ## 1.0.9
 
 ### Various fixes & improvements
