@@ -179,7 +179,7 @@ jobs:
         run: npm run build:configure:arm64
 
       - name: Setup musl cross compiler
-        if: contains(matrix.container, 'alpine')
+        if: contains(matrix.container, 'alpine') || matrix.target_platform == 'darwin'
         run: |
           curl -OL https://musl.cc/aarch64-linux-musl-cross.tgz
           tar -xzvf aarch64-linux-musl-cross.tgz
