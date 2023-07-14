@@ -274,6 +274,7 @@ jobs:
     needs: [precompile-bindings, test-bundle, build-and-pack]
     # Build artifacts are only needed for releasing workflow.
     strategy:
+      fail-fast: false
       matrix: 
         bundler: ["webpack", "esbuild", "rollup"]
     steps:

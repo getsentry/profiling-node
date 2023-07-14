@@ -26,6 +26,6 @@ module.exports = {
   },
   output: {
     filename: './webpack.app.js',
-    path: path.resolve(__dirname, 'dist')
+    path: path.resolve(__dirname, './dist/webpack')
   }
 };

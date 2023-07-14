@@ -8,7 +8,7 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 esbuild.build({
   platform: 'node',
   entryPoints: [path.resolve(__dirname, './index.ts')],
-  outfile: path.resolve(__dirname, './esbuild.app.js'),
+  outdir: path.resolve(__dirname, './dist/esbuild'),
   format: 'cjs',
   target: 'node12',
   bundle: true,

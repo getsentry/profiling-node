@@ -1,13 +1,12 @@
-import * as Sentry from '@sentry/node';
+const lib = require('@sentry/node');
+const profiling = require('./../lib/index');
 
-import profiling from './../lib/index';
-
-Sentry.init({
+lib.init({
   dsn: 'https://03fdc938a5f3431ea023c381b759669c@o1.ingest.sentry.io/4505528192335872',
   integrations: [new profiling.ProfilingIntegration()]
 });
 
-const transaction = Sentry.startTransaction({ name: 'smoke-test-application-txn' });
+const transaction = lib.startTransaction({ name: 'smoke-test-application-txn' });
 
 function sleep(time: number) {
   const stop = new Date().getTime();
@@ -21,5 +20,5 @@ sleep(100);
 transaction.finish();
 
 (async () => {
-  await Sentry.flush();
+  await lib.flush();
 })();

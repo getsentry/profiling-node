@@ -50,11 +50,11 @@
     "test:watch": "cross-env SENTRY_PROFILER_BINARY_DIR=./lib jest --watch",
     "test:bundle": "node test-binaries.esbuild.mjs",
     "test:esbuild:build": "node ./demo_app/esbuild.cjs.mjs",
-    "test:esbuild:run": "node ./demo_app/esbuild.app.js",
+    "test:esbuild:run": "node ./demo_app/dist/esbuild/index.js",
     "test:webpack:build": "webpack --config ./demo_app/webpack.config.js",
-    "test:webpack:run": "node ./demo_app/webpack.app.js",
+    "test:webpack:run": "node ./demo_app/dist/webpack/webpack.app.js",
     "test:rollup:build": "rollup --config ./demo_app/rollup.config.js",
-    "test:rollup:run": "node ./demo_app/rollup.app.js",
+    "test:rollup:run": "node ./demo_app/dist/rollup/rollup.app.js",
     "test": "cross-env SENTRY_PROFILER_BINARY_DIR=./lib jest --config jest.config.ts",
     "prettier": "prettier --config ./.prettierrc --write"
   },
@@ -84,6 +84,8 @@
     "node-gyp": "^9.3.0"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.2",
+    "@rollup/plugin-node-resolve": "^15.1.0",
     "@types/express": "^4.17.14",
     "@types/jest": "^29.0.0",
     "@types/node": "^18.0.2",
@@ -105,6 +107,7 @@
     "react-dom": "^18.2.0",
     "rollup": "^3.26.2",
     "rollup-plugin-natives": "^0.7.6",
+    "rollup-plugin-typescript2": "^0.35.0",
     "simple-zstd": "^1.4.0",
     "sqlite3": "^5.0.8",
     "ts-jest": "^29.1.0",
