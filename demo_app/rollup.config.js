@@ -15,7 +15,9 @@ module.exports = {
     resolve({
       extensions: ['.js', '.ts', '.node']
     }),
-    commonjs(),
+    commonjs({
+      strictRequires: true
+    }),
     rollupNativePlugin({
       // Where we want to physically put the extracted .node files
       copyTo: path.resolve(__dirname, './dist/rollup'),

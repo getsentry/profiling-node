@@ -16,7 +16,7 @@ esbuild.build({
   entryPoints: ['./src/index.ts'],
   outfile: './lib/index.js',
   format: 'cjs',
-  target: 'node12',
+  target: 'node14',
   bundle: true,
   tsconfig: './tsconfig.cjs.json',
   plugins: [missingBindingsPlugin]

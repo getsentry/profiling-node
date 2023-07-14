@@ -1,15 +1,15 @@
-const lib = require('@sentry/node');
-const profiling = require('./../lib/index.js');
-const process = require('process');
+import * as Sentry from '@sentry/node';
+import { ProfilingIntegration } from './../lib/index';
+import process from 'process';
 
-lib.init({
+Sentry.init({
   dsn: 'https://03fdc938a5f3431ea023c381b759669c@o1.ingest.sentry.io/4505528192335872',
-  integrations: [new profiling.ProfilingIntegration()],
+  integrations: [new ProfilingIntegration()],
   tracesSampleRate: 1,
   profilesSampleRate: 1
 });
 
-const transaction = lib.startTransaction({ name: `${process.env['BUNDLER']}-application-build` });
+const transaction = Sentry.startTransaction({ name: `${process.env['BUNDLER']}-application-build` });
 
 function sleep(time) {
   const stop = new Date().getTime();
@@ -24,5 +24,5 @@ console.timeEnd('test');
 transaction.finish();
 
 (async () => {
-  await lib.flush();
+  await Sentry.flush();
 })();

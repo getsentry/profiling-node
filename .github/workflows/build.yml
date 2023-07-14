@@ -269,7 +269,7 @@ jobs:
             ${{ github.workspace }}/*.tgz
 
   test-app-build-run:
-    name: "bundler tests"
+    name: bundler tests
     runs-on: ubuntu-20.04
     needs: [precompile-bindings, test-bundle, build-and-pack]
     # Build artifacts are only needed for releasing workflow.
@@ -283,8 +283,9 @@ jobs:
         with:
           node-version: 18
 
-      - run: npm ci
+      - run: npm install --ignore-scripts
       - run: npm run build:lib
+
       - uses: actions/download-artifact@v3
         with: 
           name: binaries-${{ github.sha }}
