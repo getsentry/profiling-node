@@ -1,10 +1,10 @@
 import * as Sentry from '@sentry/node';
 
-import { ProfilingIntegration } from './../lib/index';
+import profiling from './../lib/index';
 
 Sentry.init({
   dsn: 'https://03fdc938a5f3431ea023c381b759669c@o1.ingest.sentry.io/4505528192335872',
-  integrations: [new ProfilingIntegration()]
+  integrations: [new profiling.ProfilingIntegration()]
 });
 
 const transaction = Sentry.startTransaction({ name: 'smoke-test-application-txn' });
