@@ -252,7 +252,6 @@ jobs:
           node-version: 18
 
       - run: npm ci
-
       - run: npm run build:lib
 
       - uses: actions/download-artifact@v3
@@ -268,4 +267,25 @@ jobs:
           name: ${{ github.sha }}
           path: |
             ${{ github.workspace }}/*.tgz
+
+  test-app-build:
+    runs-on: ubuntu-latest
+    needs: [precompile-bindings, test-bundle, build-and-pack]
+    # Build artifacts are only needed for releasing workflow.
+    if: startsWith(github.ref, 'refs/heads/release/')
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - run: npm ci
+      - run: npm run build:lib
+      - uses: actions/download-artifact@v3
+        with: 
+          name: binaries-${{ github.sha }}
+          path: lib/
+      - run: ls -l lib/
+      - run: npm run test:app-build
+      - run: npm run test:app-run
 
