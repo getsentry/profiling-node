@@ -1,5 +1,5 @@
 const lib = require('@sentry/node');
-const profiling = require('./../lib/index');
+const profiling = require('./../lib/index.js');
 
 lib.init({
   dsn: 'https://03fdc938a5f3431ea023c381b759669c@o1.ingest.sentry.io/4505528192335872',
@@ -8,7 +8,7 @@ lib.init({
 
 const transaction = lib.startTransaction({ name: 'smoke-test-application-txn' });
 
-function sleep(time: number) {
+function sleep(time) {
   const stop = new Date().getTime();
   while (new Date().getTime() < stop + time) {
     // block
