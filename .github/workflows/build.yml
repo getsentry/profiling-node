@@ -285,6 +285,6 @@ jobs:
           name: binaries-${{ github.sha }}
           path: lib/
       - run: ls -l lib/
-      - run: npm run test:app-build
-      - run: npm run test:app-run
+      - run: npm run test:app:build
+      - run: npm run test:app:run
 
