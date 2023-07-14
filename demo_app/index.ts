@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/node';
 import { ProfilingIntegration } from './../lib/index';
 
 Sentry.init({
-  dsn: 'http://example.com',
+  dsn: 'https://03fdc938a5f3431ea023c381b759669c@o1.ingest.sentry.io/4505528192335872',
   integrations: [new ProfilingIntegration()]
 });
 

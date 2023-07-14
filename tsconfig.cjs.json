@@ -4,6 +4,7 @@
         "outDir": "lib",
         "module": "commonjs",
         "declaration": false,
+        "esModuleInterop": true
     },
     "include": ["src/**/*.ts"]
 }

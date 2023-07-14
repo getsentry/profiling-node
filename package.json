@@ -49,8 +49,12 @@
     "benchmark:integration": "node benchmarks/cpu/benchmark.integration.base.js && node benchmarks/cpu/benchmark.integration.disabled.js && node benchmarks/cpu/benchmark.integration.js",
     "test:watch": "cross-env SENTRY_PROFILER_BINARY_DIR=./lib jest --watch",
     "test:bundle": "node test-binaries.esbuild.mjs",
-    "test:app:build": "node ./demo_app/esbuild.cjs.mjs",
-    "test:app:run": "node ./demo_app/built.js",
+    "test:esbuild:build": "node ./demo_app/esbuild.cjs.mjs",
+    "test:esbuild:run": "node ./demo_app/esbuild.app.js",
+    "test:webpack:build": "webpack --config ./demo_app/webpack.config.js",
+    "test:webpack:run": "node ./demo_app/webpack.app.js",
+    "test:rollup:build": "rollup --config ./demo_app/rollup.config.js",
+    "test:rollup:run": "node ./demo_app/rollup.app.js",
     "test": "cross-env SENTRY_PROFILER_BINARY_DIR=./lib jest --config jest.config.ts",
     "prettier": "prettier --config ./.prettierrc --write"
   },
@@ -95,13 +99,18 @@
     "eslint-plugin-prettier": "^4.2.1",
     "express": "^4.18.1",
     "jest": "^29.5.0",
+    "node-loader": "^2.0.0",
     "prettier": "2.7.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "rollup": "^3.26.2",
+    "rollup-plugin-natives": "^0.7.6",
     "simple-zstd": "^1.4.0",
     "sqlite3": "^5.0.8",
     "ts-jest": "^29.1.0",
+    "ts-loader": "^9.4.4",
     "ts-node": "^10.9.1",
-    "typescript": "^5.0.2"
+    "typescript": "^5.0.2",
+    "webpack-cli": "^5.1.4"
   }
 }
