@@ -268,10 +268,14 @@ jobs:
           path: |
             ${{ github.workspace }}/*.tgz
 
-  test-app-build:
+  test-app-build-run:
+    name: "bundler tests"
     runs-on: ubuntu-latest
     needs: [precompile-bindings, test-bundle, build-and-pack]
     # Build artifacts are only needed for releasing workflow.
+    strategy:
+      matrix: 
+        bundler: ["webpack", "esbuild", "rollup"]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -286,10 +290,6 @@ jobs:
           path: lib/
       - run: ls -l lib/
 
-      # esbuild test
-      - run: npm run test:esbuild:build
-      - run: npm run test:esbuild:run
-      # webpack tes
-      - run: npm run test:webpack:build
-      - run: npm run test:webpack:run
+      - run: npm run test:${{matrix.bundler}}:build
+      - run: npm run test:${{matrix.bundler}}:run
 
