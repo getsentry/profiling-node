@@ -9,7 +9,7 @@ Sentry.init({
 
 const transaction = Sentry.startTransaction({ name: 'smoke-test-application-txn' });
 
-function sleep(time) {
+function sleep(time: number) {
   const stop = new Date().getTime();
   while (new Date().getTime() < stop + time) {
     // block
