@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - release/**
+      - jb/ci/test-app
   workflow_dispatch:
     inputs:
       commit:
