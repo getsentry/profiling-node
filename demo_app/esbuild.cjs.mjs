@@ -14,7 +14,7 @@ esbuild.build({
   target: 'node12',
   bundle: true,
   loader: {
-    '.node': 'file'
+    '.node': 'copy'
   },
   tsconfig: path.resolve(__dirname, '../tsconfig.cjs.json')
 });

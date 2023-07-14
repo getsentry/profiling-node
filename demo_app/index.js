@@ -3,7 +3,9 @@ const profiling = require('./../lib/index.js');
 
 lib.init({
   dsn: 'https://03fdc938a5f3431ea023c381b759669c@o1.ingest.sentry.io/4505528192335872',
-  integrations: [new profiling.ProfilingIntegration()]
+  integrations: [new profiling.ProfilingIntegration()],
+  tracesSampleRate: 1,
+  profilesSampleRate: 1
 });
 
 const transaction = lib.startTransaction({ name: 'smoke-test-application-txn' });
@@ -15,8 +17,9 @@ function sleep(time) {
   }
 }
 
-sleep(100);
-
+console.time('test');
+sleep(1000);
+console.timeEnd('test');
 transaction.finish();
 
 (async () => {
