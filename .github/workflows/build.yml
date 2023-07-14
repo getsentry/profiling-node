@@ -270,7 +270,7 @@ jobs:
 
   test-app-build-run:
     name: "bundler tests"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: [precompile-bindings, test-bundle, build-and-pack]
     # Build artifacts are only needed for releasing workflow.
     strategy:
