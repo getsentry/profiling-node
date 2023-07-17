@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/node';
 import { ProfilingIntegration } from '@sentry/profiling-node';
-import process from 'process';
+import { env } from 'process';
 
 Sentry.init({
   dsn: 'https://03fdc938a5f3431ea023c381b759669c@o1.ingest.sentry.io/4505528192335872',
@@ -9,7 +9,7 @@ Sentry.init({
   profilesSampleRate: 1
 });
 
-const transaction = Sentry.startTransaction({ name: `${process.env['BUNDLER']}-application-build` });
+const transaction = Sentry.startTransaction({ name: `${env['BUNDLER']}-application-build` });
 
 function sleep(time) {
   const stop = new Date().getTime();

@@ -49,6 +49,7 @@
     "benchmark:integration": "node benchmarks/cpu/benchmark.integration.base.js && node benchmarks/cpu/benchmark.integration.disabled.js && node benchmarks/cpu/benchmark.integration.js",
     "test:watch": "cross-env SENTRY_PROFILER_BINARY_DIR=./lib jest --watch",
     "test:bundle": "node test-binaries.esbuild.mjs",
+    "test:setup:bundle": "(npm link && cd demo_app && npm install && npm link @sentry/profiling-node)",
     "test:esbuild:build": "node ./demo_app/esbuild.cjs.mjs",
     "test:esbuild:run": "BUNDLER=esbuild node ./demo_app/dist/esbuild/index.js",
     "test:esbuild": "npm run test:esbuild:build && npm run test:esbuild:run",
