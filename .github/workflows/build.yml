@@ -294,8 +294,7 @@ jobs:
 
 
       - run: npm link
-      - run: (cd demo_app/ && npm install && npm link @sentry/profiling-node)
-
+      - run: npm run test:setup:bundle
       - run: npm run test:${{matrix.bundler}}:build
       - run: npm run test:${{matrix.bundler}}:run
 
