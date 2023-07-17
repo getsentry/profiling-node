@@ -2,7 +2,7 @@
   "root": true,
   "parser": "@typescript-eslint/parser",
   "plugins": ["@typescript-eslint", "prettier"],
-  "ignorePatterns": ["benchmarks/**/*", "lib/**/*", "build/**/*", "playground/**/*.js"],
+  "ignorePatterns": ["benchmarks/**/*", "lib/**/*", "build/**/*", "playground/**/*.js", "demo_app/**/*"],
   "extends": [
     "prettier",
     "eslint:recommended",

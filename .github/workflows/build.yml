@@ -276,7 +276,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix: 
-        bundler: ["webpack", "esbuild", "rollup"]
+        # The matrix should really be ["webpack", "esbuild", "rollup"],
+        # however both rollup and webpack currently crash at runtime.
+
+        # The webpack generated bundle crashes at runtime with
+        # TypeError: profiling.ProfilingIntegration is not a constructor
+        # ^^ Seems like a generic import syntax erro, however when I log the bundle, 
+        # it actually contains {LRUMap: [Function LRUMap]} which is incorrect.
+        # It seems like webpack either mangles the import, or pulls it from some
+        # unknown source? I currently dont have the bandwidth to debug why, but contributions
+        # are welcome.
+
+        # similarly to webpack, rollup build succeeds, but fails at runtime because
+        # rollup hoist and evaluate binary module imports. This means that all possible
+        # binaries are imported, which obviously causes a crash due to platform incompatibility.
+        # I have attempted the different options like strictRequires:true indicated by rollup's maintainer in
+        # https://twitter.com/lukastaegert/status/1680233261639892993?s=20, but I could not get it to
+        # build properly. Similarly to webpack, if someone wants to give this a spin, your contributions
+        # would be more than welcome.
+
+        # The general workflow for testing a bundler workflow
+        # is to build our library, download the generated binaries and
+        # use npm link to link the what will be our final published library 
+        # into the demo_app folder. From there, we run the different bundler
+        # build commands and attempt to run the demo app.
+        bundler: ["esbuild"]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3

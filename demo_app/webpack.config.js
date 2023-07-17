@@ -3,7 +3,6 @@ const path = require('path');
 module.exports = {
   target: 'node',
   entry: path.resolve(__dirname, './index.js'),
-  context: path.resolve(__dirname, './'),
   mode: 'production',
   optimization: {
     minimize: false
@@ -20,7 +19,7 @@ module.exports = {
     extensions: ['.tsx', '.ts', '.js']
   },
   output: {
-    filename: './index.js',
+    filename: 'index.js',
     path: path.resolve(__dirname, './dist/webpack'),
   }
 };
