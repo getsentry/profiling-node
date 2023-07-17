@@ -292,7 +292,6 @@ jobs:
           path: lib/
       - run: ls -l lib/
 
-
       - run: npm link
       - run: npm run test:setup:bundle
       - run: npm run test:${{matrix.bundler}}:build

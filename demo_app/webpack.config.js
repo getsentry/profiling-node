@@ -3,6 +3,7 @@ const path = require('path');
 module.exports = {
   target: 'node',
   entry: path.resolve(__dirname, './index.js'),
+  context: path.resolve(__dirname, './'),
   mode: 'production',
   optimization: {
     minimize: false
@@ -11,7 +12,7 @@ module.exports = {
     rules: [
       {
         test: /\.node$/,
-        loader: 'file-loader',
+        loader: 'file-loader'
       }
     ]
   },

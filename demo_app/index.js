@@ -1,15 +1,14 @@
-import * as Sentry from '@sentry/node';
-import { ProfilingIntegration } from '@sentry/profiling-node';
-import { env } from 'process';
+const Sentry = require('@sentry/node');
+const profiling =  require('@sentry/profiling-node'); // <- is symlinked
 
 Sentry.init({
   dsn: 'https://03fdc938a5f3431ea023c381b759669c@o1.ingest.sentry.io/4505528192335872',
-  integrations: [new ProfilingIntegration()],
+  integrations: [new profiling.ProfilingIntegration()],
   tracesSampleRate: 1,
   profilesSampleRate: 1
 });
 
-const transaction = Sentry.startTransaction({ name: `${env['BUNDLER']}-application-build` });
+const transaction = Sentry.startTransaction({ name: `${process.env['BUNDLER']}-application-build` });
 
 function sleep(time) {
   const stop = new Date().getTime();
@@ -18,9 +17,7 @@ function sleep(time) {
   }
 }
 
-console.time('test');
 sleep(1000);
-console.timeEnd('test');
 transaction.finish();
 
 (async () => {
