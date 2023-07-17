@@ -8,6 +8,7 @@ coverage/
 lib/
 build-test/
 demo_app/dist/
+demo_app/package-lock.json
 
 node_modules/
 memory_db
