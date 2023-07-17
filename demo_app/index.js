@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/node';
-import { ProfilingIntegration } from './../lib/index';
+import { ProfilingIntegration } from '@sentry/profiling-node';
 import process from 'process';
 
 Sentry.init({

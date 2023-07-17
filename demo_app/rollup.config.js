@@ -9,14 +9,13 @@ module.exports = {
   output: {
     format: 'cjs',
     dir: path.resolve(__dirname, './dist/rollup'),
-    preserveModules: false
   },
   plugins: [
     resolve({
-      extensions: ['.js', '.ts', '.node']
+      extensions: ['.js', '.ts']
     }),
     commonjs({
-      strictRequires: true
+      strictRequires: "debug"
     }),
     rollupNativePlugin({
       // Where we want to physically put the extracted .node files
@@ -24,9 +23,6 @@ module.exports = {
 
       // Path to the same folder, relative to the output bundle js
       destDir: path.resolve(__dirname, './dist/rollup'),
-
-      // If the target is ESM, so we can't use `require` (and .node is not supported in `import` anyway), we will need to use `createRequire` instead.
-      targetEsm: false
-    })
+    }),
   ]
 };
