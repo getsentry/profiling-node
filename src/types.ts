@@ -11,8 +11,8 @@ type Stack = number[];
 type Frame = {
   function: string;
   file: string;
-  line: number;
-  column: number;
+  lineno: number;
+  colno: number;
 };
 
 export interface DebugImage {
