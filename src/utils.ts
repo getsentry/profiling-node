@@ -78,8 +78,8 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
     return event;
   }
   event.sdk = event.sdk || {};
-  event.sdk.name = (event.sdk.name || sdkInfo.name) ?? 'unknown sdk';
-  event.sdk.version = (event.sdk.version || sdkInfo.version) ?? 'unknown sdk version';
+  event.sdk.name = event.sdk.name || sdkInfo.name || 'unknown sdk';
+  event.sdk.version = event.sdk.version || sdkInfo.version || 'unknown sdk version';
   event.sdk.integrations = [...(event.sdk.integrations || []), ...(sdkInfo.integrations || [])];
   event.sdk.packages = [...(event.sdk.packages || []), ...(sdkInfo.packages || [])];
   return event;
@@ -142,7 +142,7 @@ export function createProfilingEventFromTransaction(event: ProfiledEvent): Profi
     transaction: event.transaction || '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
     // @ts-expect-error trace id is unknown
-    trace_id: event?.contexts?.trace?.trace_id ?? '',
+    trace_id: event?.contexts?.trace?.trace_id || '',
     profile_id: rawProfile.profile_id
   });
 }
@@ -164,7 +164,7 @@ export function createProfilingEvent(profile: RawThreadCpuProfile, event: Event)
     transaction: event.transaction || '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
     // @ts-expect-error accessing private property
-    trace_id: event?.contexts?.trace?.trace_id ?? '',
+    trace_id: event?.contexts?.trace?.trace_id || '',
     profile_id: profile.profile_id
   });
 }
@@ -223,7 +223,7 @@ function createProfilePayload(
       build_number: VERSION
     },
     device: {
-      locale: (env['LC_ALL'] || env['LC_MESSAGES'] || env['LANG'] || env['LANGUAGE']) ?? '',
+      locale: env['LC_ALL'] || env['LC_MESSAGES'] || env['LANG'] || env['LANGUAGE'] || '',
       model: MODEL,
       manufacturer: TYPE,
       architecture: ARCH,

@@ -4,6 +4,7 @@
         "outDir": "lib",
         "module": "ES2020",
         "declaration": false,
+        "esModuleInterop": true
     },
     "include": ["src/**/*.ts"],
 }

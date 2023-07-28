@@ -2,8 +2,9 @@
     "extends": "./tsconfig.base.json",
     "compilerOptions": {
         "outDir": "lib",
-        "module": "commonjs",
+        "module": "umd",
         "declaration": false,
+        "esModuleInterop": true
     },
     "include": ["src/**/*.ts"]
 }
