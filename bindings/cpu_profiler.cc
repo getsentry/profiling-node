@@ -65,16 +65,16 @@ enum class ProfileStatus {
   kStopped,
 };
 
-class HeapStatisticsTimer {
+class MeasurementsTicker {
 private:
   uv_timer_t timer;
   uint64_t period_ms;
-  std::unordered_map<std::string, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>> listeners;
+  std::unordered_map<std::string, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>> heap_listeners;
   v8::Isolate* isolate;
   v8::HeapStatistics heap_stats;
 
 public:
-  HeapStatisticsTimer(uv_loop_t* loop) :
+  MeasurementsTicker(uv_loop_t* loop) :
     period_ms(100),
     isolate(v8::Isolate::GetCurrent()),
     heap_stats(v8::HeapStatistics())
@@ -88,17 +88,17 @@ public:
   void remove_listener(const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>& cb);
 };
 
-void HeapStatisticsTimer::callback(uv_timer_t* handle) {
-  HeapStatisticsTimer* self = static_cast<HeapStatisticsTimer*>(handle->data);
+void MeasurementsTicker::callback(uv_timer_t* handle) {
+  MeasurementsTicker* self = static_cast<MeasurementsTicker*>(handle->data);
   self->isolate->GetHeapStatistics(&self->heap_stats);
   uint64_t ts = uv_hrtime();
 
-  for (auto& listener : self->listeners) {
+  for (auto& listener : self->heap_listeners) {
     listener.second(handle, ts, self->heap_stats);
   }
 }
 
-void HeapStatisticsTimer::add_listener(const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)> cb) {
+void MeasurementsTicker::add_listener(const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)> cb) {
   listeners.emplace(std::string(profile_id), cb);
 
   if (listeners.size() == 1) {
@@ -107,7 +107,7 @@ void HeapStatisticsTimer::add_listener(const char* profile_id, std::function<voi
   }
 }
 
-void HeapStatisticsTimer::remove_listener(const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>& cb) {
+void MeasurementsTicker::remove_listener(const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>& cb) {
   listeners.erase(std::string(profile_id));
 
   if (listeners.size() == 0) {
@@ -119,11 +119,11 @@ class Profiler {
 public:
   std::unordered_map<std::string, SentryProfile*> active_profiles;
 
-  HeapStatisticsTimer heap_statistics_timer;
+  MeasurementsTicker measurements_ticker;
   v8::CpuProfiler* cpu_profiler;
 
   explicit Profiler(const napi_env& env, v8::Isolate* isolate) :
-    heap_statistics_timer(uv_default_loop()),
+    measurements_ticker(uv_default_loop()),
     cpu_profiler(
       v8::CpuProfiler::New(isolate, kNamingMode, GetLoggingMode())) {
     napi_add_env_cleanup_hook(env, DeleteInstance, this);
@@ -183,7 +183,7 @@ void SentryProfile::Start(Profiler* profiler) {
 
 
   // listen for memory sample ticks
-  profiler->heap_statistics_timer.add_listener(id, memory_sampler_cb);
+  profiler->measurements_ticker.add_heap_listener(id, memory_sampler_cb);
   status = ProfileStatus::kStarted;
 }
 
@@ -192,7 +192,7 @@ v8::CpuProfile* SentryProfile::Stop(Profiler* profiler) {
   v8::CpuProfile* profile = profiler->cpu_profiler->StopProfiling(v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), id, v8::NewStringType::kNormal).ToLocalChecked());
 
   // Remove the meemory sampler
-  profiler->heap_statistics_timer.remove_listener(id, memory_sampler_cb);
+  profiler->measurements_ticker.remove_heap_listener(id, memory_sampler_cb);
   // If for some reason stopProfiling was called with an invalid profile title or
   // if that title had somehow been stopped already, profile will be null.
   status = ProfileStatus::kStopped;
