@@ -67,18 +67,22 @@ enum class ProfileStatus {
 
 class HeapStatisticsTimer {
 private:
+  uint64_t period_ms;
+  std::unordered_map<std::string, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>> listeners;
   std::chrono::time_point<std::chrono::high_resolution_clock> ref;
+  v8::Isolate* isolate;
   v8::HeapStatistics heap_stats;
-  v8::Isolate* isolate = v8::Isolate::GetCurrent();
-  uint64_t period_ms = 100;
-  std::unordered_map<std::string, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>> listeners = std::unordered_map<std::string, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>>();
 
 public:
   uv_timer_t timer;
 
   HeapStatisticsTimer(uv_loop_t* loop) :
+    period_ms(100),
+    listeners(std::unordered_map<std::string, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>>()),
     ref(std::chrono::high_resolution_clock::now()),
-    heap_stats(v8::HeapStatistics()) {
+    isolate(v8::Isolate::GetCurrent()),
+    heap_stats(v8::HeapStatistics())
+  {
     uv_timer_init(loop, &timer);
     timer.data = this;
   };
@@ -142,6 +146,7 @@ void Profiler::DeleteInstance(void* data) {
 class SentryProfile {
 private:
 
+  uint64_t started_at = 0;
   uint16_t heap_measurement_index = 0;
   std::vector<uint64_t> heap_stats_ts = std::vector<uint64_t>(300);
   std::vector<size_t> heap_stats_usage = std::vector<size_t>(300);
@@ -150,11 +155,10 @@ private:
     heap_stats_usage.insert(heap_stats_usage.begin() + heap_measurement_index, stats.used_heap_size());
     ++heap_measurement_index;
     };
-  uint64_t started_at = 0;
 
 public:
   const char* id;
-  explicit SentryProfile(const char* id) : id(id) {}
+  explicit SentryProfile(const char* id) : started_at(uv_hrtime()), heap_measurement_index(0), id(id) {}
   ProfileStatus status = ProfileStatus::kNotStarted;
 
   std::vector<uint64_t>& heap_usage_timestamps();
@@ -213,7 +217,7 @@ uint16_t SentryProfile::heap_usage_entries_count() {
 };
 
 static void CleanupSentryProfile(Profiler* profiler, SentryProfile* profile) {
-  if(profile == nullptr){
+  if (profile == nullptr) {
     return;
   }
   profiler->active_profiles.erase(std::string(profile->id));
