@@ -68,7 +68,6 @@ enum class ProfileStatus {
 class HeapStatisticsTimer {
 private:
   uint64_t period_ms;
-  std::chrono::time_point<std::chrono::high_resolution_clock> ref;
   std::unordered_map<std::string, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>> listeners;
   v8::Isolate* isolate;
   v8::HeapStatistics heap_stats;
@@ -78,7 +77,6 @@ public:
 
   HeapStatisticsTimer(uv_loop_t* loop) :
     period_ms(100),
-    ref(std::chrono::high_resolution_clock::now()),
     listeners(std::unordered_map<std::string, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>>()),
     isolate(v8::Isolate::GetCurrent()),
     heap_stats(v8::HeapStatistics())
@@ -93,9 +91,9 @@ public:
 };
 
 void HeapStatisticsTimer::callback(uv_timer_t* handle) {
-  auto self = static_cast<HeapStatisticsTimer*>(handle->data);
+  HeapStatisticsTimer* self = static_cast<HeapStatisticsTimer*>(handle->data);
   self->isolate->GetHeapStatistics(&self->heap_stats);
-  auto ts = uv_hrtime();
+  uint64_t ts = uv_hrtime();
 
   for (auto& listener : self->listeners) {
     listener.second(handle, ts, self->heap_stats);
