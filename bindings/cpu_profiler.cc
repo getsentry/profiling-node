@@ -69,51 +69,129 @@ class MeasurementsTicker {
 private:
   uv_timer_t timer;
   uint64_t period_ms;
-  std::unordered_map<std::string, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>> heap_listeners;
+  std::unordered_map<std::string, std::function<void(uint64_t, v8::HeapStatistics&)>> heap_listeners;
+  std::unordered_map<std::string, std::function<void(uint64_t, double)>> cpu_listeners;
   v8::Isolate* isolate;
   v8::HeapStatistics heap_stats;
+  uv_cpu_info_t cpu_stats;
 
 public:
   MeasurementsTicker(uv_loop_t* loop) :
     period_ms(100),
     isolate(v8::Isolate::GetCurrent()),
-    heap_stats(v8::HeapStatistics())
+    heap_stats(v8::HeapStatistics()),
+    cpu_stats(uv_cpu_info_s())
   {
     uv_timer_init(loop, &timer);
     timer.data = this;
   };
 
-  static void callback(uv_timer_t* handle);
-  void add_listener(const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)> cb);
-  void remove_listener(const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>& cb);
+  static void ticker(uv_timer_t*);
+  // Memory listeners
+  void heap_callback();
+  void add_heap_listener(const char* profile_id, std::function<void(uint64_t, v8::HeapStatistics&)> cb);
+  void remove_heap_listener(const char* profile_id, std::function<void(uint64_t, v8::HeapStatistics&)>& cb);
+
+  // CPU listeners
+  void cpu_callback();
+  void add_cpu_listener(const char* profile_id, std::function<void(uint64_t, double)> cb);
+  void remove_cpu_listener(const char* profile_id, std::function<void(uint64_t, double)>& cb);
+
+  size_t listener_count();
 };
 
-void MeasurementsTicker::callback(uv_timer_t* handle) {
-  MeasurementsTicker* self = static_cast<MeasurementsTicker*>(handle->data);
-  self->isolate->GetHeapStatistics(&self->heap_stats);
+size_t MeasurementsTicker::listener_count() {
+  return heap_listeners.size() + cpu_listeners.size();
+}
+
+// Heap tickers
+void MeasurementsTicker::heap_callback() {
+  isolate->GetHeapStatistics(&heap_stats);
   uint64_t ts = uv_hrtime();
 
-  for (auto& listener : self->heap_listeners) {
-    listener.second(handle, ts, self->heap_stats);
+  for (auto& listener : heap_listeners) {
+    listener.second(ts, heap_stats);
   }
 }
 
-void MeasurementsTicker::add_listener(const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)> cb) {
-  listeners.emplace(std::string(profile_id), cb);
+void MeasurementsTicker::add_heap_listener(const char* profile_id, std::function<void(uint64_t, v8::HeapStatistics&)> cb) {
+  heap_listeners.emplace(std::string(profile_id), cb);
 
-  if (listeners.size() == 1) {
+  if (listener_count() == 1) {
     uv_timer_set_repeat(&timer, period_ms);
-    uv_timer_start(&timer, callback, 0, period_ms);
+    uv_timer_start(&timer, ticker, 0, period_ms);
   }
 }
 
-void MeasurementsTicker::remove_listener(const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>& cb) {
-  listeners.erase(std::string(profile_id));
+void MeasurementsTicker::remove_heap_listener(const char* profile_id, std::function<void(uint64_t, v8::HeapStatistics&)>& cb) {
+  heap_listeners.erase(std::string(profile_id));
 
-  if (listeners.size() == 0) {
+  if (listener_count() == 0) {
     uv_timer_stop(&timer);
   }
 };
+
+// CPU tickers
+void MeasurementsTicker::cpu_callback() {
+  uint64_t ts = uv_hrtime();
+
+  uv_cpu_info_t* cpu_stats = cpu_stats;
+  int count;
+
+  int err = uv_cpu_info(&cpu_stats, &count);
+  if (err) {
+    return;
+  }
+
+  uint64_t total = 0;
+  uint64_t idle_total = 0;
+
+  for (int i = 0; i < count; i++) {
+    uv_cpu_info_t* ci = cpu_stats + i;
+
+    total += ci->cpu_times.user;
+    total += ci->cpu_times.nice;
+    total += ci->cpu_times.sys;
+    total += ci->cpu_times.idle;
+    total += ci->cpu_times.irq;
+
+    idle_total += ci->cpu_times.idle;
+  }
+
+  double total_avg = total / count;
+  double idle_avg = idle_total / count;
+  double rate = idle_avg / total_avg;
+
+  for (auto& listener : cpu_listeners) {
+    listener.second(ts, rate);
+  }
+
+  uv_free_cpu_info(cpu_stats, count);
+}
+
+void MeasurementsTicker::add_cpu_listener(const char* profile_id, std::function<void(uint64_t, double)> cb) {
+  cpu_listeners.emplace(std::string(profile_id), cb);
+
+  if (listener_count() == 1) {
+    uv_timer_set_repeat(&timer, period_ms);
+    uv_timer_start(&timer, ticker, 0, period_ms);
+  }
+}
+
+void MeasurementsTicker::remove_cpu_listener(const char* profile_id, std::function<void(uint64_t, double)>& cb) {
+  cpu_listeners.erase(&profile_id);
+
+  if (listener_count() == 0) {
+    uv_timer_stop(&timer);
+  }
+};
+
+void MeasurementsTicker::ticker(uv_timer_t* handle) {
+  MeasurementsTicker* self = static_cast<MeasurementsTicker*>(handle->data);
+
+  heap_callback();
+  cpu_callback();
+}
 
 class Profiler {
 public:
@@ -140,34 +218,53 @@ void Profiler::DeleteInstance(void* data) {
 
 class SentryProfile {
 private:
-  uint64_t started_at = 0;
-  uint16_t heap_measurement_index = 0;
-  std::vector<uint64_t> heap_stats_ts;
-  std::vector<uint64_t> heap_stats_usage;
-  std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)> memory_sampler_cb;
+  uint64_t started_at;
+  uint16_t heap_measurement_index;
+  uint16_t cpu_measurement_index;
+
+  std::vector<uint64_t> heap_stats_ts = std::vector<uint64_t>(300);
+  std::vector<uint64_t> heap_stats_usage = std::vector<uint64_t>(300);
+
+  std::vector<uint64_t> cpu_stats_ts = std::vector<uint64_t>(300);
+  std::vector<double> cpu_stats_usage = std::vector<double>(300);
+
+  std::function<void(uint64_t, v8::HeapStatistics&)> memory_sampler_cb;
+  std::function<void(uint64_t, double)> cpu_sampler_cb;
+
+  ProfileStatus status = ProfileStatus::kNotStarted;
   const char* id;
-  ProfileStatus status;
 
 public:
   explicit SentryProfile(const char* id) :
     started_at(uv_hrtime()),
-    heap_measurement_index(0),
-    heap_stats_ts(300),
-    heap_stats_usage(300),
-    memory_sampler_cb([this](uv_timer_t* timer, uint64_t ts, v8::HeapStatistics& stats) {
-    heap_stats_ts.insert(heap_stats_ts.begin() + heap_measurement_index, ts - started_at);
-    heap_stats_usage.insert(heap_stats_usage.begin() + heap_measurement_index, static_cast<uint64_t>(stats.used_heap_size()));
-    ++heap_measurement_index;
-      }), id(id), status(ProfileStatus::kNotStarted) {}
 
+    memory_sampler_cb([this](uint64_t ts, v8::HeapStatistics& stats) {
+      heap_stats_ts.insert(heap_stats_ts.begin() + heap_measurement_index, ts - started_at);
+      heap_stats_usage.insert(heap_stats_usage.begin() + heap_measurement_index, static_cast<uint64_t>(stats.used_heap_size()));
+      ++heap_measurement_index;
+    }),
 
-      const std::vector<uint64_t>& heap_usage_timestamps();
-      const std::vector<uint64_t>& heap_usage_values();
-      const uint16_t& heap_usage_entries_count();
+    cpu_sampler_cb([this](uint64_t ts, double rate) {
+      cpu_stats_ts.insert(cpu_stats_ts.begin() + cpu_measurement_index, ts - started_at);
+      cpu_stats_usage.insert(cpu_stats_usage.begin() + cpu_measurement_index, rate);
+      ++cpu_measurement_index;
+    }),
+      
+    status(ProfileStatus::kNotStarted),
+    id(id) {}
 
-      void Start(Profiler* profiler);
-      v8::CpuProfile* Stop(Profiler* profiler);
+  const std::vector<uint64_t>& heap_usage_timestamps();
+  const std::vector<uint64_t>& heap_usage_values();
+  const uint16_t& heap_usage_entries_count();
+
+  const std::vector<uint64_t>& cpu_usage_timestamps();
+  const std::vector<double>& cpu_usage_values();
+  const uint16_t& cpu_usage_entries_count();
+
+  void Start(Profiler* profiler);
+  v8::CpuProfile* Stop(Profiler* profiler);
 };
+
 
 void SentryProfile::Start(Profiler* profiler) {
   v8::Local<v8::String> profile_title = v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), id, v8::NewStringType::kNormal).ToLocalChecked();
@@ -183,7 +280,9 @@ void SentryProfile::Start(Profiler* profiler) {
 
 
   // listen for memory sample ticks
+  profiler->measurements_ticker.add_cpu_listener(id, cpu_sampler_cb);
   profiler->measurements_ticker.add_heap_listener(id, memory_sampler_cb);
+
   status = ProfileStatus::kStarted;
 }
 
@@ -193,6 +292,7 @@ v8::CpuProfile* SentryProfile::Stop(Profiler* profiler) {
 
   // Remove the meemory sampler
   profiler->measurements_ticker.remove_heap_listener(id, memory_sampler_cb);
+  profiler->measurements_ticker.remove_cpu_listener(id, cpu_sampler_cb);
   // If for some reason stopProfiling was called with an invalid profile title or
   // if that title had somehow been stopped already, profile will be null.
   status = ProfileStatus::kStopped;
@@ -204,6 +304,7 @@ v8::CpuProfile* SentryProfile::Stop(Profiler* profiler) {
   return profile;
 }
 
+// Memory getters
 const std::vector<uint64_t>& SentryProfile::heap_usage_timestamps() {
   return heap_stats_ts;
 };
@@ -216,10 +317,24 @@ const uint16_t& SentryProfile::heap_usage_entries_count() {
   return heap_measurement_index;
 };
 
-static void CleanupSentryProfile(Profiler* profiler, const SentryProfile* profile, const std::string profile_id) {
+// CPU getters
+const std::vector<uint64_t>& SentryProfile::cpu_usage_timestamps() {
+  return cpu_stats_ts;
+};
+
+const std::vector<double>& SentryProfile::cpu_usage_values() {
+  return cpu_stats_usage;
+};
+const uint16_t& SentryProfile::cpu_usage_entries_count() {
+  return cpu_measurement_index;
+};
+
+
+static void CleanupSentryProfile(Profiler* profiler, SentryProfile* profile, const std::string& profile_id) {
   if (profile == nullptr) {
     return;
   }
+
   profiler->active_profiles.erase(profile_id);
   delete profile;
 };
@@ -275,7 +390,7 @@ static void GetFrameModule(const std::string& abs_path, std::string& module) {
   if (module[0] == '.') {
     module = module.substr(1, std::string::npos);
   }
-}
+    }
 
 static napi_value GetFrameModuleWrapped(napi_env env, napi_callback_info info) {
   size_t argc = 2;
@@ -745,10 +860,17 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
   napi_create_object(env, &measurements);
 
   static const char* memory_unit = "byte";
-  napi_value heap_usage_measurements = TranslateMemoryMeasurements(env, memory_unit, profile->second->heap_usage_entries_count(), profile->second->heap_usage_values(), profile->second->heap_usage_timestamps());
+  napi_value heap_usage_measurements = TranslateMeasurements(env, memory_unit, profile->second->heap_usage_entries_count(), profile->second->heap_usage_values(), profile->second->heap_usage_timestamps());
 
   if (heap_usage_measurements != nullptr) {
     napi_set_named_property(env, measurements, "memory_footprint", heap_usage_measurements);
+  }
+
+  static const char* cpu_unit = "percent";
+  napi_value cpu_usage_measurements = TranslateMeasurementsDouble(env, cpu_unit, profile->second->cpu_usage_entries_count(), profile->second->cpu_usage_values(), profile->second->cpu_usage_timestamps());
+
+  if (cpu_usage_measurements != nullptr) {
+    napi_set_named_property(env, measurements, "cpu_usage", cpu_usage_measurements);
   }
 
   napi_set_named_property(env, js_profile, "measurements", measurements);
