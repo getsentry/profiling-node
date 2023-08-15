@@ -702,9 +702,9 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
   }
 
   auto profile = profiler->active_profiles.find(std::string(title));
+  
+  // If the profile was never started, silently ignore the call and return null
   if (profile == profiler->active_profiles.end()) {
-    napi_throw_error(env, "NAPI_ERROR", "StopProfiling: Sentry profile was not initialized.");
-
     napi_value napi_null;
     assert(napi_get_null(env, &napi_null) == napi_ok);
 
