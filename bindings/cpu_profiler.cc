@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <string>
 #include <unordered_map>
+#include <functional>
 
 #include <v8.h>
 #include <v8-profiler.h>
@@ -702,7 +703,7 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
   }
 
   auto profile = profiler->active_profiles.find(std::string(title));
-  
+
   // If the profile was never started, silently ignore the call and return null
   if (profile == profiler->active_profiles.end()) {
     napi_value napi_null;
