@@ -1,11 +1,14 @@
 
-#include <assert.h>
 #include <node_api.h>
-#include <v8-profiler.h>
-#include <v8.h>
+
+#include <assert.h>
 #include <string>
 #include <unordered_map>
-#include <iostream>
+
+#include <v8.h>
+#include <v8-profiler.h>
+
+#include <uv.h>
 
 #define FORMAT_SAMPLED 2
 #define FORMAT_RAW 1
@@ -32,6 +35,7 @@ static const v8::CpuProfilingLoggingMode kDefaultLoggingMode(v8::CpuProfilingLog
 // tests when run with --runInBand option).
 static const char* kEagerLoggingMode = "eager";
 static const char* kLazyLoggingMode = "lazy";
+
 v8::CpuProfilingLoggingMode GetLoggingMode() {
   static const char* logging_mode(getenv("SENTRY_PROFILER_LOGGING_MODE"));
 
@@ -52,6 +56,169 @@ v8::CpuProfilingLoggingMode GetLoggingMode() {
   return kDefaultLoggingMode;
 }
 
+class SentryProfile;
+
+enum class ProfileStatus {
+  kNotStarted,
+  kStarted,
+  kStopped,
+};
+
+class HeapStatisticsTimer {
+private:
+  std::chrono::time_point<std::chrono::high_resolution_clock> ref;
+  v8::HeapStatistics heap_stats;
+  v8::Isolate* isolate = v8::Isolate::GetCurrent();
+  uint64_t period_ms = 100;
+  std::unordered_map<std::string, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>> listeners = std::unordered_map<std::string, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>>();
+
+public:
+  uv_timer_t timer;
+
+  HeapStatisticsTimer(uv_loop_t* loop) :
+    ref(std::chrono::high_resolution_clock::now()),
+    heap_stats(v8::HeapStatistics()) {
+    uv_timer_init(loop, &timer);
+    timer.data = this;
+  };
+
+  static void callback(uv_timer_t* handle);
+  static void add_listener(uv_timer_t* handle, const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)> cb);
+  static void remove_listener(uv_timer_t* handle, const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>& cb);
+};
+
+void HeapStatisticsTimer::callback(uv_timer_t* handle) {
+  auto self = static_cast<HeapStatisticsTimer*>(handle->data);
+  self->isolate->GetHeapStatistics(&self->heap_stats);
+  auto ts = uv_hrtime();
+
+  for (auto& listener : self->listeners) {
+    listener.second(handle, ts, self->heap_stats);
+  }
+}
+
+void HeapStatisticsTimer::add_listener(uv_timer_t* handle, const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)> cb) {
+  auto self = static_cast<HeapStatisticsTimer*>(handle->data);
+  self->listeners.emplace(std::string(profile_id), cb);
+
+  if (self->listeners.size() == 1) {
+    uv_timer_set_repeat(&self->timer, self->period_ms);
+    uv_timer_start(&self->timer, callback, 0, self->period_ms);
+  }
+}
+
+void HeapStatisticsTimer::remove_listener(uv_timer_t* handle, const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>& cb) {
+  auto self = static_cast<HeapStatisticsTimer*>(handle->data);
+  self->listeners.erase(std::string(profile_id));
+
+  if (self->listeners.size() == 0) {
+    uv_timer_stop(&self->timer);
+  }
+};
+
+class Profiler {
+public:
+  std::unordered_map<std::string, SentryProfile*> active_profiles = std::unordered_map<std::string, SentryProfile*>();
+
+  v8::CpuProfiler* cpu_profiler;
+  HeapStatisticsTimer heap_statistics_timer = HeapStatisticsTimer(uv_default_loop());
+
+  explicit Profiler(const napi_env& env, v8::Isolate* isolate) :
+    cpu_profiler(
+      v8::CpuProfiler::New(isolate, kNamingMode, GetLoggingMode())) {
+    napi_add_env_cleanup_hook(env, DeleteInstance, this);
+  }
+
+  static void DeleteInstance(void* data);
+};
+
+void Profiler::DeleteInstance(void* data) {
+  Profiler* profiler = static_cast<Profiler*>(data);
+  profiler->cpu_profiler->Dispose();
+  delete profiler;
+}
+
+class SentryProfile {
+private:
+
+  uint16_t heap_measurement_index = 0;
+  std::vector<uint64_t> heap_stats_ts = std::vector<uint64_t>(300);
+  std::vector<size_t> heap_stats_usage = std::vector<size_t>(300);
+  std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)> memory_sampler_cb = [this](uv_timer_t* timer, uint64_t ts, v8::HeapStatistics& stats) {
+    heap_stats_ts.insert(heap_stats_ts.begin() + heap_measurement_index, ts - started_at);
+    heap_stats_usage.insert(heap_stats_usage.begin() + heap_measurement_index, stats.used_heap_size());
+    ++heap_measurement_index;
+    };
+  uint64_t started_at = 0;
+
+public:
+  const char* id;
+  explicit SentryProfile(const char* id) : id(id) {}
+  ProfileStatus status = ProfileStatus::kNotStarted;
+
+  std::vector<uint64_t>& heap_usage_timestamps();
+  std::vector<size_t>& heap_usage_values();
+  uint16_t heap_usage_entries_count();
+
+  void Start(Profiler* profiler);
+  v8::CpuProfile* Stop(Profiler* profiler);
+};
+
+void SentryProfile::Start(Profiler* profiler) {
+  v8::Local<v8::String> profile_title = v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), id, v8::NewStringType::kNormal).ToLocalChecked();
+
+  started_at = uv_hrtime();
+
+  // Initialize the CPU Profiler
+  profiler->cpu_profiler->StartProfiling(profile_title, {
+      v8::CpuProfilingMode::kCallerLineNumbers,
+      v8::CpuProfilingOptions::kNoSampleLimit,
+      kSamplingInterval
+    });
+
+
+  // listen for memory sample ticks
+  profiler->heap_statistics_timer.add_listener(&profiler->heap_statistics_timer.timer, id, memory_sampler_cb);
+  status = ProfileStatus::kStarted;
+}
+
+v8::CpuProfile* SentryProfile::Stop(Profiler* profiler) {
+  // Stop the CPU Profiler
+  v8::CpuProfile* profile = profiler->cpu_profiler->StopProfiling(v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), id, v8::NewStringType::kNormal).ToLocalChecked());
+
+  // Remove the meemory sampler
+  profiler->heap_statistics_timer.remove_listener(&profiler->heap_statistics_timer.timer, id, memory_sampler_cb);
+  // If for some reason stopProfiling was called with an invalid profile title or
+  // if that title had somehow been stopped already, profile will be null.
+  status = ProfileStatus::kStopped;
+
+  if (!profile) {
+    return nullptr;
+  };
+
+  return profile;
+}
+
+std::vector<uint64_t>& SentryProfile::heap_usage_timestamps() {
+  return heap_stats_ts;
+};
+
+std::vector<size_t>& SentryProfile::heap_usage_values() {
+  return heap_stats_usage;
+};
+
+uint16_t SentryProfile::heap_usage_entries_count() {
+  return heap_measurement_index;
+};
+
+static void CleanupSentryProfile(Profiler* profiler, SentryProfile* profile) {
+  if(profile == nullptr){
+    return;
+  }
+  profiler->active_profiles.erase(std::string(profile->id));
+  delete profile;
+};
+
 #ifdef _WIN32
 static const char kPlatformSeparator = '\\';
 static const char kWinDiskPrefix = ':';
@@ -69,7 +236,7 @@ static void GetFrameModule(const std::string& abs_path, std::string& module) {
   }
 
   module = abs_path;
-  
+
   // Drop .js extension
   size_t module_len = module.length();
   if (module.compare(module_len - 3, 3, ".js") == 0) {
@@ -124,23 +291,6 @@ static napi_value GetFrameModuleWrapped(napi_env env, napi_callback_info info) {
   assert(napi_create_string_utf8(env, module.c_str(), NAPI_AUTO_LENGTH, &napi_module) == napi_ok);
   return napi_module;
 }
-
-class Profiler {
-public:
-  explicit Profiler(const napi_env& env, v8::Isolate* isolate) :
-    cpu_profiler(
-      v8::CpuProfiler::New(isolate, kNamingMode, GetLoggingMode())) {
-    napi_add_env_cleanup_hook(env, DeleteInstance, this);
-  }
-
-  v8::CpuProfiler* cpu_profiler;
-
-  static void DeleteInstance(void* data) {
-    Profiler* profiler = static_cast<Profiler*>(data);
-    profiler->cpu_profiler->Dispose();
-    delete profiler;
-  }
-};
 
 napi_value CreateFrameNode(const napi_env& env, const v8::CpuProfileNode& node, std::unordered_map<std::string, std::string>& module_cache, napi_value& resources) {
   napi_value js_node;
@@ -337,12 +487,46 @@ static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const
   }
 }
 
-// StartProfiling(string title)
-// https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#aedf6a5ca49432ab665bc3a1ccf46cca4
+static napi_value TranslateMemoryMeasurements(const napi_env& env, const char* unit, size_t size, std::vector<size_t>& values, std::vector<uint64_t>& timestamps) {
+  if (size > values.size() || size > timestamps.size()) {
+    napi_throw_range_error(env, "NAPI_ERROR", "Memory measurement size is larger than the number of values or timestamps");
+    return nullptr;
+  }
+
+  napi_value measurement;
+  napi_create_object(env, &measurement);
+
+  napi_value unit_string;
+  napi_create_string_utf8(env, unit, NAPI_AUTO_LENGTH, &unit_string);
+  napi_set_named_property(env, measurement, "unit", unit_string);
+
+  napi_value values_array;
+  napi_create_array(env, &values_array);
+
+  for (size_t i = 0; i < size; i++) {
+    napi_value entry;
+    napi_create_object(env, &entry);
+
+    napi_value value;
+    napi_create_int64(env, values[i], &value);
+
+    napi_value ts;
+    napi_create_int64(env, timestamps[i], &ts);
+
+    napi_set_named_property(env, entry, "value", value);
+    napi_set_named_property(env, entry, "elapsed_since_start_ns", ts);
+    napi_set_element(env, values_array, i, entry);
+  }
+
+  napi_set_named_property(env, measurement, "values", values_array);
+
+  return measurement;
+}
+
 static napi_value TranslateProfile(const napi_env& env, const v8::CpuProfile* profile, const uint32_t thread_id, bool collect_resources) {
   napi_value js_profile;
 
-  assert(napi_create_object(env, &js_profile) == napi_ok);
+  napi_create_object(env, &js_profile);
 
   napi_value logging_mode;
   napi_value samples;
@@ -350,24 +534,24 @@ static napi_value TranslateProfile(const napi_env& env, const v8::CpuProfile* pr
   napi_value frames;
   napi_value resources;
 
-  assert(napi_create_string_utf8(env, GetLoggingMode() == v8::CpuProfilingLoggingMode::kEagerLogging ? "eager" : "lazy", NAPI_AUTO_LENGTH, &logging_mode) == napi_ok);
+  napi_create_string_utf8(env, GetLoggingMode() == v8::CpuProfilingLoggingMode::kEagerLogging ? "eager" : "lazy", NAPI_AUTO_LENGTH, &logging_mode);
 
-  assert(napi_create_array(env, &samples) == napi_ok);
-  assert(napi_create_array(env, &stacks) == napi_ok);
-  assert(napi_create_array(env, &frames) == napi_ok);
-  assert(napi_create_array(env, &resources) == napi_ok);
+  napi_create_array(env, &samples);
+  napi_create_array(env, &stacks);
+  napi_create_array(env, &frames);
+  napi_create_array(env, &resources);
 
-  assert(napi_set_named_property(env, js_profile, "samples", samples) == napi_ok);
-  assert(napi_set_named_property(env, js_profile, "stacks", stacks) == napi_ok);
-  assert(napi_set_named_property(env, js_profile, "frames", frames) == napi_ok);
-  assert(napi_set_named_property(env, js_profile, "profiler_logging_mode", logging_mode) == napi_ok);
-
+  napi_set_named_property(env, js_profile, "samples", samples);
+  napi_set_named_property(env, js_profile, "stacks", stacks);
+  napi_set_named_property(env, js_profile, "frames", frames);
+  napi_set_named_property(env, js_profile, "profiler_logging_mode", logging_mode);
 
   GetSamples(env, profile, thread_id, samples, stacks, frames, resources);
 
-  if(collect_resources){
+  if (collect_resources) {
     napi_set_named_property(env, js_profile, "resources", resources);
-  } else {
+  }
+  else {
     napi_create_array(env, &resources);
     napi_set_named_property(env, js_profile, "resources", resources);
   }
@@ -410,8 +594,6 @@ static napi_value StartProfiling(napi_env env, napi_callback_info info) {
   v8::Isolate* isolate = v8::Isolate::GetCurrent();
   assert(isolate != 0);
 
-  v8::Local<v8::String> profile_title = v8::String::NewFromUtf8(isolate, title, v8::NewStringType::kNormal, len).ToLocalChecked();
-
   Profiler* profiler;
   assert(napi_get_instance_data(env, (void**)&profiler) == napi_ok);
 
@@ -424,13 +606,19 @@ static napi_value StartProfiling(napi_env env, napi_callback_info info) {
     return napi_null;
   }
 
-  profiler->cpu_profiler->StartProfiling(profile_title, {
-    v8::CpuProfilingMode::kCallerLineNumbers,
-    v8::CpuProfilingOptions::kNoSampleLimit,
-    kSamplingInterval
-  });
+  // In case we have a collision, cleanup the old profile first
+  auto existing_profile = profiler->active_profiles.find(std::string(title));
+  if (existing_profile != profiler->active_profiles.end()) {
+    existing_profile->second->Stop(profiler);
+    profiler->active_profiles.erase(existing_profile);
+    delete existing_profile->second;
+  }
 
-  
+  SentryProfile* sentry_profile = new SentryProfile(title);
+  sentry_profile->Start(profiler);
+
+  profiler->active_profiles.emplace(std::string(title), sentry_profile);
+
   napi_value napi_null;
   assert(napi_get_null(env, &napi_null) == napi_ok);
 
@@ -444,7 +632,6 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
   napi_value argv[3];
 
   assert(napi_get_cb_info(env, info, &argc, argv, NULL, NULL) == napi_ok);
-
 
   if (argc < 2) {
     napi_throw_error(env, "NAPI_ERROR", "StopProfiling expects at least two arguments.");
@@ -481,16 +668,11 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
     return napi_null;
   }
 
-  // Get the value of the first argument and convert it to v8::String
-  v8::Isolate* isolate = v8::Isolate::GetCurrent();
-
   size_t len;
   assert(napi_get_value_string_utf8(env, argv[0], NULL, 0, &len) == napi_ok);
 
   char* title = (char*)malloc(len + 1);
   assert(napi_get_value_string_utf8(env, argv[0], title, len + 1, &len) == napi_ok);
-
-  v8::Local<v8::String> profile_title = v8::String::NewFromUtf8(isolate, title, v8::NewStringType::kNormal, len).ToLocalChecked();
 
   if (len < 1) {
     napi_throw_error(env, "NAPI_ERROR", "StopProfiling expects a string as first argument.");
@@ -519,25 +701,53 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
     return napi_null;
   }
 
-  v8::CpuProfile* profile = profiler->cpu_profiler->StopProfiling(profile_title);
-  // If for some reason stopProfiling was called with an invalid profile title or
-  // if that title had somehow been stopped already, profile will be null.
-  if (!profile) {
+  auto profile = profiler->active_profiles.find(std::string(title));
+  if (profile == profiler->active_profiles.end()) {
+    napi_throw_error(env, "NAPI_ERROR", "StopProfiling: Sentry profile was not initialized.");
+
     napi_value napi_null;
     assert(napi_get_null(env, &napi_null) == napi_ok);
 
     return napi_null;
+  }
+
+  v8::CpuProfile* cpu_profile = profile->second->Stop(profiler);
+
+  // If for some reason stopProfiling was called with an invalid profile title or
+  // if that title had somehow been stopped already, profile will be null.
+  if (!cpu_profile) {
+    napi_throw_error(env, "NAPI_ERROR", "StopProfiling: Stopping Sentry profile did not return a profile.");
+
+    CleanupSentryProfile(profiler, profile->second);
+
+    napi_value napi_null;
+    assert(napi_get_null(env, &napi_null) == napi_ok);
+    return napi_null;
   };
+
 
   napi_valuetype callbacktype3;
   assert(napi_typeof(env, argv[2], &callbacktype3) == napi_ok);
-  
+
   bool collect_resources;
   napi_get_value_bool(env, argv[2], &collect_resources);
 
-  napi_value js_profile = TranslateProfile(env, profile, thread_id, collect_resources);
-  
-  profile->Delete();
+  napi_value js_profile = TranslateProfile(env, cpu_profile, thread_id, collect_resources);
+
+  napi_value measurements;
+  napi_create_object(env, &measurements);
+
+  static const char* memory_unit = "byte";
+  napi_value heap_usage_measurements = TranslateMemoryMeasurements(env, memory_unit, profile->second->heap_usage_entries_count(), profile->second->heap_usage_values(), profile->second->heap_usage_timestamps());
+
+  if (heap_usage_measurements != nullptr) {
+    napi_set_named_property(env, measurements, "memory_footprint", heap_usage_measurements);
+  }
+
+  napi_set_named_property(env, js_profile, "measurements", measurements);
+
+  CleanupSentryProfile(profiler, profile->second);
+  cpu_profile->Delete();
 
   return js_profile;
 };

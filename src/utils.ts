@@ -213,6 +213,7 @@ function createProfilePayload(
     version: FORMAT_VERSION,
     release: release,
     environment: environment,
+    measurements: cpuProfile.measurements,
     runtime: {
       name: 'node',
       version: versions.node || ''
