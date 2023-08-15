@@ -68,8 +68,8 @@ enum class ProfileStatus {
 class HeapStatisticsTimer {
 private:
   uint64_t period_ms;
-  std::unordered_map<std::string, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>> listeners;
   std::chrono::time_point<std::chrono::high_resolution_clock> ref;
+  std::unordered_map<std::string, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>> listeners;
   v8::Isolate* isolate;
   v8::HeapStatistics heap_stats;
 
@@ -78,8 +78,8 @@ public:
 
   HeapStatisticsTimer(uv_loop_t* loop) :
     period_ms(100),
-    listeners(std::unordered_map<std::string, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>>()),
     ref(std::chrono::high_resolution_clock::now()),
+    listeners(std::unordered_map<std::string, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>>()),
     isolate(v8::Isolate::GetCurrent()),
     heap_stats(v8::HeapStatistics())
   {
@@ -149,10 +149,10 @@ private:
   uint64_t started_at = 0;
   uint16_t heap_measurement_index = 0;
   std::vector<uint64_t> heap_stats_ts = std::vector<uint64_t>(300);
-  std::vector<size_t> heap_stats_usage = std::vector<size_t>(300);
+  std::vector<uint64_t> heap_stats_usage = std::vector<uint64_t>(300);
   std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)> memory_sampler_cb = [this](uv_timer_t* timer, uint64_t ts, v8::HeapStatistics& stats) {
     heap_stats_ts.insert(heap_stats_ts.begin() + heap_measurement_index, ts - started_at);
-    heap_stats_usage.insert(heap_stats_usage.begin() + heap_measurement_index, stats.used_heap_size());
+    heap_stats_usage.insert(heap_stats_usage.begin() + heap_measurement_index, static_cast<uint64_t>(stats.used_heap_size()));
     ++heap_measurement_index;
     };
 
@@ -162,7 +162,7 @@ public:
   ProfileStatus status = ProfileStatus::kNotStarted;
 
   std::vector<uint64_t>& heap_usage_timestamps();
-  std::vector<size_t>& heap_usage_values();
+  std::vector<uint64_t>& heap_usage_values();
   uint16_t heap_usage_entries_count();
 
   void Start(Profiler* profiler);
@@ -208,7 +208,7 @@ std::vector<uint64_t>& SentryProfile::heap_usage_timestamps() {
   return heap_stats_ts;
 };
 
-std::vector<size_t>& SentryProfile::heap_usage_values() {
+std::vector<uint64_t>& SentryProfile::heap_usage_values() {
   return heap_stats_usage;
 };
 
@@ -492,7 +492,7 @@ static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const
   }
 }
 
-static napi_value TranslateMemoryMeasurements(const napi_env& env, const char* unit, size_t size, std::vector<size_t>& values, std::vector<uint64_t>& timestamps) {
+static napi_value TranslateMemoryMeasurements(const napi_env& env, const char* unit, size_t size, std::vector<uint64_t>& values, std::vector<uint64_t>& timestamps) {
   if (size > values.size() || size > timestamps.size()) {
     napi_throw_range_error(env, "NAPI_ERROR", "Memory measurement size is larger than the number of values or timestamps");
     return nullptr;
