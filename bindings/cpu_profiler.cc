@@ -272,8 +272,8 @@ void SentryProfile::Start(Profiler* profiler) {
 
 
   // listen for memory sample ticks
-  profiler->measurements_ticker.add_cpu_listener(id.c_str(), cpu_sampler_cb);
-  profiler->measurements_ticker.add_heap_listener(id.c_str(), memory_sampler_cb);
+  profiler->measurements_ticker.add_cpu_listener(id, cpu_sampler_cb);
+  profiler->measurements_ticker.add_heap_listener(id, memory_sampler_cb);
 
   status = ProfileStatus::kStarted;
 }
@@ -303,8 +303,8 @@ v8::CpuProfile* SentryProfile::Stop(Profiler* profiler) {
   v8::CpuProfile* profile = profiler->cpu_profiler->StopProfiling(v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), id.c_str(), v8::NewStringType::kNormal).ToLocalChecked());
 
   // Remove the meemory sampler
-  profiler->measurements_ticker.remove_heap_listener(id.c_str(), memory_sampler_cb);
-  profiler->measurements_ticker.remove_cpu_listener(id.c_str(), cpu_sampler_cb);
+  profiler->measurements_ticker.remove_heap_listener(id, memory_sampler_cb);
+  profiler->measurements_ticker.remove_cpu_listener(id, cpu_sampler_cb);
   // If for some reason stopProfiling was called with an invalid profile title or
   // if that title had somehow been stopped already, profile will be null.
   status = ProfileStatus::kStopped;
