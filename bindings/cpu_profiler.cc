@@ -67,17 +67,15 @@ enum class ProfileStatus {
 
 class HeapStatisticsTimer {
 private:
+  uv_timer_t timer;
   uint64_t period_ms;
   std::unordered_map<std::string, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>> listeners;
   v8::Isolate* isolate;
   v8::HeapStatistics heap_stats;
 
 public:
-  uv_timer_t timer;
-
   HeapStatisticsTimer(uv_loop_t* loop) :
     period_ms(100),
-    listeners(std::unordered_map<std::string, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>>()),
     isolate(v8::Isolate::GetCurrent()),
     heap_stats(v8::HeapStatistics())
   {
@@ -86,8 +84,8 @@ public:
   };
 
   static void callback(uv_timer_t* handle);
-  static void add_listener(uv_timer_t* handle, const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)> cb);
-  static void remove_listener(uv_timer_t* handle, const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>& cb);
+  void add_listener(const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)> cb);
+  void remove_listener(const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>& cb);
 };
 
 void HeapStatisticsTimer::callback(uv_timer_t* handle) {
@@ -100,33 +98,32 @@ void HeapStatisticsTimer::callback(uv_timer_t* handle) {
   }
 }
 
-void HeapStatisticsTimer::add_listener(uv_timer_t* handle, const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)> cb) {
-  auto self = static_cast<HeapStatisticsTimer*>(handle->data);
-  self->listeners.emplace(std::string(profile_id), cb);
+void HeapStatisticsTimer::add_listener(const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)> cb) {
+  listeners.emplace(std::string(profile_id), cb);
 
-  if (self->listeners.size() == 1) {
-    uv_timer_set_repeat(&self->timer, self->period_ms);
-    uv_timer_start(&self->timer, callback, 0, self->period_ms);
+  if (listeners.size() == 1) {
+    uv_timer_set_repeat(&timer, period_ms);
+    uv_timer_start(&timer, callback, 0, period_ms);
   }
 }
 
-void HeapStatisticsTimer::remove_listener(uv_timer_t* handle, const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>& cb) {
-  auto self = static_cast<HeapStatisticsTimer*>(handle->data);
-  self->listeners.erase(std::string(profile_id));
+void HeapStatisticsTimer::remove_listener(const char* profile_id, std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)>& cb) {
+  listeners.erase(std::string(profile_id));
 
-  if (self->listeners.size() == 0) {
-    uv_timer_stop(&self->timer);
+  if (listeners.size() == 0) {
+    uv_timer_stop(&timer);
   }
 };
 
 class Profiler {
 public:
-  std::unordered_map<std::string, SentryProfile*> active_profiles = std::unordered_map<std::string, SentryProfile*>();
+  std::unordered_map<std::string, SentryProfile*> active_profiles;
 
+  HeapStatisticsTimer heap_statistics_timer;
   v8::CpuProfiler* cpu_profiler;
-  HeapStatisticsTimer heap_statistics_timer = HeapStatisticsTimer(uv_default_loop());
 
   explicit Profiler(const napi_env& env, v8::Isolate* isolate) :
+    heap_statistics_timer(uv_default_loop()),
     cpu_profiler(
       v8::CpuProfiler::New(isolate, kNamingMode, GetLoggingMode())) {
     napi_add_env_cleanup_hook(env, DeleteInstance, this);
@@ -143,28 +140,33 @@ void Profiler::DeleteInstance(void* data) {
 
 class SentryProfile {
 private:
-
   uint64_t started_at = 0;
   uint16_t heap_measurement_index = 0;
-  std::vector<uint64_t> heap_stats_ts = std::vector<uint64_t>(300);
-  std::vector<uint64_t> heap_stats_usage = std::vector<uint64_t>(300);
-  std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)> memory_sampler_cb = [this](uv_timer_t* timer, uint64_t ts, v8::HeapStatistics& stats) {
+  std::vector<uint64_t> heap_stats_ts;
+  std::vector<uint64_t> heap_stats_usage;
+  std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)> memory_sampler_cb;
+  const char* id;
+  ProfileStatus status;
+
+public:
+  explicit SentryProfile(const char* id) :
+    started_at(uv_hrtime()),
+    heap_measurement_index(0),
+    heap_stats_ts(300),
+    heap_stats_usage(300),
+    memory_sampler_cb([this](uv_timer_t* timer, uint64_t ts, v8::HeapStatistics& stats) {
     heap_stats_ts.insert(heap_stats_ts.begin() + heap_measurement_index, ts - started_at);
     heap_stats_usage.insert(heap_stats_usage.begin() + heap_measurement_index, static_cast<uint64_t>(stats.used_heap_size()));
     ++heap_measurement_index;
-    };
+      }), id(id), status(ProfileStatus::kNotStarted) {}
 
-public:
-  const char* id;
-  explicit SentryProfile(const char* id) : started_at(uv_hrtime()), heap_measurement_index(0), id(id) {}
-  ProfileStatus status = ProfileStatus::kNotStarted;
 
-  std::vector<uint64_t>& heap_usage_timestamps();
-  std::vector<uint64_t>& heap_usage_values();
-  uint16_t heap_usage_entries_count();
+      const std::vector<uint64_t>& heap_usage_timestamps();
+      const std::vector<uint64_t>& heap_usage_values();
+      const uint16_t& heap_usage_entries_count();
 
-  void Start(Profiler* profiler);
-  v8::CpuProfile* Stop(Profiler* profiler);
+      void Start(Profiler* profiler);
+      v8::CpuProfile* Stop(Profiler* profiler);
 };
 
 void SentryProfile::Start(Profiler* profiler) {
@@ -181,7 +183,7 @@ void SentryProfile::Start(Profiler* profiler) {
 
 
   // listen for memory sample ticks
-  profiler->heap_statistics_timer.add_listener(&profiler->heap_statistics_timer.timer, id, memory_sampler_cb);
+  profiler->heap_statistics_timer.add_listener(id, memory_sampler_cb);
   status = ProfileStatus::kStarted;
 }
 
@@ -190,7 +192,7 @@ v8::CpuProfile* SentryProfile::Stop(Profiler* profiler) {
   v8::CpuProfile* profile = profiler->cpu_profiler->StopProfiling(v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), id, v8::NewStringType::kNormal).ToLocalChecked());
 
   // Remove the meemory sampler
-  profiler->heap_statistics_timer.remove_listener(&profiler->heap_statistics_timer.timer, id, memory_sampler_cb);
+  profiler->heap_statistics_timer.remove_listener(id, memory_sampler_cb);
   // If for some reason stopProfiling was called with an invalid profile title or
   // if that title had somehow been stopped already, profile will be null.
   status = ProfileStatus::kStopped;
@@ -202,23 +204,23 @@ v8::CpuProfile* SentryProfile::Stop(Profiler* profiler) {
   return profile;
 }
 
-std::vector<uint64_t>& SentryProfile::heap_usage_timestamps() {
+const std::vector<uint64_t>& SentryProfile::heap_usage_timestamps() {
   return heap_stats_ts;
 };
 
-std::vector<uint64_t>& SentryProfile::heap_usage_values() {
+const std::vector<uint64_t>& SentryProfile::heap_usage_values() {
   return heap_stats_usage;
 };
 
-uint16_t SentryProfile::heap_usage_entries_count() {
+const uint16_t& SentryProfile::heap_usage_entries_count() {
   return heap_measurement_index;
 };
 
-static void CleanupSentryProfile(Profiler* profiler, SentryProfile* profile) {
+static void CleanupSentryProfile(Profiler* profiler, const SentryProfile* profile, const std::string profile_id) {
   if (profile == nullptr) {
     return;
   }
-  profiler->active_profiles.erase(std::string(profile->id));
+  profiler->active_profiles.erase(profile_id);
   delete profile;
 };
 
@@ -490,7 +492,7 @@ static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const
   }
 }
 
-static napi_value TranslateMemoryMeasurements(const napi_env& env, const char* unit, size_t size, std::vector<uint64_t>& values, std::vector<uint64_t>& timestamps) {
+static napi_value TranslateMemoryMeasurements(const napi_env& env, const char* unit, const uint16_t size, const std::vector<uint64_t>& values, const std::vector<uint64_t>& timestamps) {
   if (size > values.size() || size > timestamps.size()) {
     napi_throw_range_error(env, "NAPI_ERROR", "Memory measurement size is larger than the number of values or timestamps");
     return nullptr;
@@ -609,8 +611,9 @@ static napi_value StartProfiling(napi_env env, napi_callback_info info) {
     return napi_null;
   }
 
+  const std::string profile_id = std::string(title);
   // In case we have a collision, cleanup the old profile first
-  auto existing_profile = profiler->active_profiles.find(std::string(title));
+  auto existing_profile = profiler->active_profiles.find(profile_id);
   if (existing_profile != profiler->active_profiles.end()) {
     existing_profile->second->Stop(profiler);
     profiler->active_profiles.erase(existing_profile);
@@ -620,7 +623,7 @@ static napi_value StartProfiling(napi_env env, napi_callback_info info) {
   SentryProfile* sentry_profile = new SentryProfile(title);
   sentry_profile->Start(profiler);
 
-  profiler->active_profiles.emplace(std::string(title), sentry_profile);
+  profiler->active_profiles.emplace(profile_id, sentry_profile);
 
   napi_value napi_null;
   assert(napi_get_null(env, &napi_null) == napi_ok);
@@ -704,7 +707,8 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
     return napi_null;
   }
 
-  auto profile = profiler->active_profiles.find(std::string(title));
+  const std::string profile_id = std::string(title);
+  auto profile = profiler->active_profiles.find(profile_id);
 
   // If the profile was never started, silently ignore the call and return null
   if (profile == profiler->active_profiles.end()) {
@@ -721,7 +725,7 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
   if (!cpu_profile) {
     napi_throw_error(env, "NAPI_ERROR", "StopProfiling: Stopping Sentry profile did not return a profile.");
 
-    CleanupSentryProfile(profiler, profile->second);
+    CleanupSentryProfile(profiler, profile->second, profile_id);
 
     napi_value napi_null;
     assert(napi_get_null(env, &napi_null) == napi_ok);
@@ -749,7 +753,7 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
 
   napi_set_named_property(env, js_profile, "measurements", measurements);
 
-  CleanupSentryProfile(profiler, profile->second);
+  CleanupSentryProfile(profiler, profile->second, profile_id);
   cpu_profile->Delete();
 
   return js_profile;
