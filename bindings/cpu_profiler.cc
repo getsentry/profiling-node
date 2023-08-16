@@ -272,8 +272,8 @@ void SentryProfile::Start(Profiler* profiler) {
 
 
   // listen for memory sample ticks
-  // profiler->measurements_ticker.add_cpu_listener(id, cpu_sampler_cb);
-  // profiler->measurements_ticker.add_heap_listener(id, memory_sampler_cb);
+  profiler->measurements_ticker.add_cpu_listener(id, cpu_sampler_cb);
+  profiler->measurements_ticker.add_heap_listener(id, memory_sampler_cb);
 
   status = ProfileStatus::kStarted;
 }
