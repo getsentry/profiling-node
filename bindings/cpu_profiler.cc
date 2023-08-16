@@ -211,8 +211,8 @@ public:
 class SentryProfile {
 private:
   uint64_t started_at;
-  uint16_t heap_measurement_index;
-  uint16_t cpu_measurement_index;
+  uint16_t heap_measurement_index = 0;
+  uint16_t cpu_measurement_index = 0;
 
   std::vector<uint64_t> heap_stats_ts = std::vector<uint64_t>(300);
   std::vector<uint64_t> heap_stats_usage = std::vector<uint64_t>(300);
