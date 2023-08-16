@@ -272,8 +272,8 @@ void SentryProfile::Start(Profiler* profiler) {
 
 
   // listen for memory sample ticks
-  profiler->measurements_ticker.add_cpu_listener(id, cpu_sampler_cb);
-  profiler->measurements_ticker.add_heap_listener(id, memory_sampler_cb);
+  // profiler->measurements_ticker.add_cpu_listener(id, cpu_sampler_cb);
+  // profiler->measurements_ticker.add_heap_listener(id, memory_sampler_cb);
 
   status = ProfileStatus::kStarted;
 }
@@ -615,6 +615,11 @@ static napi_value TranslateMeasurementsDouble(const napi_env& env, const char* u
     return nullptr;
   }
 
+  if (values.size() != timestamps.size()) {
+    napi_throw_range_error(env, "NAPI_ERROR", "Memory measurement entries are corrupt, expected values and timestamps to be of equal length");
+    return nullptr;
+  }
+
   napi_value measurement;
   napi_create_object(env, &measurement);
 
@@ -648,6 +653,11 @@ static napi_value TranslateMeasurementsDouble(const napi_env& env, const char* u
 static napi_value TranslateMeasurements(const napi_env& env, const char* unit, const uint16_t size, const std::vector<uint64_t>& values, const std::vector<uint64_t>& timestamps) {
   if (size > values.size() || size > timestamps.size()) {
     napi_throw_range_error(env, "NAPI_ERROR", "Memory measurement size is larger than the number of values or timestamps");
+    return nullptr;
+  }
+
+  if (values.size() != timestamps.size()) {
+    napi_throw_range_error(env, "NAPI_ERROR", "Memory measurement entries are corrupt, expected values and timestamps to be of equal length");
     return nullptr;
   }
 
