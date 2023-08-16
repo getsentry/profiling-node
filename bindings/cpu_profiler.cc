@@ -327,13 +327,13 @@ const uint16_t& SentryProfile::cpu_usage_entries_count() {
 };
 
 
-static void CleanupSentryProfile(Profiler* profiler, SentryProfile* profile, const std::string& profile_id) {
-  if (profile == nullptr) {
+static void CleanupSentryProfile(Profiler* profiler, SentryProfile* sentry_profile, const std::string& profile_id) {
+  if (sentry_profile == nullptr) {
     return;
   }
 
   profiler->active_profiles.erase(profile_id);
-  delete profile;
+  delete sentry_profile;
 };
 
 #ifdef _WIN32

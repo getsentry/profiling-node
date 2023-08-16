@@ -9,7 +9,7 @@ Sentry.init({
   dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
   tracesSampleRate: 1,
   profilesSampleRate: 0.3,
-  // debug: true,
+  debug: true,
   integrations: [
     // enable HTTP calls tracing
     new Sentry.Integrations.Http({ tracing: true }),
@@ -24,18 +24,12 @@ Sentry.init({
   ]
 });
 
-setInterval(() => {
-  const usage = process.memoryUsage();
-  console.log(`rss: ${usage.rss}, heapTotal: ${usage.heapTotal}, heapUsed: ${usage.heapUsed}`);
-}, 500)
-
 // The request handler must be the first middleware on the app
 app.use(Sentry.Handlers.tracingHandler());
 app.use(Sentry.Handlers.requestHandler());
 
 // All controllers should live here
-app.get('/', async function rootHandler(_req, res) {
-  await wait(100)
+app.get('/', function rootHandler(_req, res) {
   res.end('Hello world!');
 });
 
