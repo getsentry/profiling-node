@@ -78,10 +78,8 @@ private:
 public:
   MeasurementsTicker(uv_loop_t* loop) :
     period_ms(100),
-    isolate(v8::Isolate::GetCurrent()),
-    heap_stats(v8::HeapStatistics()),
-    cpu_stats(uv_cpu_info_s())
-  {
+    isolate(v8::Isolate::GetCurrent())
+    {
     uv_timer_init(loop, &timer);
     timer.data = this;
   };
@@ -135,10 +133,10 @@ void MeasurementsTicker::remove_heap_listener(const char* profile_id, std::funct
 void MeasurementsTicker::cpu_callback() {
   uint64_t ts = uv_hrtime();
 
-  uv_cpu_info_t* cpu_stats = cpu_stats;
+  uv_cpu_info_t* stats = &cpu_stats;
   int count;
 
-  int err = uv_cpu_info(&cpu_stats, &count);
+  int err = uv_cpu_info(&stats, &count);
   if (err) {
     return;
   }
@@ -147,7 +145,7 @@ void MeasurementsTicker::cpu_callback() {
   uint64_t idle_total = 0;
 
   for (int i = 0; i < count; i++) {
-    uv_cpu_info_t* ci = cpu_stats + i;
+    uv_cpu_info_t* ci = stats + i;
 
     total += ci->cpu_times.user;
     total += ci->cpu_times.nice;
@@ -166,7 +164,7 @@ void MeasurementsTicker::cpu_callback() {
     listener.second(ts, rate);
   }
 
-  uv_free_cpu_info(cpu_stats, count);
+  uv_free_cpu_info(stats, count);
 }
 
 void MeasurementsTicker::add_cpu_listener(const char* profile_id, std::function<void(uint64_t, double)> cb) {
@@ -606,7 +604,7 @@ static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const
   }
 }
 
-static napi_value TranslateMeasurementsDouble(const napi_env& env, const char* unit, const uint16_t size, const std::vector<uint64_t>& values, const std::vector<uint64_t>& timestamps) {
+static napi_value TranslateMeasurementsDouble(const napi_env& env, const char* unit, const uint16_t size, const std::vector<double>& values, const std::vector<uint64_t>& timestamps) {
   if (size > values.size() || size > timestamps.size()) {
     napi_throw_range_error(env, "NAPI_ERROR", "Memory measurement size is larger than the number of values or timestamps");
     return nullptr;
