@@ -58,12 +58,14 @@ v8::CpuProfilingLoggingMode GetLoggingMode() {
 }
 
 class SentryProfile;
+class Profiler;
 
 enum class ProfileStatus {
   kNotStarted,
   kStarted,
   kStopped,
 };
+
 
 class MeasurementsTicker {
 private:
@@ -82,7 +84,7 @@ public:
     {
     uv_timer_init(loop, &timer);
     timer.data = this;
-  };
+  }
 
   static void ticker(uv_timer_t*);
   // Memory listeners
@@ -133,10 +135,9 @@ void MeasurementsTicker::remove_heap_listener(const char* profile_id, std::funct
 void MeasurementsTicker::cpu_callback() {
   uint64_t ts = uv_hrtime();
 
-  uv_cpu_info_t* stats = &cpu_stats;
+  uv_cpu_info_t* cpu = &cpu_stats;
   int count;
-
-  int err = uv_cpu_info(&stats, &count);
+  int err = uv_cpu_info(&cpu, &count);
   if (err) {
     return;
   }
@@ -145,15 +146,15 @@ void MeasurementsTicker::cpu_callback() {
   uint64_t idle_total = 0;
 
   for (int i = 0; i < count; i++) {
-    uv_cpu_info_t* ci = stats + i;
+    uv_cpu_info_t* core = cpu + i;
 
-    total += ci->cpu_times.user;
-    total += ci->cpu_times.nice;
-    total += ci->cpu_times.sys;
-    total += ci->cpu_times.idle;
-    total += ci->cpu_times.irq;
+    total += core->cpu_times.user;
+    total += core->cpu_times.nice;
+    total += core->cpu_times.sys;
+    total += core->cpu_times.idle;
+    total += core->cpu_times.irq;
 
-    idle_total += ci->cpu_times.idle;
+    idle_total += core->cpu_times.idle;
   }
 
   double total_avg = total / count;
@@ -164,7 +165,13 @@ void MeasurementsTicker::cpu_callback() {
     listener.second(ts, rate);
   }
 
-  uv_free_cpu_info(stats, count);
+  uv_free_cpu_info(cpu, count);
+}
+
+void MeasurementsTicker::ticker(uv_timer_t* handle) {
+  MeasurementsTicker* self = static_cast<MeasurementsTicker*>(handle->data);
+  self->heap_callback();
+  self->cpu_callback();
 }
 
 void MeasurementsTicker::add_cpu_listener(const char* profile_id, std::function<void(uint64_t, double)> cb) {
@@ -184,12 +191,6 @@ void MeasurementsTicker::remove_cpu_listener(const char* profile_id, std::functi
   }
 };
 
-void MeasurementsTicker::ticker(uv_timer_t* handle) {
-  MeasurementsTicker* self = static_cast<MeasurementsTicker*>(handle->data);
-  self->heap_callback();
-  self->cpu_callback();
-}
-
 class Profiler {
 public:
   std::unordered_map<std::string, SentryProfile*> active_profiles;
@@ -206,12 +207,6 @@ public:
 
   static void DeleteInstance(void* data);
 };
-
-void Profiler::DeleteInstance(void* data) {
-  Profiler* profiler = static_cast<Profiler*>(data);
-  profiler->cpu_profiler->Dispose();
-  delete profiler;
-}
 
 class SentryProfile {
 private:
@@ -283,6 +278,26 @@ void SentryProfile::Start(Profiler* profiler) {
   status = ProfileStatus::kStarted;
 }
 
+static void CleanupSentryProfile(Profiler* profiler, SentryProfile* sentry_profile, const std::string& profile_id) {
+  if (sentry_profile == nullptr) {
+    return;
+  }
+
+  profiler->active_profiles.erase(profile_id);
+  delete sentry_profile;
+};
+
+void Profiler::DeleteInstance(void* data) {
+  Profiler* profiler = static_cast<Profiler*>(data);
+
+  for (auto& profile : profiler->active_profiles) {
+    CleanupSentryProfile(profiler, profile.second, profile.first);
+  }
+
+  profiler->cpu_profiler->Dispose();
+  delete profiler;
+}
+
 v8::CpuProfile* SentryProfile::Stop(Profiler* profiler) {
   // Stop the CPU Profiler
   v8::CpuProfile* profile = profiler->cpu_profiler->StopProfiling(v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), id, v8::NewStringType::kNormal).ToLocalChecked());
@@ -324,16 +339,6 @@ const std::vector<double>& SentryProfile::cpu_usage_values() {
 };
 const uint16_t& SentryProfile::cpu_usage_entries_count() {
   return cpu_measurement_index;
-};
-
-
-static void CleanupSentryProfile(Profiler* profiler, SentryProfile* sentry_profile, const std::string& profile_id) {
-  if (sentry_profile == nullptr) {
-    return;
-  }
-
-  profiler->active_profiles.erase(profile_id);
-  delete sentry_profile;
 };
 
 #ifdef _WIN32
@@ -764,8 +769,7 @@ static napi_value StartProfiling(napi_env env, napi_callback_info info) {
   auto existing_profile = profiler->active_profiles.find(profile_id);
   if (existing_profile != profiler->active_profiles.end()) {
     existing_profile->second->Stop(profiler);
-    profiler->active_profiles.erase(existing_profile);
-    delete existing_profile->second;
+    CleanupSentryProfile(profiler, existing_profile->second, profile_id);
   }
 
   SentryProfile* sentry_profile = new SentryProfile(title);
@@ -862,7 +866,6 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
   if (profile == profiler->active_profiles.end()) {
     napi_value napi_null;
     assert(napi_get_null(env, &napi_null) == napi_ok);
-
     return napi_null;
   }
 
