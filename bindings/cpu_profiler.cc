@@ -89,13 +89,13 @@ public:
   static void ticker(uv_timer_t*);
   // Memory listeners
   void heap_callback();
-  void add_heap_listener(const char* profile_id, std::function<void(uint64_t, v8::HeapStatistics&)> cb);
-  void remove_heap_listener(const char* profile_id, std::function<void(uint64_t, v8::HeapStatistics&)>& cb);
+  void add_heap_listener(const std::string&, std::function<void(uint64_t, v8::HeapStatistics&)> cb);
+  void remove_heap_listener(const std::string&, std::function<void(uint64_t, v8::HeapStatistics&)>& cb);
 
   // CPU listeners
   void cpu_callback();
-  void add_cpu_listener(const char* profile_id, std::function<void(uint64_t, double)> cb);
-  void remove_cpu_listener(const char* profile_id, std::function<void(uint64_t, double)>& cb);
+  void add_cpu_listener(const std::string&, std::function<void(uint64_t, double)> cb);
+  void remove_cpu_listener(const std::string&, std::function<void(uint64_t, double)>& cb);
 
   size_t listener_count();
 };
@@ -114,8 +114,8 @@ void MeasurementsTicker::heap_callback() {
   }
 }
 
-void MeasurementsTicker::add_heap_listener(const char* profile_id, std::function<void(uint64_t, v8::HeapStatistics&)> cb) {
-  heap_listeners.emplace(std::string(profile_id), cb);
+void MeasurementsTicker::add_heap_listener(const std::string& profile_id, std::function<void(uint64_t, v8::HeapStatistics&)> cb) {
+  heap_listeners.emplace(profile_id, cb);
 
   if (listener_count() == 1) {
     uv_timer_set_repeat(&timer, period_ms);
@@ -123,8 +123,8 @@ void MeasurementsTicker::add_heap_listener(const char* profile_id, std::function
   }
 }
 
-void MeasurementsTicker::remove_heap_listener(const char* profile_id, std::function<void(uint64_t, v8::HeapStatistics&)>& cb) {
-  heap_listeners.erase(std::string(profile_id));
+void MeasurementsTicker::remove_heap_listener(const std::string& profile_id, std::function<void(uint64_t, v8::HeapStatistics&)>& cb) {
+  heap_listeners.erase(profile_id);
 
   if (listener_count() == 0) {
     uv_timer_stop(&timer);
@@ -174,8 +174,8 @@ void MeasurementsTicker::ticker(uv_timer_t* handle) {
   self->cpu_callback();
 }
 
-void MeasurementsTicker::add_cpu_listener(const char* profile_id, std::function<void(uint64_t, double)> cb) {
-  cpu_listeners.emplace(std::string(profile_id), cb);
+void MeasurementsTicker::add_cpu_listener(const std::string& profile_id, std::function<void(uint64_t, double)> cb) {
+  cpu_listeners.emplace(profile_id, cb);
 
   if (listener_count() == 1) {
     uv_timer_set_repeat(&timer, period_ms);
@@ -183,8 +183,8 @@ void MeasurementsTicker::add_cpu_listener(const char* profile_id, std::function<
   }
 }
 
-void MeasurementsTicker::remove_cpu_listener(const char* profile_id, std::function<void(uint64_t, double)>& cb) {
-  cpu_listeners.erase(std::string(profile_id));
+void MeasurementsTicker::remove_cpu_listener(const std::string& profile_id, std::function<void(uint64_t, double)>& cb) {
+  cpu_listeners.erase(profile_id);
 
   if (listener_count() == 0) {
     uv_timer_stop(&timer);
