@@ -8,6 +8,11 @@ import { NodeClient } from '@sentry/node';
 import { getMainCarrier } from '@sentry/core';
 import type { Transport } from '@sentry/types';
 
+import SegfaultHandler from 'segfault-handler';
+SegfaultHandler.registerHandler('crash.log', function (signal, address, stack) {
+  console.log(JSON.stringify(signal), JSON.stringify(address), JSON.stringify(stack));
+});
+
 function makeClientWithoutHooks(): [NodeClient, Transport] {
   const integration = new ProfilingIntegration();
   const transport = Sentry.makeNodeTransport({

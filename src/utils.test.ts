@@ -11,6 +11,11 @@ import {
 import { maybeRemoveProfileFromSdkMetadata, isProfiledTransactionEvent, createProfilingEventEnvelope } from './utils';
 import type { Profile, ProfiledEvent } from './types';
 
+import SegfaultHandler from 'segfault-handler';
+SegfaultHandler.registerHandler('crash.log', function (signal, address, stack) {
+  console.log(JSON.stringify(signal), JSON.stringify(address), JSON.stringify(stack));
+});
+
 function makeSdkMetadata(props: Partial<SdkMetadata['sdk']>): SdkMetadata {
   return {
     sdk: {

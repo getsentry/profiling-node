@@ -6,6 +6,11 @@ import type { Event, Hub, Transport } from '@sentry/types';
 import { ProfilingIntegration } from './integration';
 import type { ProfiledEvent } from './types';
 
+import SegfaultHandler from 'segfault-handler';
+SegfaultHandler.registerHandler('crash.log', function (signal, address, stack) {
+  console.log(JSON.stringify(signal), JSON.stringify(address), JSON.stringify(stack));
+});
+
 function assertCleanProfile(event: ProfiledEvent | Event): void {
   expect(event.sdkProcessingMetadata?.profile).toBeUndefined();
 }
