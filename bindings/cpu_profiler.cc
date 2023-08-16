@@ -179,7 +179,7 @@ void MeasurementsTicker::add_cpu_listener(const char* profile_id, std::function<
 }
 
 void MeasurementsTicker::remove_cpu_listener(const char* profile_id, std::function<void(uint64_t, double)>& cb) {
-  cpu_listeners.erase(&profile_id);
+  cpu_listeners.erase(std::string(profile_id));
 
   if (listener_count() == 0) {
     uv_timer_stop(&timer);
@@ -188,9 +188,8 @@ void MeasurementsTicker::remove_cpu_listener(const char* profile_id, std::functi
 
 void MeasurementsTicker::ticker(uv_timer_t* handle) {
   MeasurementsTicker* self = static_cast<MeasurementsTicker*>(handle->data);
-
-  heap_callback();
-  cpu_callback();
+  self->heap_callback();
+  self->cpu_callback();
 }
 
 class Profiler {
@@ -607,7 +606,43 @@ static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const
   }
 }
 
-static napi_value TranslateMemoryMeasurements(const napi_env& env, const char* unit, const uint16_t size, const std::vector<uint64_t>& values, const std::vector<uint64_t>& timestamps) {
+static napi_value TranslateMeasurementsDouble(const napi_env& env, const char* unit, const uint16_t size, const std::vector<uint64_t>& values, const std::vector<uint64_t>& timestamps) {
+  if (size > values.size() || size > timestamps.size()) {
+    napi_throw_range_error(env, "NAPI_ERROR", "Memory measurement size is larger than the number of values or timestamps");
+    return nullptr;
+  }
+
+  napi_value measurement;
+  napi_create_object(env, &measurement);
+
+  napi_value unit_string;
+  napi_create_string_utf8(env, unit, NAPI_AUTO_LENGTH, &unit_string);
+  napi_set_named_property(env, measurement, "unit", unit_string);
+
+  napi_value values_array;
+  napi_create_array(env, &values_array);
+
+  for (size_t i = 0; i < size; i++) {
+    napi_value entry;
+    napi_create_object(env, &entry);
+
+    napi_value value;
+    napi_create_double(env, values[i], &value);
+
+    napi_value ts;
+    napi_create_int64(env, timestamps[i], &ts);
+
+    napi_set_named_property(env, entry, "value", value);
+    napi_set_named_property(env, entry, "elapsed_since_start_ns", ts);
+    napi_set_element(env, values_array, i, entry);
+  }
+
+  napi_set_named_property(env, measurement, "values", values_array);
+
+  return measurement;
+}
+
+static napi_value TranslateMeasurements(const napi_env& env, const char* unit, const uint16_t size, const std::vector<uint64_t>& values, const std::vector<uint64_t>& timestamps) {
   if (size > values.size() || size > timestamps.size()) {
     napi_throw_range_error(env, "NAPI_ERROR", "Memory measurement size is larger than the number of values or timestamps");
     return nullptr;
