@@ -140,8 +140,8 @@ void Profiler::DeleteInstance(void* data) {
 
 class SentryProfile {
 private:
-  uint64_t started_at = 0;
-  uint16_t heap_measurement_index = 0;
+  uint64_t started_at;
+  uint16_t heap_measurement_index;
   std::vector<uint64_t> heap_stats_ts;
   std::vector<uint64_t> heap_stats_usage;
   std::function<void(uv_timer_t*, uint64_t, v8::HeapStatistics&)> memory_sampler_cb;
@@ -161,9 +161,9 @@ public:
       }), id(id), status(ProfileStatus::kNotStarted) {}
 
 
-      const std::vector<uint64_t>& heap_usage_timestamps();
-      const std::vector<uint64_t>& heap_usage_values();
-      const uint16_t& heap_usage_entries_count();
+      const std::vector<uint64_t>& heap_usage_timestamps() const;
+      const std::vector<uint64_t>& heap_usage_values() const;
+      const uint16_t& heap_usage_entries_count() const;
 
       void Start(Profiler* profiler);
       v8::CpuProfile* Stop(Profiler* profiler);
@@ -204,15 +204,15 @@ v8::CpuProfile* SentryProfile::Stop(Profiler* profiler) {
   return profile;
 }
 
-const std::vector<uint64_t>& SentryProfile::heap_usage_timestamps() {
+const std::vector<uint64_t>& SentryProfile::heap_usage_timestamps() const {
   return heap_stats_ts;
 };
 
-const std::vector<uint64_t>& SentryProfile::heap_usage_values() {
+const std::vector<uint64_t>& SentryProfile::heap_usage_values() const {
   return heap_stats_usage;
 };
 
-const uint16_t& SentryProfile::heap_usage_entries_count() {
+const uint16_t& SentryProfile::heap_usage_entries_count() const {
   return heap_measurement_index;
 };
 
@@ -611,7 +611,7 @@ static napi_value StartProfiling(napi_env env, napi_callback_info info) {
     return napi_null;
   }
 
-  const std::string profile_id = std::string(title);
+  const std::string profile_id(title);
   // In case we have a collision, cleanup the old profile first
   auto existing_profile = profiler->active_profiles.find(profile_id);
   if (existing_profile != profiler->active_profiles.end()) {
@@ -707,7 +707,7 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
     return napi_null;
   }
 
-  const std::string profile_id = std::string(title);
+  const std::string profile_id(title);
   auto profile = profiler->active_profiles.find(profile_id);
 
   // If the profile was never started, silently ignore the call and return null
