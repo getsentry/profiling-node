@@ -71,8 +71,8 @@ class MeasurementsTicker {
 private:
   uv_timer_t timer;
   uint64_t period_ms;
-  std::unordered_map<std::string, std::function<void(uint64_t, v8::HeapStatistics&)>> heap_listeners;
-  std::unordered_map<std::string, std::function<void(uint64_t, double)>> cpu_listeners;
+  std::unordered_map<std::string, const std::function<void(uint64_t, v8::HeapStatistics&)>> heap_listeners;
+  std::unordered_map<std::string, const std::function<void(uint64_t, double)>> cpu_listeners;
   v8::Isolate* isolate;
   v8::HeapStatistics heap_stats;
   uv_cpu_info_t cpu_stats;
@@ -89,13 +89,13 @@ public:
   static void ticker(uv_timer_t*);
   // Memory listeners
   void heap_callback();
-  void add_heap_listener(std::string& profile_id, std::function<void(uint64_t, v8::HeapStatistics&)> cb);
-  void remove_heap_listener(std::string& profile_id, std::function<void(uint64_t, v8::HeapStatistics&)>& cb);
+  void add_heap_listener(std::string& profile_id, const std::function<void(uint64_t, v8::HeapStatistics&)> cb);
+  void remove_heap_listener(std::string& profile_id, const std::function<void(uint64_t, v8::HeapStatistics&)>& cb);
 
   // CPU listeners
   void cpu_callback();
-  void add_cpu_listener(std::string& profile_id, std::function<void(uint64_t, double)> cb);
-  void remove_cpu_listener(std::string& profile_id, std::function<void(uint64_t, double)>& cb);
+  void add_cpu_listener(std::string& profile_id, const std::function<void(uint64_t, double)> cb);
+  void remove_cpu_listener(std::string& profile_id, const std::function<void(uint64_t, double)>& cb);
 
   size_t listener_count();
 };
@@ -114,7 +114,7 @@ void MeasurementsTicker::heap_callback() {
   }
 }
 
-void MeasurementsTicker::add_heap_listener(std::string& profile_id, std::function<void(uint64_t, v8::HeapStatistics&)> cb) {
+void MeasurementsTicker::add_heap_listener(std::string& profile_id, const std::function<void(uint64_t, v8::HeapStatistics&)> cb) {
   heap_listeners.emplace(profile_id, cb);
 
   if (listener_count() == 1) {
@@ -123,7 +123,7 @@ void MeasurementsTicker::add_heap_listener(std::string& profile_id, std::functio
   }
 }
 
-void MeasurementsTicker::remove_heap_listener(std::string& profile_id, std::function<void(uint64_t, v8::HeapStatistics&)>& cb) {
+void MeasurementsTicker::remove_heap_listener(std::string& profile_id, const std::function<void(uint64_t, v8::HeapStatistics&)>& cb) {
   heap_listeners.erase(profile_id);
 
   if (listener_count() == 0) {
@@ -174,7 +174,7 @@ void MeasurementsTicker::ticker(uv_timer_t* handle) {
   self->cpu_callback();
 }
 
-void MeasurementsTicker::add_cpu_listener(std::string& profile_id, std::function<void(uint64_t, double)> cb) {
+void MeasurementsTicker::add_cpu_listener(std::string& profile_id, const std::function<void(uint64_t, double)> cb) {
   cpu_listeners.emplace(profile_id, cb);
 
   if (listener_count() == 1) {
@@ -183,7 +183,7 @@ void MeasurementsTicker::add_cpu_listener(std::string& profile_id, std::function
   }
 }
 
-void MeasurementsTicker::remove_cpu_listener(std::string& profile_id, std::function<void(uint64_t, double)>& cb) {
+void MeasurementsTicker::remove_cpu_listener(std::string& profile_id, const std::function<void(uint64_t, double)>& cb) {
   cpu_listeners.erase(profile_id);
 
   if (listener_count() == 0) {
@@ -214,14 +214,14 @@ private:
   uint16_t heap_measurement_index = 0;
   uint16_t cpu_measurement_index = 0;
 
-  std::vector<uint64_t> heap_stats_ts = std::vector<uint64_t>(300);
-  std::vector<uint64_t> heap_stats_usage = std::vector<uint64_t>(300);
+  std::vector<uint64_t> heap_stats_ts;
+  std::vector<uint64_t> heap_stats_usage;
 
-  std::vector<uint64_t> cpu_stats_ts = std::vector<uint64_t>(300);
-  std::vector<double> cpu_stats_usage = std::vector<double>(300);
+  std::vector<uint64_t> cpu_stats_ts;
+  std::vector<double> cpu_stats_usage;
 
-  std::function<void(uint64_t, v8::HeapStatistics&)> memory_sampler_cb;
-  std::function<void(uint64_t, double)> cpu_sampler_cb;
+  const std::function<void(uint64_t, v8::HeapStatistics&)> memory_sampler_cb;
+  const std::function<void(uint64_t, double)> cpu_sampler_cb;
 
   ProfileStatus status = ProfileStatus::kNotStarted;
   std::string id;
@@ -229,6 +229,11 @@ private:
 public:
   explicit SentryProfile(const char* id) :
     started_at(uv_hrtime()),
+
+    heap_stats_ts(300),
+    heap_stats_usage(300),
+    cpu_stats_ts(300),
+    cpu_stats_usage(300),
 
     memory_sampler_cb([this](uint64_t ts, v8::HeapStatistics& stats) {
       heap_stats_ts.insert(heap_stats_ts.begin() + heap_measurement_index, ts - started_at);
@@ -245,13 +250,13 @@ public:
     status(ProfileStatus::kNotStarted),
     id(id) {}
 
-  const std::vector<uint64_t>& heap_usage_timestamps();
-  const std::vector<uint64_t>& heap_usage_values();
-  const uint16_t& heap_usage_entries_count();
+  const std::vector<uint64_t>& heap_usage_timestamps()const;
+  const std::vector<uint64_t>& heap_usage_values()const;
+  const uint16_t& heap_usage_entries_count() const;
 
-  const std::vector<uint64_t>& cpu_usage_timestamps();
-  const std::vector<double>& cpu_usage_values();
-  const uint16_t& cpu_usage_entries_count();
+  const std::vector<uint64_t>& cpu_usage_timestamps() const;
+  const std::vector<double>& cpu_usage_values() const;
+  const uint16_t& cpu_usage_entries_count() const;
 
   void Start(Profiler* profiler);
   v8::CpuProfile* Stop(Profiler* profiler);
@@ -317,27 +322,27 @@ v8::CpuProfile* SentryProfile::Stop(Profiler* profiler) {
 }
 
 // Memory getters
-const std::vector<uint64_t>& SentryProfile::heap_usage_timestamps() {
+const std::vector<uint64_t>& SentryProfile::heap_usage_timestamps() const {
   return heap_stats_ts;
 };
 
-const std::vector<uint64_t>& SentryProfile::heap_usage_values() {
+const std::vector<uint64_t>& SentryProfile::heap_usage_values() const {
   return heap_stats_usage;
 };
 
-const uint16_t& SentryProfile::heap_usage_entries_count() {
+const uint16_t& SentryProfile::heap_usage_entries_count() const {
   return heap_measurement_index;
 };
 
 // CPU getters
-const std::vector<uint64_t>& SentryProfile::cpu_usage_timestamps() {
+const std::vector<uint64_t>& SentryProfile::cpu_usage_timestamps() const {
   return cpu_stats_ts;
 };
 
-const std::vector<double>& SentryProfile::cpu_usage_values() {
+const std::vector<double>& SentryProfile::cpu_usage_values() const {
   return cpu_stats_usage;
 };
-const uint16_t& SentryProfile::cpu_usage_entries_count() {
+const uint16_t& SentryProfile::cpu_usage_entries_count() const {
   return cpu_measurement_index;
 };
 
@@ -774,7 +779,7 @@ static napi_value StartProfiling(napi_env env, napi_callback_info info) {
     return napi_null;
   }
 
-  std::string profile_id = std::string(title);
+  const std::string profile_id(title);
   // In case we have a collision, cleanup the old profile first
   auto existing_profile = profiler->active_profiles.find(profile_id);
   if (existing_profile != profiler->active_profiles.end()) {
@@ -869,7 +874,7 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
     return napi_null;
   }
 
-  const std::string profile_id = std::string(title);
+  const std::string profile_id(title);
   auto profile = profiler->active_profiles.find(profile_id);
 
   // If the profile was never started, silently ignore the call and return null
