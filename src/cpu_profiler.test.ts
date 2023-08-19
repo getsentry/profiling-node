@@ -1,5 +1,5 @@
 import { CpuProfilerBindings, PrivateCpuProfilerBindings } from './cpu_profiler';
-import type { ThreadCpuProfile } from './types';
+import type { ThreadCpuProfile, RawThreadCpuProfile } from './types';
 
 import SegfaultHandler from 'segfault-handler';
 SegfaultHandler.registerHandler('crash.log', function (signal, address, stack) {
@@ -41,6 +41,20 @@ const assertValidSamplesAndStacks = (stacks: ThreadCpuProfile['stacks'], samples
 
   for (const stack of stacks) {
     expect(stack).not.toBe(undefined);
+  }
+};
+
+const assertValidMeasurements = (measurement: RawThreadCpuProfile['measurements']['memory_footprint'] | undefined) => {
+  if (!measurement) {
+    throw new Error('Measurement is undefined');
+  }
+  expect(measurement).not.toBe(undefined);
+  expect(typeof measurement.unit).toBe('string');
+  expect(measurement.unit.length).toBeGreaterThan(0);
+
+  for (let i = 0; i < measurement.values.length; i++) {
+    expect(measurement?.values?.[i]?.elapsed_since_start_ns).toBeGreaterThan(0);
+    expect(measurement?.values?.[i]?.value).toBeGreaterThan(0);
   }
 };
 
@@ -193,6 +207,34 @@ describe('Profiler bindings', () => {
     if (profile.samples.length > 15) {
       fail('Too many samples on ' + process.platform + ', got ' + profile.samples.length);
     }
+  });
+
+  it('collects memory footprint', async () => {
+    CpuProfilerBindings.startProfiling('profile');
+    await wait(1000);
+    const profile = CpuProfilerBindings.stopProfiling('profile');
+
+    const heap_usage = profile?.measurements['memory_footprint'];
+    if (!heap_usage) {
+      throw new Error('memory_footprint is null');
+    }
+    expect(heap_usage.values.length).toBeGreaterThan(6);
+    expect(heap_usage.values.length).toBeLessThanOrEqual(10);
+    assertValidMeasurements(profile.measurements['memory_footprint']);
+  });
+
+  it('collects cpu usage', async () => {
+    CpuProfilerBindings.startProfiling('profile');
+    await wait(1000);
+    const profile = CpuProfilerBindings.stopProfiling('profile');
+
+    const cpu_usage = profile?.measurements['cpu_usage'];
+    if (!cpu_usage) {
+      throw new Error('cpu_usage is null');
+    }
+    expect(cpu_usage.values.length).toBeGreaterThan(6);
+    expect(cpu_usage.values.length).toBeLessThanOrEqual(10);
+    assertValidMeasurements(profile.measurements['cpu_usage']);
   });
 
   it.skip('includes deopt reason', async () => {

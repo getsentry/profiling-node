@@ -159,7 +159,7 @@ void MeasurementsTicker::cpu_callback() {
 
   double total_avg = total / count;
   double idle_avg = idle_total / count;
-  double rate = idle_avg / total_avg;
+  double rate = 1.0 - idle_avg / total_avg;
 
   for (auto& listener : cpu_listeners) {
     listener.second(ts, rate);
