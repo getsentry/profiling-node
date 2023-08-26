@@ -141,7 +141,6 @@ export function createProfilingEventFromTransaction(event: ProfiledEvent): Profi
     event_id: event.event_id || '',
     transaction: event.transaction || '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
-    // @ts-expect-error trace id is unknown
     trace_id: event?.contexts?.trace?.trace_id || '',
     profile_id: rawProfile.profile_id
   });
@@ -163,7 +162,6 @@ export function createProfilingEvent(profile: RawThreadCpuProfile, event: Event)
     event_id: event.event_id || '',
     transaction: event.transaction || '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
-    // @ts-expect-error accessing private property
     trace_id: event?.contexts?.trace?.trace_id || '',
     profile_id: profile.profile_id
   });
