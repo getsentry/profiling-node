@@ -164,7 +164,7 @@ jobs:
 
       # configure build test copy arm64
       - name: setup (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
-        if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine')
+        if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
         run: |
           sudo apt-get update
           sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
