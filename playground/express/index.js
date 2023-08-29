@@ -9,7 +9,7 @@ Sentry.init({
   dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
   tracesSampleRate: 1,
   profilesSampleRate: 0.3,
-  debug: true,
+  // debug: true,
   integrations: [
     // enable HTTP calls tracing
     new Sentry.Integrations.Http({ tracing: true }),
@@ -52,4 +52,3 @@ app.use(function onError(_err, _req, res, _next) {
 app.listen(3000, () => {
   console.log('Server listening on port 3000');
 });
-
