@@ -6,11 +6,6 @@ import { NodeClient } from '@sentry/node';
 import { getMainCarrier } from '@sentry/core';
 import type { Profile } from './types';
 
-import SegfaultHandler from 'segfault-handler';
-SegfaultHandler.registerHandler('crash.log', function (signal, address, stack) {
-  console.log(JSON.stringify(signal), JSON.stringify(address), JSON.stringify(stack));
-});
-
 interface MockTransport extends Transport {
   events: any[];
 }

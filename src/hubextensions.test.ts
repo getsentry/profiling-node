@@ -12,11 +12,6 @@ import type { NodeClient } from '@sentry/node';
 import { __PRIVATE__wrapStartTransactionWithProfiling } from './hubextensions';
 import { CpuProfilerBindings } from './cpu_profiler';
 
-import SegfaultHandler from 'segfault-handler';
-SegfaultHandler.registerHandler('crash.log', function (signal, address, stack) {
-  console.log(JSON.stringify(signal), JSON.stringify(address), JSON.stringify(stack));
-});
-
 function makeTransactionMock(options = {}): Transaction {
   return {
     metadata: {},

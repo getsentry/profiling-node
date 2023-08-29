@@ -1,11 +1,6 @@
 import { CpuProfilerBindings, PrivateCpuProfilerBindings } from './cpu_profiler';
 import type { ThreadCpuProfile, RawThreadCpuProfile } from './types';
 
-import SegfaultHandler from 'segfault-handler';
-SegfaultHandler.registerHandler('crash.log', function (signal, address, stack) {
-  console.log(JSON.stringify(signal), JSON.stringify(address), JSON.stringify(stack));
-});
-
 function fail(message: string): never {
   throw new Error(message);
 }
