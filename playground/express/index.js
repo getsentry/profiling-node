@@ -24,18 +24,12 @@ Sentry.init({
   ]
 });
 
-setInterval(() => {
-  const usage = process.memoryUsage();
-  console.log(`rss: ${usage.rss}, heapTotal: ${usage.heapTotal}, heapUsed: ${usage.heapUsed}`);
-}, 500)
-
 // The request handler must be the first middleware on the app
 app.use(Sentry.Handlers.tracingHandler());
 app.use(Sentry.Handlers.requestHandler());
 
 // All controllers should live here
-app.get('/', async function rootHandler(_req, res) {
-  await wait(100)
+app.get('/', function rootHandler(_req, res) {
   res.end('Hello world!');
 });
 
@@ -58,4 +52,3 @@ app.use(function onError(_err, _req, res, _next) {
 app.listen(3000, () => {
   console.log('Server listening on port 3000');
 });
-
