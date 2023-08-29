@@ -1,0 +1,12 @@
+.craft.env
+.editorconfig
+.git
+.github
+.vscode
+
+benchmarks
+build
+lib
+coverage
+node_modules
+playground

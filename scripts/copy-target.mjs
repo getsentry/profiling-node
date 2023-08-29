@@ -1,27 +1,29 @@
 import { existsSync, mkdirSync, renameSync } from 'fs';
 import path from 'path';
 import { fileURLToPath, URL } from 'url';
-import { exit } from 'process';
+import { exit, env } from 'process';
+import { log } from 'node:console';
 
 import { getModuleName } from './binaries.mjs';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const lib = path.resolve(__dirname, '..', 'lib');
+
+const lib = env['TARGET_DIR'] ? path.resolve(env['TARGET_DIR']) : path.resolve(__dirname, '..', 'lib');
 
 if (!existsSync(lib)) {
   mkdirSync(lib);
 }
 
 const source = path.join(__dirname, '..', 'build', 'Release', 'sentry_cpu_profiler.node');
-const target = path.join(__dirname, '..', 'lib', getModuleName());
+const target = path.join(lib, getModuleName());
 
 if (!existsSync(source)) {
-  console.log('Source file does not exist:', source);
+  log('Source file does not exist:', source);
   exit(1);
 } else {
   if (existsSync(target)) {
-    console.log('Target file already exists, overwriting it');
+    log('Target file already exists, overwriting it');
   }
-  console.log('Renaming', source, 'to', target);
+  log('Renaming', source, 'to', target);
   renameSync(source, target);
 }
