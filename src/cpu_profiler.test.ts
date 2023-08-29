@@ -1,6 +1,11 @@
 import { CpuProfilerBindings, PrivateCpuProfilerBindings } from './cpu_profiler';
 import type { ThreadCpuProfile, RawThreadCpuProfile } from './types';
 
+// Required because we test a hypothetical long profile
+// and we cannot use advance timers as the c++ relies on
+// actual event loop ticks that we cannot advance from jest.
+jest.setTimeout(60_000);
+
 function fail(message: string): never {
   throw new Error(message);
 }
@@ -230,6 +235,15 @@ describe('Profiler bindings', () => {
     expect(cpu_usage.values.length).toBeGreaterThan(6);
     expect(cpu_usage.values.length).toBeLessThanOrEqual(10);
     assertValidMeasurements(profile.measurements['cpu_usage']);
+  });
+
+  it('does not overflow measurement buffer if profile runs longer than 30s', async () => {
+    CpuProfilerBindings.startProfiling('profile');
+    await wait(35000);
+    const profile = CpuProfilerBindings.stopProfiling('profile');
+    expect(profile).not.toBe(null);
+    expect(profile?.measurements?.['cpu_usage']?.values.length).toBeLessThanOrEqual(300);
+    expect(profile?.measurements?.['memory_footprint']?.values.length).toBeLessThanOrEqual(300);
   });
 
   it.skip('includes deopt reason', async () => {
