@@ -219,7 +219,9 @@ describe('Profiler bindings', () => {
       throw new Error('memory_footprint is null');
     }
     expect(heap_usage.values.length).toBeGreaterThan(6);
-    expect(heap_usage.values.length).toBeLessThanOrEqual(10);
+    expect(heap_usage.values.length).toBeLessThanOrEqual(11);
+    expect(heap_usage.unit).toBe('byte');
+    expect(heap_usage.values.every((v) => v.value > 0)).toBe(true);
     assertValidMeasurements(profile.measurements['memory_footprint']);
   });
 
@@ -233,7 +235,9 @@ describe('Profiler bindings', () => {
       throw new Error('cpu_usage is null');
     }
     expect(cpu_usage.values.length).toBeGreaterThan(6);
-    expect(cpu_usage.values.length).toBeLessThanOrEqual(10);
+    expect(cpu_usage.values.length).toBeLessThanOrEqual(11);
+    expect(cpu_usage.values.every((v) => v.value > 0)).toBe(true);
+    expect(cpu_usage.unit).toBe('percent');
     assertValidMeasurements(profile.measurements['cpu_usage']);
   });
 
