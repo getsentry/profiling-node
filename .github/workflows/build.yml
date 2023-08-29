@@ -94,11 +94,7 @@ jobs:
             node: 20
             arch: x64
 
-           # linux arm64 target attempt to cross compile for darwin
-          - os: ubuntu-20.04
-            arch: arm64
-            node: 14
-            target_platform: darwin
+            # linux arm64 target attempt to cross compile for darwin
 
           - os: ubuntu-20.04
             arch: arm64
@@ -128,7 +124,7 @@ jobs:
             node: 20
             arch: x64
 
-          # For some reason it seems like it takes forever for 
+          # For some reason it seems like it takes forever for
           # the macos-m1 runners to start up, so we'll just skip it
           # - os: macos-m1
           #   node: 18
@@ -166,14 +162,14 @@ jobs:
       - name: Test
         if: matrix.arch != 'arm64'
         run: npm run test --silent
-      
+
       # configure build test copy arm64
       - name: setup (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
         if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine')
         run: |
           sudo apt-get update
           sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-          
+
       # linux arm64
       - name: "Configure gyp (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})"
         if: matrix.arch == 'arm64' && matrix.target_platform != 'darwin'
@@ -201,11 +197,11 @@ jobs:
           BUILD_ARCH=arm64 npm run build:bindings:arm64
 
       # linux arm64 target darwin
-      - name: "Configure gyp (arm64, darwin)"
+      - name: 'Configure gyp (arm64, darwin)'
         if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
         run: npm run build:configure:arm64
 
-      - name: "Build bindings (arm64, darwin)"
+      - name: 'Build bindings (arm64, darwin)'
         if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
         run: |
           CC=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc \
@@ -234,7 +230,7 @@ jobs:
       - run: npm ci
       - run: npm run build:lib
       - uses: actions/download-artifact@v3
-        with: 
+        with:
           name: binaries-${{ github.sha }}
           path: lib/
       - run: ls -l lib/
@@ -255,7 +251,7 @@ jobs:
       - run: npm run build:lib
 
       - uses: actions/download-artifact@v3
-        with: 
+        with:
           name: binaries-${{ github.sha }}
           path: lib/
       - run: ls -l lib/
@@ -275,13 +271,13 @@ jobs:
     # Build artifacts are only needed for releasing workflow.
     strategy:
       fail-fast: false
-      matrix: 
+      matrix:
         # The matrix should really be ["webpack", "esbuild", "rollup"],
         # however both rollup and webpack currently crash at runtime.
 
         # The webpack generated bundle crashes at runtime with
         # TypeError: profiling.ProfilingIntegration is not a constructor
-        # ^^ Seems like a generic import syntax erro, however when I log the bundle, 
+        # ^^ Seems like a generic import syntax erro, however when I log the bundle,
         # it actually contains {LRUMap: [Function LRUMap]} which is incorrect.
         # It seems like webpack either mangles the import, or pulls it from some
         # unknown source? I currently dont have the bandwidth to debug why, but contributions
@@ -297,10 +293,10 @@ jobs:
 
         # The general workflow for testing a bundler workflow
         # is to build our library, download the generated binaries and
-        # use npm link to link the what will be our final published library 
+        # use npm link to link the what will be our final published library
         # into the demo_app folder. From there, we run the different bundler
         # build commands and attempt to run the demo app.
-        bundler: ["esbuild"]
+        bundler: ['esbuild']
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -311,7 +307,7 @@ jobs:
       - run: npm run build:lib
 
       - uses: actions/download-artifact@v3
-        with: 
+        with:
           name: binaries-${{ github.sha }}
           path: lib/
       - run: ls -l lib/
@@ -320,4 +316,3 @@ jobs:
       - run: npm run test:setup:bundle
       - run: npm run test:${{matrix.bundler}}:build
       - run: npm run test:${{matrix.bundler}}:run
-
