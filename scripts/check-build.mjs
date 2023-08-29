@@ -13,22 +13,22 @@ function clean(err) {
 
 function recompileFromSource() {
   log('@sentry/profiling-node: Compiling from source...');
-  let spawn = cp.spawnSync('npm', ['run', 'build:configure'], { env: process.env });
-  let err = clean(spawn.stderr);
-  if (err) {
-    throw err;
+  let spawn = cp.spawnSync('npm', ['run', 'build:configure'], {
+    stdio: ['inherit', 'inherit', 'pipe'],
+    env: process.env
+  });
+
+  if (spawn.status !== 0) {
+    log('@sentry/profiling-node: Failed to configure gyp');
+    log('@sentry/profiling-node:', clean(spawn.stderr));
+    return;
   }
 
-  spawn = cp.spawnSync('npm', ['run', 'build:bindings'], { env: process.env });
-  err = clean(spawn.stderr);
-  if (err) {
-    throw err;
-  }
-
-  spawn = cp.spawnSync('node', ['scripts/copy-target.mjs'], { env: process.env });
-  err = clean(spawn.stderr);
-  if (err) {
-    throw err;
+  spawn = cp.spawnSync('npm', ['run', 'build:bindings'], { stdio: ['inherit', 'inherit', 'pipe'], env: process.env });
+  if (spawn.status !== 0) {
+    log('@sentry/profiling-node: Failed to build bindings');
+    log('@sentry/profiling-node:', clean(spawn.stderr));
+    return;
   }
 }
 
