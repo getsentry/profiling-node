@@ -25,7 +25,11 @@ function recompileFromSource() {
     return;
   }
 
-  spawn = cp.spawnSync('npm', ['run', 'build:bindings'], { stdio: ['inherit', 'inherit', 'pipe'], env: process.env });
+  spawn = cp.spawnSync('npm', ['run', 'build:bindings'], {
+    stdio: ['inherit', 'inherit', 'pipe'],
+    env: process.env,
+    shell: true
+  });
   if (spawn.status !== 0) {
     log('@sentry/profiling-node: Failed to build bindings');
     log('@sentry/profiling-node:', clean(spawn.stderr));
