@@ -2,32 +2,52 @@ import cp from 'child_process';
 import { existsSync } from 'fs';
 import process from 'process';
 import { target } from './binaries.mjs';
+import { log } from 'console';
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 
+function clean(err) {
+  return err.toString().trim();
+}
+
 function recompileFromSource() {
-  console.log('@sentry/profiling-node: Compiling from source...');
-  cp.spawnSync('npm', ['run', 'build:configure'], { env: process.env });
-  cp.spawnSync('npm', ['run', 'build:bindings'], { env: process.env });
-  cp.spawnSync('node', ['scripts/copy-target.mjs'], { env: process.env });
+  log('@sentry/profiling-node: Compiling from source...');
+  let spawn = cp.spawnSync('npm', ['run', 'build:configure'], { env: process.env });
+  let err = clean(spawn.stderr);
+  if (err) {
+    throw err;
+  }
+
+  spawn = cp.spawnSync('npm', ['run', 'build:bindings'], { env: process.env });
+  err = clean(spawn.stderr);
+  if (err) {
+    throw err;
+  }
+
+  spawn = cp.spawnSync('node', ['scripts/copy-target.mjs'], { env: process.env });
+  err = clean(spawn.stderr);
+  if (err) {
+    throw err;
+  }
 }
 
 if (existsSync(target)) {
   try {
-    console.log(`@sentry/profiling-node: Precompiled binary found, attempting to load ${target}`);
+    log(`@sentry/profiling-node: Precompiled binary found, attempting to load ${target}`);
     require(target);
-    console.log('@sentry/profiling-node: Precompiled binary found, skipping build from source.');
+    log('@sentry/profiling-node: Precompiled binary found, skipping build from source.');
   } catch (e) {
-    console.log('@sentry/profiling-node: Precompiled binary found but failed loading');
+    log('@sentry/profiling-node: Precompiled binary found but failed loading');
+    log('@sentry/profiling-node:', e);
     try {
       recompileFromSource();
     } catch (e) {
-      console.log('@sentry/profiling-node: Failed to compile from source');
+      log('@sentry/profiling-node: Failed to compile from source');
       throw e;
     }
   }
 } else {
-  console.log('@sentry/profiling-node: No precompiled binary found');
+  log('@sentry/profiling-node: No precompiled binary found');
   recompileFromSource();
 }
