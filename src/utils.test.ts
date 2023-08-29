@@ -46,6 +46,7 @@ function makeProfile(
       { elapsed_since_start_ns: '0', thread_id: '0', stack_id: 0 },
       { elapsed_since_start_ns: '10', thread_id: '0', stack_id: 0 }
     ],
+    measurements: {},
     resources: [],
     frames: [],
     ...props

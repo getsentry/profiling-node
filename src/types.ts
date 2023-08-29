@@ -15,6 +15,14 @@ type Frame = {
   colno: number;
 };
 
+interface Measurement {
+  unit: string;
+  values: {
+    elapsed_since_start_ns: number;
+    value: number;
+  }[];
+}
+
 export interface DebugImage {
   code_file: string;
   type: string;
@@ -39,6 +47,7 @@ export interface RawThreadCpuProfile {
   frames: ReadonlyArray<Frame>;
   resources: ReadonlyArray<string>;
   profiler_logging_mode: 'eager' | 'lazy';
+  measurements: Record<string, Measurement>;
 }
 export interface ThreadCpuProfile {
   stacks: ReadonlyArray<Stack>;
@@ -92,4 +101,5 @@ export interface Profile {
     trace_id: string;
     active_thread_id: string;
   };
+  measurements: Record<string, Measurement>;
 }

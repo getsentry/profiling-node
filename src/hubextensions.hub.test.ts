@@ -117,6 +117,7 @@ describe('hubextensions', () => {
             elapsed_since_start_ns: '10'
           }
         ],
+        measurements: {},
         stacks: [[0]],
         frames: [],
         resources: [],
@@ -157,6 +158,7 @@ describe('hubextensions', () => {
             elapsed_since_start_ns: '10'
           }
         ],
+        measurements: {},
         resources: [],
         stacks: [[0]],
         frames: [],
@@ -346,6 +348,7 @@ describe('hubextensions', () => {
             elapsed_since_start_ns: '10'
           }
         ],
+        measurements: {},
         resources: ['filename.js', 'filename2.js'],
         stacks: [[0]],
         frames: [],

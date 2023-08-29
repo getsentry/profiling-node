@@ -29,6 +29,7 @@ function makeProfiledEvent(): ProfiledEvent {
             stack_id: 0
           }
         ],
+        measurements: {},
         frames: [],
         stacks: [],
         resources: []
