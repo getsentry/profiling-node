@@ -220,7 +220,7 @@ describe('Profiler bindings', () => {
     }
     expect(heap_usage.values.length).toBeGreaterThan(6);
     expect(heap_usage.values.length).toBeLessThanOrEqual(11);
-    expect(heap_usage.unit).toBe('bytes');
+    expect(heap_usage.unit).toBe('byte');
     expect(heap_usage.values.every((v) => v.value > 0)).toBe(true);
     assertValidMeasurements(profile.measurements['memory_footprint']);
   });
