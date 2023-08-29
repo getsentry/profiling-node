@@ -81,7 +81,7 @@ public:
   MeasurementsTicker(uv_loop_t* loop) :
     period_ms(100),
     isolate(v8::Isolate::GetCurrent())
-    {
+  {
     uv_timer_init(loop, &timer);
     timer.data = this;
   }
@@ -236,27 +236,27 @@ public:
     cpu_stats_usage(300),
 
     memory_sampler_cb([this](uint64_t ts, v8::HeapStatistics& stats) {
-      heap_stats_ts.insert(heap_stats_ts.begin() + heap_measurement_index, ts - started_at);
-      heap_stats_usage.insert(heap_stats_usage.begin() + heap_measurement_index, static_cast<uint64_t>(stats.used_heap_size()));
-      ++heap_measurement_index;
-    }),
+    heap_stats_ts.insert(heap_stats_ts.begin() + heap_measurement_index, ts - started_at);
+    heap_stats_usage.insert(heap_stats_usage.begin() + heap_measurement_index, static_cast<uint64_t>(stats.used_heap_size()));
+    ++heap_measurement_index;
+      }),
 
     cpu_sampler_cb([this](uint64_t ts, double rate) {
-      cpu_stats_ts.insert(cpu_stats_ts.begin() + cpu_measurement_index, ts - started_at);
-      cpu_stats_usage.insert(cpu_stats_usage.begin() + cpu_measurement_index, rate);
-      ++cpu_measurement_index;
-    }),
-      
+    cpu_stats_ts.insert(cpu_stats_ts.begin() + cpu_measurement_index, ts - started_at);
+    cpu_stats_usage.insert(cpu_stats_usage.begin() + cpu_measurement_index, rate);
+    ++cpu_measurement_index;
+      }),
+
     status(ProfileStatus::kNotStarted),
     id(id) {}
 
   const std::vector<uint64_t>& heap_usage_timestamps()const;
   const std::vector<uint64_t>& heap_usage_values()const;
-  const uint16_t& heap_usage_entries_count() const;
+  const uint16_t heap_usage_entries_count() const;
 
   const std::vector<uint64_t>& cpu_usage_timestamps() const;
   const std::vector<double>& cpu_usage_values() const;
-  const uint16_t& cpu_usage_entries_count() const;
+  const uint16_t cpu_usage_entries_count() const;
 
   void Start(Profiler* profiler);
   v8::CpuProfile* Stop(Profiler* profiler);
@@ -330,8 +330,8 @@ const std::vector<uint64_t>& SentryProfile::heap_usage_values() const {
   return heap_stats_usage;
 };
 
-const uint16_t& SentryProfile::heap_usage_entries_count() const {
-  return heap_measurement_index;
+const uint16_t SentryProfile::heap_usage_entries_count() const {
+  return heap_measurement_index + 1;
 };
 
 // CPU getters
@@ -342,8 +342,8 @@ const std::vector<uint64_t>& SentryProfile::cpu_usage_timestamps() const {
 const std::vector<double>& SentryProfile::cpu_usage_values() const {
   return cpu_stats_usage;
 };
-const uint16_t& SentryProfile::cpu_usage_entries_count() const {
-  return cpu_measurement_index;
+const uint16_t SentryProfile::cpu_usage_entries_count() const {
+  return cpu_measurement_index + 1;
 };
 
 #ifdef _WIN32
@@ -397,7 +397,7 @@ static void GetFrameModule(const std::string& abs_path, std::string& module) {
   if (module[0] == '.') {
     module = module.substr(1, std::string::npos);
   }
-    }
+}
 
 static napi_value GetFrameModuleWrapped(napi_env env, napi_callback_info info) {
   size_t argc = 2;
