@@ -252,11 +252,11 @@ public:
 
   const std::vector<uint64_t>& heap_usage_timestamps()const;
   const std::vector<uint64_t>& heap_usage_values()const;
-  const uint16_t heap_usage_entries_count() const;
+  uint16_t heap_usage_entries_count() const;
 
   const std::vector<uint64_t>& cpu_usage_timestamps() const;
   const std::vector<double>& cpu_usage_values() const;
-  const uint16_t cpu_usage_entries_count() const;
+  uint16_t cpu_usage_entries_count() const;
 
   void Start(Profiler* profiler);
   v8::CpuProfile* Stop(Profiler* profiler);
@@ -330,7 +330,7 @@ const std::vector<uint64_t>& SentryProfile::heap_usage_values() const {
   return heap_stats_usage;
 };
 
-const uint16_t SentryProfile::heap_usage_entries_count() const {
+uint16_t SentryProfile::heap_usage_entries_count() const {
   return heap_measurement_index + 1;
 };
 
@@ -342,7 +342,7 @@ const std::vector<uint64_t>& SentryProfile::cpu_usage_timestamps() const {
 const std::vector<double>& SentryProfile::cpu_usage_values() const {
   return cpu_stats_usage;
 };
-const uint16_t SentryProfile::cpu_usage_entries_count() const {
+uint16_t SentryProfile::cpu_usage_entries_count() const {
   return cpu_measurement_index + 1;
 };
 
