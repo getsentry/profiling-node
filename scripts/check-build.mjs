@@ -15,7 +15,8 @@ function recompileFromSource() {
   log('@sentry/profiling-node: Compiling from source...');
   let spawn = cp.spawnSync('npm', ['run', 'build:configure'], {
     stdio: ['inherit', 'inherit', 'pipe'],
-    env: process.env
+    env: process.env,
+    shell: true
   });
 
   if (spawn.status !== 0) {
