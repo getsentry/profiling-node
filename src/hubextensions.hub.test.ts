@@ -327,6 +327,19 @@ describe('hubextensions', () => {
     });
   });
 
+  it('does not crash if stop is called multiple times', async () => {
+    const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
+
+    const [client] = makeClientWithoutHooks();
+    const hub = Sentry.getCurrentHub();
+    hub.bindClient(client);
+
+    const transaction = Sentry.getCurrentHub().startTransaction({ name: 'txn' });
+    transaction.finish();
+    transaction.finish();
+    expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('enriches profile with debug_id', async () => {
     GLOBAL_OBJ._sentryDebugIds = {
       'Error\n    at filename.js (filename.js:36:15)': 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',

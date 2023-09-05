@@ -141,7 +141,7 @@ export function createProfilingEventFromTransaction(event: ProfiledEvent): Profi
     event_id: event.event_id || '',
     transaction: event.transaction || '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
-    trace_id: event?.contexts?.trace?.trace_id || '',
+    trace_id: (event?.contexts?.['trace']?.['trace_id'] as string) || '',
     profile_id: rawProfile.profile_id
   });
 }
@@ -162,7 +162,7 @@ export function createProfilingEvent(profile: RawThreadCpuProfile, event: Event)
     event_id: event.event_id || '',
     transaction: event.transaction || '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
-    trace_id: event?.contexts?.trace?.trace_id || '',
+    trace_id: (event?.contexts?.['trace']?.['trace_id'] as string) || '',
     profile_id: profile.profile_id
   });
 }
