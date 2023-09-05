@@ -337,11 +337,6 @@ v8::CpuProfile* SentryProfile::Stop(Profiler* profiler) {
   // If for some reason stopProfiling was called with an invalid profile title or
   // if that title had somehow been stopped already, profile will be null.
   status = ProfileStatus::kStopped;
-
-  if (!profile) {
-    return nullptr;
-  };
-
   return profile;
 }
 
@@ -913,8 +908,6 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
   // If for some reason stopProfiling was called with an invalid profile title or
   // if that title had somehow been stopped already, profile will be null.
   if (!cpu_profile) {
-    napi_throw_error(env, "NAPI_ERROR", "StopProfiling: Stopping Sentry profile did not return a profile.");
-
     CleanupSentryProfile(profiler, profile->second, profile_id);
 
     napi_value napi_null;

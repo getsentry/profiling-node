@@ -160,6 +160,28 @@ describe('Profiler bindings', () => {
     expect(second).toBe(null);
   });
 
+  it('weird cases', () => {
+    CpuProfilerBindings.startProfiling('same-title');
+    expect(() => {
+      CpuProfilerBindings.stopProfiling('same-title');
+      CpuProfilerBindings.stopProfiling('same-title');
+    }).not.toThrow();
+  });
+
+  it('does not crash if stopTransaction is called before startTransaction', () => {
+    expect(CpuProfilerBindings.stopProfiling('does not exist')).toBe(null);
+  });
+
+  it('does crash if name is invalid', () => {
+    expect(() => CpuProfilerBindings.stopProfiling('')).toThrow();
+    // @ts-expect-error test invalid input
+    expect(() => CpuProfilerBindings.stopProfiling(undefined)).toThrow();
+    // @ts-expect-error test invalid input
+    expect(() => CpuProfilerBindings.stopProfiling(null)).toThrow();
+    // @ts-expect-error test invalid input
+    expect(() => CpuProfilerBindings.stopProfiling({})).toThrow();
+  });
+
   it('does not throw if stopTransaction is called before startTransaction', () => {
     expect(CpuProfilerBindings.stopProfiling('does not exist')).toBe(null);
     expect(() => CpuProfilerBindings.stopProfiling('does not exist')).not.toThrow();

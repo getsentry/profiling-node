@@ -57,12 +57,12 @@ export class ProfilingIntegration implements Integration {
           const maxProfileDurationMs =
             (options._experiments && options._experiments['maxProfileDurationMs']) || MAX_PROFILE_DURATION_MS;
 
-          // Enqueue a timeout to prevent profiles from running over max duration.
           if (PROFILE_TIMEOUTS[profile_id]) {
             global.clearTimeout(PROFILE_TIMEOUTS[profile_id]);
             delete PROFILE_TIMEOUTS[profile_id];
           }
 
+          // Enqueue a timeout to prevent profiles from running over max duration.
           PROFILE_TIMEOUTS[profile_id] = global.setTimeout(() => {
             if (isDebugBuild()) {
               logger.log('[Profiling] max profile duration elapsed, stopping profiling for:', transaction.name);
