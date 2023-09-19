@@ -143,9 +143,8 @@ export class ProfilingIntegration implements Integration {
           PROFILE_QUEUE.splice(profileIndex, 1);
           const profile = createProfilingEvent(cpuProfile, profiledTransaction);
 
-          if (client.emit) {
-            // @ts-expect-error preprocessEvent hook doesn't exist?
-            client.emit('preprocessEvent', profile, { event_id: profiledTransaction.event_id });
+          if (client.emit && profile) {
+            client.emit('preprocessEvent', profile as unknown as Event, { event_id: profiledTransaction.event_id });
           }
 
           if (profile) {
