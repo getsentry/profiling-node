@@ -144,7 +144,22 @@ export class ProfilingIntegration implements Integration {
           const profile = createProfilingEvent(cpuProfile, profiledTransaction);
 
           if (client.emit && profile) {
-            client.emit('preprocessEvent', profile as unknown as Event, { event_id: profiledTransaction.event_id });
+            const integrations =
+              // @ts-expect-error _integrations is private
+              typeof client._integrations === 'object' &&
+              // @ts-expect-error _integrations is private
+              client._integrations !== null &&
+              // @ts-expect-error _integrations is private
+              !Array.isArray(client._integrations)
+                ? // @ts-expect-error _integrations is private
+                  Object.keys(client._integrations)
+                : undefined;
+
+            // @ts-expect-error bad overload due to unknown event
+            client.emit('preprocessEvent', profile, {
+              event_id: profiledTransaction.event_id,
+              integrations
+            });
           }
 
           if (profile) {
