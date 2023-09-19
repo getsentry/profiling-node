@@ -1,5 +1,5 @@
 import type { NodeClient } from '@sentry/node';
-import type { Integration, EventProcessor, Hub, Event, Transaction, EventHint } from '@sentry/types';
+import type { Integration, EventProcessor, Hub, Event, Transaction } from '@sentry/types';
 
 import { logger } from '@sentry/utils';
 
@@ -144,6 +144,7 @@ export class ProfilingIntegration implements Integration {
           const profile = createProfilingEvent(cpuProfile, profiledTransaction);
 
           if (client.emit) {
+            // @ts-expect-error preprocessEvent hook doesn't exist?
             client.emit('preprocessEvent', profile, { event_id: profiledTransaction.event_id });
           }
 

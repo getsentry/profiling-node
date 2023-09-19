@@ -261,6 +261,28 @@ describe('hubextensions', () => {
       expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0]).toMatchObject({ type: 'transaction' });
       expect(transportSpy.mock.calls?.[0]?.[0]?.[1][1]).toBeUndefined();
     });
+
+    it('emits preprocessEvent for profile', async () => {
+      const [client] = makeClientWithHooks();
+      const hub = Sentry.getCurrentHub();
+      hub.bindClient(client);
+      const onPreprocessEvent = jest.fn();
+
+      client.on('preprocessEvent', onPreprocessEvent);
+
+      const transaction = hub.startTransaction({ name: 'profile_hub' });
+      await wait(500);
+      transaction.finish();
+
+      await Sentry.flush(1000);
+
+      expect(onPreprocessEvent.mock.calls[1][0]).toMatchObject({
+        profile: {
+          samples: expect.arrayContaining([expect.anything()]),
+          stacks: expect.arrayContaining([expect.anything()])
+        }
+      });
+    });
   });
 
   describe('without hooks', () => {
