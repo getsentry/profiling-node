@@ -1,5 +1,5 @@
 import type { NodeClient } from '@sentry/node';
-import type { Integration, EventProcessor, Hub, Event, Transaction } from '@sentry/types';
+import type { Integration, EventProcessor, Hub, Event, Transaction, EventHint } from '@sentry/types';
 
 import { logger } from '@sentry/utils';
 
@@ -142,6 +142,10 @@ export class ProfilingIntegration implements Integration {
           // Remove the profile from the queue.
           PROFILE_QUEUE.splice(profileIndex, 1);
           const profile = createProfilingEvent(cpuProfile, profiledTransaction);
+
+          if (client.emit) {
+            client.emit('preprocessEvent', profile, { event_id: profiledTransaction.event_id });
+          }
 
           if (profile) {
             profilesToAddToEnvelope.push(profile);
