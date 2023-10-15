@@ -43,6 +43,7 @@ export class ProfilingIntegration implements Integration {
   getCurrentHub?: () => Hub = undefined;
 
   setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+    logger.enable();
     this.getCurrentHub = getCurrentHub;
     const client = this.getCurrentHub().getClient() as NodeClient;
 
