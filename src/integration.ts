@@ -145,14 +145,8 @@ export class ProfilingIntegration implements Integration {
 
           if (client.emit && profile) {
             const integrations =
-              // @ts-expect-error _integrations is private
-              typeof client._integrations === 'object' &&
-              // @ts-expect-error _integrations is private
-              client._integrations !== null &&
-              // @ts-expect-error _integrations is private
-              !Array.isArray(client._integrations)
-                ? // @ts-expect-error _integrations is private
-                  Object.keys(client._integrations)
+              client['_integrations'] && client['_integrations'] !== null && !Array.isArray(client['_integrations'])
+                ? Object.keys(client['_integrations'])
                 : undefined;
 
             // @ts-expect-error bad overload due to unknown event
