@@ -80,6 +80,24 @@ The easiest way to make bundling work with @sentry/profiling-node and other modu
 
 To mark the package as external, use the following configuration:
 
+[Next.js 13+](https://nextjs.org/docs/app/api-reference/next-config-js/serverComponentsExternalPackages)
+```js
+const { withSentryConfig } = require('@sentry/nextjs')
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    // Add the "@sentry/profiling-node" to serverComponentsExternalPackages.
+    serverComponentsExternalPackages: ['@sentry/profiling-node'],
+  },
+}
+
+module.exports = withSentryConfig(
+  nextConfig,
+  { /* ... */ }
+)
+```
+
 [webpack](https://webpack.js.org/configuration/externals/#externals)
 ```js
 externals: {
