@@ -143,6 +143,19 @@ export class ProfilingIntegration implements Integration {
           PROFILE_QUEUE.splice(profileIndex, 1);
           const profile = createProfilingEvent(cpuProfile, profiledTransaction);
 
+          if (client.emit && profile) {
+            const integrations =
+              client['_integrations'] && client['_integrations'] !== null && !Array.isArray(client['_integrations'])
+                ? Object.keys(client['_integrations'])
+                : undefined;
+
+            // @ts-expect-error bad overload due to unknown event
+            client.emit('preprocessEvent', profile, {
+              event_id: profiledTransaction.event_id,
+              integrations
+            });
+          }
+
           if (profile) {
             profilesToAddToEnvelope.push(profile);
           }
