@@ -443,12 +443,18 @@ napi_value CreateFrameNode(const napi_env& env, const v8::CpuProfileNode& node, 
   napi_create_object(env, &js_node);
 
   napi_value lineno_prop;
-  napi_create_int32(env, node.GetLineNumber(), &lineno_prop);
-  napi_set_named_property(env, js_node, "lineno", lineno_prop);
+  auto lineno = node.GetLineNumber();
+  if(lineno > 0){
+    napi_create_uint32(env, node.GetLineNumber(), &lineno_prop);
+    napi_set_named_property(env, js_node, "lineno", lineno_prop);
+  }
 
   napi_value colno_prop;
-  napi_create_int32(env, node.GetColumnNumber(), &colno_prop);
-  napi_set_named_property(env, js_node, "colno", colno_prop);
+  auto colno = node.GetColumnNumber();
+  if(colno > 0){
+    napi_create_uint32(env, node.GetColumnNumber(), &colno_prop);
+    napi_set_named_property(env, js_node, "colno", colno_prop);
+  }
 
   if (node.GetSourceType() != v8::CpuProfileNode::SourceType::kScript) {
     napi_value system_frame_prop;
