@@ -1,3 +1,12 @@
+## 1.2.2
+
+### Various fixes & improvements
+
+- deps(sentry): bump sentry deps (#203) by @sanjaytwisk
+- build(deps-dev): bump @babel/traverse from 7.22.20 to 7.23.2 (#202) by @dependabot
+- feat(preprocessEvent): emit preprocessEvent for profiles  (#198) by @JonasBa
+- Update README.md to include Next.js 13+ bundling (#200) by @Negan1911
+
 ## 1.2.1
 
 ### Various fixes & improvements
