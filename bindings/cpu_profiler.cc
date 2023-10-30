@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include <functional>
+#include <iostream>
 
 #include <v8.h>
 #include <v8-profiler.h>
@@ -139,12 +140,18 @@ void MeasurementsTicker::remove_heap_listener(std::string& profile_id, const std
 
 // CPU tickers
 void MeasurementsTicker::cpu_callback() {
-  uint64_t ts = uv_hrtime();
-
   uv_cpu_info_t* cpu = &cpu_stats;
   int count;
   int err = uv_cpu_info(&cpu, &count);
   if (err) {
+    return;
+  }
+
+  uint64_t ts = uv_hrtime();
+  if(count < 1) {
+    for(auto cb : cpu_listeners) {
+      cb.second(ts, 0);
+    }
     return;
   }
 
