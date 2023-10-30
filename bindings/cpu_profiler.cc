@@ -5,7 +5,6 @@
 #include <string>
 #include <unordered_map>
 #include <functional>
-#include <iostream>
 
 #include <v8.h>
 #include <v8-profiler.h>
