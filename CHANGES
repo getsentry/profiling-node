@@ -1,3 +1,9 @@
+## 1.2.3
+
+### Various fixes & improvements
+
+- fix(profiling): if count is 0 dont serialize measurements (#205) by @JonasBa
+
 ## 1.2.2
 
 ### Various fixes & improvements
