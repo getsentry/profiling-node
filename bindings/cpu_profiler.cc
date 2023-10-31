@@ -938,19 +938,23 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
   napi_value measurements;
   napi_create_object(env, &measurements);
 
-  static const char* memory_unit = "byte";
-  napi_value heap_usage_measurements = TranslateMeasurements(env, memory_unit, profile->second->heap_usage_write_index(), profile->second->heap_usage_values(), profile->second->heap_usage_timestamps());
+  if(profile->second->heap_usage_write_index() > 0){
+    static const char* memory_unit = "byte";
+    napi_value heap_usage_measurements = TranslateMeasurements(env, memory_unit, profile->second->heap_usage_write_index(), profile->second->heap_usage_values(), profile->second->heap_usage_timestamps());
 
-  if (heap_usage_measurements != nullptr) {
-    napi_set_named_property(env, measurements, "memory_footprint", heap_usage_measurements);
-  }
+    if (heap_usage_measurements != nullptr) {
+      napi_set_named_property(env, measurements, "memory_footprint", heap_usage_measurements);
+    };
+  };
 
-  static const char* cpu_unit = "percent";
-  napi_value cpu_usage_measurements = TranslateMeasurementsDouble(env, cpu_unit, profile->second->cpu_usage_write_index(), profile->second->cpu_usage_values(), profile->second->cpu_usage_timestamps());
+  if(profile->second->cpu_usage_write_index() > 0){
+    static const char* cpu_unit = "percent";
+    napi_value cpu_usage_measurements = TranslateMeasurementsDouble(env, cpu_unit, profile->second->cpu_usage_write_index(), profile->second->cpu_usage_values(), profile->second->cpu_usage_timestamps());
 
-  if (cpu_usage_measurements != nullptr) {
-    napi_set_named_property(env, measurements, "cpu_usage", cpu_usage_measurements);
-  }
+    if (cpu_usage_measurements != nullptr) {
+      napi_set_named_property(env, measurements, "cpu_usage", cpu_usage_measurements);
+    };
+  };
 
   napi_set_named_property(env, js_profile, "measurements", measurements);
 
