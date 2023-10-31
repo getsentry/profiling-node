@@ -2,6 +2,8 @@
 #include <node_api.h>
 
 #include <assert.h>
+#include <math.h>
+
 #include <string>
 #include <unordered_map>
 #include <functional>
@@ -21,8 +23,6 @@
 #ifndef FORMAT_BENCHMARK
 #define FORMAT_BENCHMARK 0
 #endif
-
-void pow(int e, int b);
 
 static const uint8_t kMaxStackDepth(128);
 static const float kSamplingFrequency(99.0); // 99 to avoid lockstep sampling
@@ -665,7 +665,7 @@ static napi_value TranslateMeasurementsDouble(const napi_env& env, const char* u
     napi_create_object(env, &entry);
 
     napi_value value;
-    napi_create_double(env, values[i], &value);
+    napi_create_double(env, RoundDoubleToPrecision(values[i], 4), &value);
 
     napi_value ts;
     napi_create_int64(env, timestamps[i], &ts);
