@@ -2,6 +2,8 @@
 #include <node_api.h>
 
 #include <assert.h>
+#include <math.h>
+
 #include <string>
 #include <unordered_map>
 #include <functional>
@@ -109,14 +111,8 @@ void MeasurementsTicker::heap_callback() {
   isolate->GetHeapStatistics(&heap_stats);
   uint64_t ts = uv_hrtime();
 
-  auto it = heap_listeners.begin();
-  while (it != heap_listeners.end()) {
-    if (it->second(ts, heap_stats)) {
-      it = heap_listeners.erase(it);
-    }
-    else {
-      ++it;
-    }
+  for(auto cb : heap_listeners) {
+    cb.second(ts, heap_stats);
   }
 }
 
@@ -149,7 +145,7 @@ void MeasurementsTicker::cpu_callback() {
   uint64_t ts = uv_hrtime();
   if(count < 1) {
     for(auto cb : cpu_listeners) {
-      cb.second(ts, 0);
+      cb.second(ts, 0.0);
     }
     return;
   }
@@ -173,21 +169,14 @@ void MeasurementsTicker::cpu_callback() {
   double total_avg = total / count;
   double rate = 1.0 - idle_avg / total_avg;
 
-  auto it = cpu_listeners.begin();
-
   if(rate < 0.0) {
     rate = 0.0;
   }
 
-  while (it != cpu_listeners.end()) {
-    if (it->second(ts, rate)) {
-      it = cpu_listeners.erase(it);
-    }
-    else {
-      ++it;
-    }
+  for(auto cb : cpu_listeners) {
+      cb.second(ts, rate);
   }
-
+  
   uv_free_cpu_info(cpu, count);
 }
 
@@ -644,14 +633,18 @@ static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const
   }
 }
 
+static double RoundDoubleToPrecision(double value, double precision){
+    return (floor((value * pow(10, precision) + 0.5)) / pow(10, precision)); 
+}
+
 static napi_value TranslateMeasurementsDouble(const napi_env& env, const char* unit, const uint16_t size, const std::vector<double>& values, const std::vector<uint64_t>& timestamps) {
   if (size > values.size() || size > timestamps.size()) {
-    napi_throw_range_error(env, "NAPI_ERROR", "Memory measurement size is larger than the number of values or timestamps");
+    napi_throw_range_error(env, "NAPI_ERROR", "CPU measurement size is larger than the number of values or timestamps");
     return nullptr;
   }
 
   if (values.size() != timestamps.size()) {
-    napi_throw_range_error(env, "NAPI_ERROR", "Memory measurement entries are corrupt, expected values and timestamps to be of equal length");
+    napi_throw_range_error(env, "NAPI_ERROR", "CPU measurement entries are corrupt, expected values and timestamps to be of equal length");
     return nullptr;
   }
 
@@ -665,12 +658,14 @@ static napi_value TranslateMeasurementsDouble(const napi_env& env, const char* u
   napi_value values_array;
   napi_create_array(env, &values_array);
 
-  for (size_t i = 0; i < size; i++) {
+  uint16_t idx = size;
+
+  for (size_t i = 0; i < idx; i++) {
     napi_value entry;
     napi_create_object(env, &entry);
 
     napi_value value;
-    napi_create_double(env, values[i], &value);
+    napi_create_double(env, RoundDoubleToPrecision(values[i], 4), &value);
 
     napi_value ts;
     napi_create_int64(env, timestamps[i], &ts);
