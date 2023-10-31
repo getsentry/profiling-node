@@ -1,3 +1,9 @@
+## 1.2.4
+
+### Various fixes & improvements
+
+- fix(measurements): guard from negative cpu usage (c7ebac41) by @JonasBa
+
 ## 1.2.3
 
 ### Various fixes & improvements
