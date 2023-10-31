@@ -169,11 +169,16 @@ void MeasurementsTicker::cpu_callback() {
     idle_total += core->cpu_times.idle;
   }
 
-  double total_avg = total / count;
   double idle_avg = idle_total / count;
+  double total_avg = total / count;
   double rate = 1.0 - idle_avg / total_avg;
 
   auto it = cpu_listeners.begin();
+
+  if(rate < 0.0) {
+    rate = 0.0;
+  }
+
   while (it != cpu_listeners.end()) {
     if (it->second(ts, rate)) {
       it = cpu_listeners.erase(it);
