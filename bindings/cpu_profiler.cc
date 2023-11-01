@@ -167,8 +167,6 @@ void MeasurementsTicker::cpu_callback() {
   double total_avg = total / count;
   double rate = 1.0 - idle_avg / total_avg;
 
-  auto it = cpu_listeners.begin();
-
   if(rate < 0.0 || isnan(rate)) {
     rate = 0.0;
   }
