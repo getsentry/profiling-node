@@ -188,7 +188,7 @@ void MeasurementsTicker::cpu_callback() {
   };
   
   uv_free_cpu_info(cpu, count);
-}
+};
 
 void MeasurementsTicker::ticker(uv_timer_t* handle) {
   MeasurementsTicker* self = static_cast<MeasurementsTicker*>(handle->data);
@@ -668,8 +668,13 @@ static napi_value TranslateMeasurementsDouble(const napi_env& env, const char* u
     napi_value entry;
     napi_create_object(env, &entry);
 
+    double v = values[i];
+    if(isnan(v)){
+      v = 0.0;
+    }
+
     napi_value value;
-    napi_create_double(env, values[i], &value);
+    napi_create_double(env, v, &value);
 
     napi_value ts;
     napi_create_int64(env, timestamps[i], &ts);
