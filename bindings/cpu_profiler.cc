@@ -167,7 +167,7 @@ void MeasurementsTicker::cpu_callback() {
   double total_avg = total / count;
   double rate = 1.0 - idle_avg / total_avg;
 
-  if(rate < 0.0 || isnan(rate)) {
+  if(rate < 0.0 || isinf(rate) || isnan(rate)) {
     rate = 0.0;
   }
 
@@ -637,10 +637,6 @@ static void GetSamples(const napi_env& env, const v8::CpuProfile* profile, const
   }
 }
 
-static double RoundDoubleToPrecision(double value, double precision){
-    return (floor((value * pow(10, precision) + 0.5)) / pow(10, precision)); 
-}
-
 static napi_value TranslateMeasurementsDouble(const napi_env& env, const char* unit, const uint16_t size, const std::vector<double>& values, const std::vector<uint64_t>& timestamps) {
   if (size > values.size() || size > timestamps.size()) {
     napi_throw_range_error(env, "NAPI_ERROR", "CPU measurement size is larger than the number of values or timestamps");
@@ -668,17 +664,10 @@ static napi_value TranslateMeasurementsDouble(const napi_env& env, const char* u
     napi_value entry;
     napi_create_object(env, &entry);
 
-    double v = values[i];
-    if(isnan(v)){
-      v = 0.0;
-    }
-
     napi_value value;
-    if(napi_create_double(env, RoundDoubleToPrecision(v, 4), &value) != napi_ok){
+    if(napi_create_double(env, values[i], &value) != napi_ok){
       if(napi_create_double(env, 0.0, &value) != napi_ok){
-        // If we failed twice, throw an error
-        napi_throw_error(env, "NAPI_ERROR", "Failed to create double value.");
-        break;
+        continue;
       }
     }
 
