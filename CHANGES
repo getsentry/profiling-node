@@ -1,3 +1,10 @@
+## 1.2.6
+
+### Various fixes & improvements
+
+- fix: check inf and remove rounding (#208) by @JonasBa
+- fix(isnan): set rate to 0 if its nan (#207) by @JonasBa
+
 ## 1.2.5
 
 ### Various fixes & improvements
