@@ -674,7 +674,13 @@ static napi_value TranslateMeasurementsDouble(const napi_env& env, const char* u
     }
 
     napi_value value;
-    napi_create_double(env, RoundDoubleToPrecision(v, 4), &value);
+    if(napi_create_double(env, RoundDoubleToPrecision(v, 4), &value) != napi_ok){
+      if(napi_create_double(env, 0.0, &value) != napi_ok){
+        // If we failed twice, throw an error
+        napi_throw_error(env, "NAPI_ERROR", "Failed to create double value.");
+        break;
+      }
+    }
 
     napi_value ts;
     napi_create_int64(env, timestamps[i], &ts);
