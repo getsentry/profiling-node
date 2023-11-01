@@ -44,6 +44,11 @@ const assertValidSamplesAndStacks = (stacks: ThreadCpuProfile['stacks'], samples
   }
 };
 
+const isValidMeasurementValue = (v: any) => {
+  if (isNaN(v)) return false;
+  return typeof v === 'number' && v > 0;
+};
+
 const assertValidMeasurements = (measurement: RawThreadCpuProfile['measurements']['memory_footprint'] | undefined) => {
   if (!measurement) {
     throw new Error('Measurement is undefined');
@@ -243,7 +248,7 @@ describe('Profiler bindings', () => {
     expect(heap_usage.values.length).toBeGreaterThan(6);
     expect(heap_usage.values.length).toBeLessThanOrEqual(11);
     expect(heap_usage.unit).toBe('byte');
-    expect(heap_usage.values.every((v) => v.value > 0)).toBe(true);
+    expect(heap_usage.values.every((v) => isValidMeasurementValue(v.value))).toBe(true);
     assertValidMeasurements(profile.measurements['memory_footprint']);
   });
 
@@ -258,7 +263,7 @@ describe('Profiler bindings', () => {
     }
     expect(cpu_usage.values.length).toBeGreaterThan(6);
     expect(cpu_usage.values.length).toBeLessThanOrEqual(11);
-    expect(cpu_usage.values.every((v) => v.value > 0)).toBe(true);
+    expect(cpu_usage.values.every((v) => isValidMeasurementValue(v.value))).toBe(true);
     expect(cpu_usage.unit).toBe('percent');
     assertValidMeasurements(profile.measurements['cpu_usage']);
   });

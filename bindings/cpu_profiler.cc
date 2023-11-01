@@ -138,18 +138,16 @@ void MeasurementsTicker::cpu_callback() {
   uv_cpu_info_t* cpu = &cpu_stats;
   int count;
   int err = uv_cpu_info(&cpu, &count);
+
   if (err) {
     return;
   }
 
-  uint64_t ts = uv_hrtime();
   if(count < 1) {
-    for(auto cb : cpu_listeners) {
-      cb.second(ts, 0.0);
-    }
     return;
   }
 
+  uint64_t ts = uv_hrtime();
   uint64_t total = 0;
   uint64_t idle_total = 0;
 
@@ -169,16 +167,22 @@ void MeasurementsTicker::cpu_callback() {
   double total_avg = total / count;
   double rate = 1.0 - idle_avg / total_avg;
 
-  if(rate < 0.0) {
+  if(rate < 0.0 || isnan(rate)) {
     rate = 0.0;
   }
 
-  for(auto cb : cpu_listeners) {
-      cb.second(ts, rate);
-  }
+  auto it = cpu_listeners.begin();
+  while (it != cpu_listeners.end()) {
+    if (it->second(ts, rate)) {
+      it = cpu_listeners.erase(it);
+    }
+    else {
+      ++it;
+    }
+  };
   
   uv_free_cpu_info(cpu, count);
-}
+};
 
 void MeasurementsTicker::ticker(uv_timer_t* handle) {
   MeasurementsTicker* self = static_cast<MeasurementsTicker*>(handle->data);
@@ -664,8 +668,19 @@ static napi_value TranslateMeasurementsDouble(const napi_env& env, const char* u
     napi_value entry;
     napi_create_object(env, &entry);
 
+    double v = values[i];
+    if(isnan(v)){
+      v = 0.0;
+    }
+
     napi_value value;
-    napi_create_double(env, RoundDoubleToPrecision(values[i], 4), &value);
+    if(napi_create_double(env, RoundDoubleToPrecision(v, 4), &value) != napi_ok){
+      if(napi_create_double(env, 0.0, &value) != napi_ok){
+        // If we failed twice, throw an error
+        napi_throw_error(env, "NAPI_ERROR", "Failed to create double value.");
+        break;
+      }
+    }
 
     napi_value ts;
     napi_create_int64(env, timestamps[i], &ts);
@@ -933,19 +948,23 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
   napi_value measurements;
   napi_create_object(env, &measurements);
 
-  static const char* memory_unit = "byte";
-  napi_value heap_usage_measurements = TranslateMeasurements(env, memory_unit, profile->second->heap_usage_write_index(), profile->second->heap_usage_values(), profile->second->heap_usage_timestamps());
+  if(profile->second->heap_usage_write_index() > 0){
+    static const char* memory_unit = "byte";
+    napi_value heap_usage_measurements = TranslateMeasurements(env, memory_unit, profile->second->heap_usage_write_index(), profile->second->heap_usage_values(), profile->second->heap_usage_timestamps());
 
-  if (heap_usage_measurements != nullptr) {
-    napi_set_named_property(env, measurements, "memory_footprint", heap_usage_measurements);
-  }
+    if (heap_usage_measurements != nullptr) {
+      napi_set_named_property(env, measurements, "memory_footprint", heap_usage_measurements);
+    };
+  };
 
-  static const char* cpu_unit = "percent";
-  napi_value cpu_usage_measurements = TranslateMeasurementsDouble(env, cpu_unit, profile->second->cpu_usage_write_index(), profile->second->cpu_usage_values(), profile->second->cpu_usage_timestamps());
+  if(profile->second->cpu_usage_write_index() > 0){
+    static const char* cpu_unit = "percent";
+    napi_value cpu_usage_measurements = TranslateMeasurementsDouble(env, cpu_unit, profile->second->cpu_usage_write_index(), profile->second->cpu_usage_values(), profile->second->cpu_usage_timestamps());
 
-  if (cpu_usage_measurements != nullptr) {
-    napi_set_named_property(env, measurements, "cpu_usage", cpu_usage_measurements);
-  }
+    if (cpu_usage_measurements != nullptr) {
+      napi_set_named_property(env, measurements, "cpu_usage", cpu_usage_measurements);
+    };
+  };
 
   napi_set_named_property(env, js_profile, "measurements", measurements);
 
