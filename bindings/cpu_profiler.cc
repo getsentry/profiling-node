@@ -142,18 +142,16 @@ void MeasurementsTicker::cpu_callback() {
   uv_cpu_info_t* cpu = &cpu_stats;
   int count;
   int err = uv_cpu_info(&cpu, &count);
+
   if (err) {
     return;
   }
 
-  uint64_t ts = uv_hrtime();
   if(count < 1) {
-    for(auto cb : cpu_listeners) {
-      cb.second(ts, 0);
-    }
     return;
   }
 
+  uint64_t ts = uv_hrtime();
   uint64_t total = 0;
   uint64_t idle_total = 0;
 
@@ -175,10 +173,11 @@ void MeasurementsTicker::cpu_callback() {
 
   auto it = cpu_listeners.begin();
 
-  if(rate < 0.0) {
+  if(rate < 0.0 || isnan(rate)) {
     rate = 0.0;
   }
 
+  auto it = cpu_listeners.begin();
   while (it != cpu_listeners.end()) {
     if (it->second(ts, rate)) {
       it = cpu_listeners.erase(it);
@@ -186,8 +185,8 @@ void MeasurementsTicker::cpu_callback() {
     else {
       ++it;
     }
-  }
-
+  };
+  
   uv_free_cpu_info(cpu, count);
 }
 
