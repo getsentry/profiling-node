@@ -167,7 +167,7 @@ void MeasurementsTicker::cpu_callback() {
   double total_avg = total / count;
   double rate = 1.0 - idle_avg / total_avg;
 
-  if(rate < 0.0 || isinf(rate) ) {
+  if(rate < 0.0 || isinf(rate) || isnan(rate)) {
     rate = 0.0;
   }
 
@@ -667,9 +667,7 @@ static napi_value TranslateMeasurementsDouble(const napi_env& env, const char* u
     napi_value value;
     if(napi_create_double(env, values[i], &value) != napi_ok){
       if(napi_create_double(env, 0.0, &value) != napi_ok){
-        // If we failed twice, throw an error
-        napi_throw_error(env, "NAPI_ERROR", "Failed to create double value.");
-        break;
+        continue;
       }
     }
 
