@@ -132,6 +132,13 @@ custom:
 }
 ```
 
+[vite](https://vitejs.dev/config/ssr-options.html#ssr-external)
+```js
+ssr: {
+  external: ['@sentry/profiling-node']
+}
+```
+
 Marking the package as external is the simplest and most future proof way of ensuring it will work, however if you want to bundle it, it is possible to do so too, just note that there will be only a very small benefit to startup as @sentry/profiling-node itself is already published as a bundled package.
 
 Example of bundling @sentry/profiling-node
