@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <math.h>
+#include <string.h>
 
 #include <string>
 #include <unordered_map>
@@ -47,12 +48,11 @@ v8::CpuProfilingLoggingMode GetLoggingMode() {
     return kDefaultLoggingMode;
   }
 
-  std::string logging_mode_str(logging_mode);
   // other times it'll likely be set to lazy as eager is the default
-  if (logging_mode_str == kLazyLoggingMode) {
+  if (strcmp(logging_mode, kLazyLoggingMode) == 0) {
     return v8::CpuProfilingLoggingMode::kLazyLogging;
   }
-  else if (logging_mode_str == kEagerLoggingMode) {
+  else if (strcmp(logging_mode, kEagerLoggingMode) == 0) {
     return v8::CpuProfilingLoggingMode::kEagerLogging;
   }
 
