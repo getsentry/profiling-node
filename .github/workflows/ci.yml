@@ -13,6 +13,7 @@ jobs:
       - uses: actions/setup-node@v2
       - run: npm ci
       - run: npm run lint
+      - run: npm run format:clang:check
   build-test-matrix:
     strategy:
       fail-fast: false

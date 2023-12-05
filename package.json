@@ -34,6 +34,7 @@
     "format": "npm run format:prettier && npm run format:clang",
     "format:prettier": "prettier --config ./.prettierrc --write",
     "format:clang": "clang-format -i ./**/*.cc",
+    "format:clang:check": "check-clang-format -i ./**/*.cc",
     "build": "npm run build:bindings && npm run build:lib",
     "build:lib:esm": "node ./esbuild.esm.mjs",
     "build:lib:cjs": "node ./esbuild.cjs.mjs",
