@@ -148,6 +148,10 @@ jobs:
       - name: Install dependencies
         run: npm install --ignore-scripts
 
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
       # configure build test copy x64
       - name: Configure gyp
         if: matrix.arch != 'arm64'
