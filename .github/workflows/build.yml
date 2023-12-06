@@ -145,12 +145,12 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      - name: Install dependencies
-        run: npm install --ignore-scripts
-
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
 
       # configure build test copy x64
       - name: Configure gyp
