@@ -53,6 +53,7 @@ Profiling uses native modules to interop with the v8 javascript engine which mea
 
 **Windows:**
 If you are building on windows, you may need to install windows-build-tools
+
 ```bash
 
 # using yarn package manager
@@ -81,24 +82,25 @@ The easiest way to make bundling work with @sentry/profiling-node and other modu
 To mark the package as external, use the following configuration:
 
 [Next.js 13+](https://nextjs.org/docs/app/api-reference/next-config-js/serverComponentsExternalPackages)
+
 ```js
-const { withSentryConfig } = require('@sentry/nextjs')
+const { withSentryConfig } = require('@sentry/nextjs');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
     // Add the "@sentry/profiling-node" to serverComponentsExternalPackages.
-    serverComponentsExternalPackages: ['@sentry/profiling-node'],
-  },
-}
+    serverComponentsExternalPackages: ['@sentry/profiling-node']
+  }
+};
 
-module.exports = withSentryConfig(
-  nextConfig,
-  { /* ... */ }
-)
+module.exports = withSentryConfig(nextConfig, {
+  /* ... */
+});
 ```
 
 [webpack](https://webpack.js.org/configuration/externals/#externals)
+
 ```js
 externals: {
   "@sentry/profiling-node": "commonjs @sentry/profiling-node",
@@ -106,6 +108,7 @@ externals: {
 ```
 
 [esbuild](https://esbuild.github.io/api/#external)
+
 ```js
 {
   entryPoints: ['index.js'],
@@ -114,7 +117,17 @@ externals: {
 }
 ```
 
+[Rollup](https://rollupjs.org/configuration-options/#external)
+
+```js
+{
+  entry: 'index.js',
+  external: '@sentry/profiling-node'
+}
+```
+
 [serverless-esbuild (serverless.yml)](https://www.serverless.com/plugins/serverless-esbuild#external-dependencies)
+
 ```yml
 custom:
   esbuild:
@@ -126,6 +139,7 @@ custom:
 ```
 
 [vercel-ncc](https://github.com/vercel/ncc#programmatically-from-nodejs)
+
 ```js
 {
   externals: ["@sentry/profiling-node"],
@@ -133,15 +147,20 @@ custom:
 ```
 
 [vite](https://vitejs.dev/config/ssr-options.html#ssr-external)
+
 ```js
 ssr: {
-  external: ['@sentry/profiling-node']
+  external: ['@sentry/profiling-node'];
 }
 ```
 
-Marking the package as external is the simplest and most future proof way of ensuring it will work, however if you want to bundle it, it is possible to do so too, just note that there will be only a very small benefit to startup as @sentry/profiling-node itself is already published as a bundled package.
+Marking the package as external is the simplest and most future proof way of ensuring it will work, however if you want to bundle it, it is possible to do so as well. Bundling has the benefit of improving your script startup time as all of the code is (usually) inside a single executable .js file, which saves time on module resolution.
 
-Example of bundling @sentry/profiling-node
+In general, when attempting to bundle .node native file extensions, you will need to tell your bundler how to treat these, as by default it does not know how to handle them. The required approach varies between build tools and you will need to find which one will work for you.
+
+The result of bundling .node files correctly is that they are placed into your bundle output directory with their require paths updated to reflect their final location.
+
+Example of bundling @sentry/profiling-node with esbuild and .copy loader
 
 ```json
 // package.json
@@ -152,34 +171,34 @@ Example of bundling @sentry/profiling-node
 
 ```js
 // esbuild.serverless.js
-const { sentryEsbuildPlugin } = require("@sentry/esbuild-plugin");
+const { sentryEsbuildPlugin } = require('@sentry/esbuild-plugin');
 
-require("esbuild").build({
-  entryPoints: ["./index.js"],
-  outfile: "./dist",
-  platform: "node",
+require('esbuild').build({
+  entryPoints: ['./index.js'],
+  outfile: './dist',
+  platform: 'node',
   bundle: true,
   minify: true,
-  sourcemap: true, 
+  sourcemap: true,
   // This is no longer necessary
   // external: ["@sentry/profiling-node"],
   loader: {
     // ensures .node binaries are copied to ./dist
-    '.node': 'copy',
+    '.node': 'copy'
   },
   plugins: [
     // See https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/esbuild/
     sentryEsbuildPlugin({
-      project: "",
-      org: "",
-      authToken:"",
-      release: "",
+      project: '',
+      org: '',
+      authToken: '',
+      release: '',
       sourcemaps: {
         // Specify the directory containing build artifacts
-        assets: "./dist/**",
-      },
-    }),
-  ],
+        assets: './dist/**'
+      }
+    })
+  ]
 });
 ```
 
@@ -189,11 +208,13 @@ To prune the other libraries, profiling-node ships with a small utility script t
 The script can be invoked via `sentry-prune-profiler-binaries`, use `--help` to see a list of available options or `--dry-run` if you want it to log the binaries that would have been deleted.
 
 Example of only preserving a binary to run node16 on linux x64 musl.
+
 ```bash
 sentry-prune-profiler-binaries --target_dir_path=./dist/esbuild-serverless --target_platform=linux --target_node=16 --target_stdlib=musl --target_arch=x64
 ```
 
 Which will output something like
+
 ```
 Sentry: pruned ./dist/esbuild-serverless/sentry_cpu_profiler-darwin-x64-108-IFGH3SUR.node (90.41 KiB)
 Sentry: pruned ./dist/esbuild-serverless/sentry_cpu_profiler-darwin-x64-93-Q7KBVHSP.node (74.16 KiB)
@@ -239,7 +260,7 @@ In that case it is possible that the function name may end up being reported to 
 
 ### Are worker threads supported?
 
-No. All instances of the profiler are scoped per thread  In practice, this means that starting a transaction on thread A and delegating work to thread B will only result in sample stacks being collected from thread A. That said, nothing should prevent you from starting a transaction on thread B concurrently which will result in two independant profiles being sent to the Sentry backend. We currently do not do any correlation between such transactions, but we would be open to exploring the possibilities. Please file an issue if you have suggestions or specific use-cases in mind.
+No. All instances of the profiler are scoped per thread In practice, this means that starting a transaction on thread A and delegating work to thread B will only result in sample stacks being collected from thread A. That said, nothing should prevent you from starting a transaction on thread B concurrently which will result in two independant profiles being sent to the Sentry backend. We currently do not do any correlation between such transactions, but we would be open to exploring the possibilities. Please file an issue if you have suggestions or specific use-cases in mind.
 
 ### How much overhead will this profiler add?
 
