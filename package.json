@@ -78,11 +78,11 @@
   "author": "jonas.badalic@sentry.io",
   "license": "MIT",
   "dependencies": {
-    "@sentry/core": "^7.76.0",
-    "@sentry/hub": "^7.76.0",
-    "@sentry/node": "^7.76.0",
-    "@sentry/types": "^7.76.0",
-    "@sentry/utils": "^7.76.0",
+    "@sentry/core": "^7.85.0",
+    "@sentry/hub": "^7.85.0",
+    "@sentry/node": "^7.85.0",
+    "@sentry/types": "^7.85.0",
+    "@sentry/utils": "^7.85.0",
     "detect-libc": "^2.0.2",
     "node-abi": "^3.47.0",
     "node-gyp": "^9.4.0"
