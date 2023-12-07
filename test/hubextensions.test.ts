@@ -9,8 +9,8 @@ import type {
 
 import type { NodeClient } from '@sentry/node';
 
-import { __PRIVATE__wrapStartTransactionWithProfiling } from './hubextensions';
-import { CpuProfilerBindings } from './cpu_profiler';
+import { __PRIVATE__wrapStartTransactionWithProfiling } from '../src/hubextensions';
+import { CpuProfilerBindings } from '../src/cpu_profiler';
 
 function makeTransactionMock(options = {}): Transaction {
   return {

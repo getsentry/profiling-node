@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/node';
 
-import { ProfilingIntegration } from './index';
-import { CpuProfilerBindings } from './cpu_profiler';
+import { ProfilingIntegration } from '../src/index';
+import { CpuProfilerBindings } from '../src/cpu_profiler';
 import { logger, createEnvelope } from '@sentry/utils';
 import { GLOBAL_OBJ } from '@sentry/utils';
 import { NodeClient } from '@sentry/node';

@@ -6,10 +6,14 @@ import {
   isValidProfile,
   addProfilesToEnvelope,
   findProfiledTransactionsFromEnvelope
-} from './utils';
+} from '../src/utils';
 
-import { maybeRemoveProfileFromSdkMetadata, isProfiledTransactionEvent, createProfilingEventEnvelope } from './utils';
-import type { Profile, ProfiledEvent } from './types';
+import {
+  maybeRemoveProfileFromSdkMetadata,
+  isProfiledTransactionEvent,
+  createProfilingEventEnvelope
+} from '../src/utils';
+import type { Profile, ProfiledEvent } from '../src/types';
 
 function makeSdkMetadata(props: Partial<SdkMetadata['sdk']>): SdkMetadata {
   return {

@@ -19,8 +19,7 @@
     "checkJs": false,
     "allowJs": true,
     "declaration": false,
-    "baseUrl": "./src",
-    "typeRoots": ["node_modules/@types"],
+    "typeRoots": ["node_modules/@types"]
   },
   "types": ["./src/types.d.ts"],
   "exclude": ["src/**/*.test.ts", "scripts/**/*"]
