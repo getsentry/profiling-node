@@ -1,16 +1,14 @@
 {
   "root": true,
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint", "prettier"],
+  "plugins": ["@typescript-eslint"],
   "ignorePatterns": ["benchmarks/**/*", "lib/**/*", "build/**/*", "playground/**/*.js", "demo_app/**/*"],
   "extends": [
-    "prettier",
     "eslint:recommended",
     "plugin:@typescript-eslint/eslint-recommended",
     "plugin:@typescript-eslint/recommended"
   ],
   "rules": {
-    "prettier/prettier": "error",
     "@typescript-eslint/consistent-type-imports": "error"
   }
 }
