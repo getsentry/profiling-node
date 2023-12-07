@@ -77,6 +77,9 @@
   },
   "author": "jonas.badalic@sentry.io",
   "license": "MIT",
+  "peerDependencies": {
+    "@sentry/node": "^7.44.1"
+  },
   "devDependencies": {
     "@sentry/core": "^7.86.0",
     "@sentry/hub": "^7.86.0",
