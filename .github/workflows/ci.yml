@@ -13,6 +13,11 @@ jobs:
       - uses: actions/setup-node@v2
       - run: npm ci
       - run: npm run lint
+      - run: |
+          git config clangFormat.binary node_modules/.bin/clang-format
+          git config clangFormat.style file
+          npm run format:clang:check
+
   build-test-matrix:
     strategy:
       fail-fast: false

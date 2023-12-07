@@ -31,6 +31,11 @@
     "install": "node scripts/check-build.mjs",
     "clean": "rm -rf ./lib && rm -rf build",
     "lint": "eslint ./src --ext .ts",
+    "format": "npm run format:prettier && npm run format:clang",
+    "format:prettier": "prettier --config ./.prettierrc --write",
+    "format:clang": "./node_modules/.bin/clang-format --style=file -i ./**/*.cc ",
+    "format:clang:export": "./node_modules/.bin/clang-format --style=google -dump-config > .clang-format",
+    "format:clang:check": "./node_modules/.bin/check-clang-format --style=file",
     "build": "npm run build:bindings && npm run build:lib",
     "build:lib:esm": "node ./esbuild.esm.mjs",
     "build:lib:cjs": "node ./esbuild.cjs.mjs",
@@ -59,8 +64,7 @@
     "test:rollup:build": "rollup --config ./demo_app/rollup.config.js",
     "test:rollup:run": "BUNDLER=rollup node ./demo_app/dist/rollup/index.js",
     "test:rollup": "npm run test:rollup:build && npm run test:rollup:run",
-    "test": "cross-env SENTRY_PROFILER_BINARY_DIR=./lib jest --config jest.config.ts",
-    "prettier": "prettier --config ./.prettierrc --write"
+    "test": "cross-env SENTRY_PROFILER_BINARY_DIR=./lib jest --config jest.config.ts"
   },
   "keywords": [
     "profiling",
@@ -94,6 +98,7 @@
     "@typescript-eslint/parser": "^5.36.2",
     "autocannon": "^7.9.0",
     "benchmark": "^2.1.4",
+    "clang-format": "^1.8.0",
     "cross-env": "^7.0.3",
     "detect-libc": "^2.0.2",
     "esbuild": "^0.17.18",
