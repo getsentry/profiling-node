@@ -1,5 +1,5 @@
-import { CpuProfilerBindings, PrivateCpuProfilerBindings } from './cpu_profiler';
-import type { ThreadCpuProfile, RawThreadCpuProfile } from './types';
+import { CpuProfilerBindings, PrivateCpuProfilerBindings } from '../src/cpu_profiler';
+import type { ThreadCpuProfile, RawThreadCpuProfile } from '../src/types';
 
 // Required because we test a hypothetical long profile
 // and we cannot use advance timers as the c++ relies on

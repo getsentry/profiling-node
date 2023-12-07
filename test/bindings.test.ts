@@ -1,7 +1,7 @@
 // Contains unit tests for some of the C++ bindings. These functions
 // are exported on the private bindings object, so we can test them and
 // they should not be used outside of this file.
-import { PrivateCpuProfilerBindings } from './cpu_profiler';
+import { PrivateCpuProfilerBindings } from '../src/cpu_profiler';
 import { platform } from 'os';
 
 const cases = [
