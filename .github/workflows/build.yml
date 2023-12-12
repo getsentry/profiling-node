@@ -146,8 +146,16 @@ jobs:
           node-version: ${{ matrix.node }}
 
       - uses: actions/setup-python@v4
+        name: Setup python macos 14
+        if: contains(matrix.os, 'macos-11') && matrix.node == '14'
         with:
-          python-version: '3.10'
+          python-version: "3.10"
+
+      - uses: actions/setup-python@v4
+        name: Setup python latest
+        if: contains(matrix.os, 'macos-11') && matrix.node != '14'
+        with:
+          python-version: "3.11"
 
       - name: Install dependencies
         run: npm install --ignore-scripts
@@ -199,11 +207,11 @@ jobs:
           BUILD_ARCH=arm64 npm run build:bindings:arm64
 
       # linux arm64 target darwin
-      - name: 'Configure gyp (arm64, darwin)'
+      - name: "Configure gyp (arm64, darwin)"
         if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
         run: npm run build:configure:arm64
 
-      - name: 'Build bindings (arm64, darwin)'
+      - name: "Build bindings (arm64, darwin)"
         if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
         run: |
           BUILD_PLATFORM=darwin BUILD_ARCH=arm64 npm run build:bindings:arm64
@@ -296,7 +304,7 @@ jobs:
         # use npm link to link the what will be our final published library
         # into the demo_app folder. From there, we run the different bundler
         # build commands and attempt to run the demo app.
-        bundler: ['esbuild']
+        bundler: ["esbuild"]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
