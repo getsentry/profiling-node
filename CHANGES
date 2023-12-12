@@ -1,3 +1,18 @@
+## 1.3.0
+
+### Various fixes & improvements
+
+- fix(profiling): node-gyp missing python (#223) by @JonasBa
+- fix: change package.json keys (#222) by @anonrig
+- test: move tests to dedicated test folder (#221) by @JonasBa
+- chore: remove prettier (#220) by @anonrig
+- format: add clang format (#214) by @JonasBa
+- ref(deps) move all deps to dev deps (#218) by @JonasBa
+- docs: add rollup external config section (#216) by @JonasBa
+- deps: update to 7.85 (#215) by @JonasBa
+- perf: avoid deep string copy (#213) by @anonrig
+- chore: Add vite external to profiling node instructions (#209) by @AbhiPrasad
+
 ## 1.2.6
 
 ### Various fixes & improvements
