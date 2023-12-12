@@ -31,8 +31,6 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
       - run: npm run clean
 
       - name: Setup windows build tools
