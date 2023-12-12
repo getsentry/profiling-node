@@ -147,8 +147,12 @@ jobs:
           node-version: ${{ matrix.node }}
 
       - uses: actions/setup-python@v4
+        if: contains(matrix.os, 'macos-11') && matrix.node == '14'
         with:
-          python-version: "3.10.8"
+          python-version: "3.10"
+
+      - uses: actions/setup-python@v4
+        if: contains(matrix.os, 'macos-11') && matrix.node != '14'
 
       - name: Install dependencies
         run: npm install --ignore-scripts
