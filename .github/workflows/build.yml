@@ -147,6 +147,8 @@ jobs:
           node-version: ${{ matrix.node }}
 
       - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10.8"
 
       - name: Install dependencies
         run: npm install --ignore-scripts
