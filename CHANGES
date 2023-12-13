@@ -1,3 +1,9 @@
+## 1.3.2
+
+### Various fixes & improvements
+
+- deps(detect-libc): detect-libc is required for install scripts (#226) by @JonasBa
+
 ## 1.3.1
 
 ### Various fixes & improvements
