@@ -325,4 +325,4 @@ jobs:
       - run: npm run test:setup:bundle
       - run: npm run test:${{matrix.bundler}}:build
       - run: npm run test:${{matrix.bundler}}:run
-      - run: rm -rf ./node_modules/ && npm install --omit=dev && node scripts/check-build.mjs
+      - run: rm -rf ./node_modules/ && node scripts/check-build.mjs
