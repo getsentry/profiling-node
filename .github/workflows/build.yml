@@ -212,7 +212,7 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 20
-      - run: yarn install --production=true --frozen-lockfile
+      - run: yarn install --frozen-lockfile
       - run: yarn build:lib
       - uses: actions/download-artifact@v3
         with:
@@ -231,7 +231,7 @@ jobs:
         with:
           node-version: 20
 
-      - run: yarn install --production=true --frozen-lockfile
+      - run: yarn install --frozen-lockfile
       - run: yarn build:lib
 
       - uses: actions/download-artifact@v3
