@@ -1,5 +1,5 @@
 const Sentry = require('@sentry/node');
-require('../../lib/index.js');
+require('../../build/index.js');
 
 const { benchmark, fibonacci } = require('./utils');
 

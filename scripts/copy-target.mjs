@@ -6,14 +6,14 @@ import { getModuleName } from './binaries.mjs';
 import { log } from 'console';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const lib = path.resolve(__dirname, '..', 'lib');
+const build = path.resolve(__dirname, '..', 'build');
 
-if (!existsSync(lib)) {
-  mkdirSync(lib);
+if (!existsSync(build)) {
+  mkdirSync(build);
 }
 
 const source = path.join(__dirname, '..', 'build', 'Release', 'sentry_cpu_profiler.node');
-const target = path.join(__dirname, '..', 'lib', getModuleName());
+const target = path.join(__dirname, '..', 'build', getModuleName());
 
 if (!existsSync(source)) {
   log('Source file does not exist:', source);

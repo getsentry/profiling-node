@@ -5,7 +5,7 @@ const express = require('express');
 const React = require('react');
 const ReactDOMServer = require('react-dom/server');
 
-const { CpuProfilerBindings } = require('./../../lib/cpu_profiler');
+const { CpuProfilerBindings } = require('./../../build/cpu_profiler');
 
 const db = new sqlite3.Database('memory_db');
 

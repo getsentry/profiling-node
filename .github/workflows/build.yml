@@ -219,14 +219,14 @@ jobs:
 
       # continue with common steps
       - name: Log binary
-        run: du -sh lib/*
+        run: du -sh build/*
 
       - name: Archive binary
         uses: actions/upload-artifact@v3
         with:
           name: binaries-${{ github.sha }}
           path: |
-            ${{ github.workspace }}/lib/*.node
+            ${{ github.workspace }}/build/*.node
   test-bundle:
     runs-on: ubuntu-latest
     needs: [precompile-bindings]
@@ -241,8 +241,7 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: binaries-${{ github.sha }}
-          path: lib/
-      - run: ls -l lib/
+          path: build/
       - run: npm run test:bundle
 
   build-and-pack:
@@ -262,8 +261,7 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: binaries-${{ github.sha }}
-          path: lib/
-      - run: ls -l lib/
+          path: build/
       - run: npm pack
 
       - name: Archive artifacts
@@ -318,8 +316,8 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: binaries-${{ github.sha }}
-          path: lib/
-      - run: ls -l lib/
+          path: build/
+      - run: ls -l build/
 
       - run: npm link
       - run: npm run test:setup:bundle

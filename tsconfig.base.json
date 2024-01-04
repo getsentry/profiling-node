@@ -21,6 +21,6 @@
     "declaration": false,
     "typeRoots": ["node_modules/@types"]
   },
-  "types": ["./src/types.d.ts"],
+  "types": ["node"],
   "exclude": ["src/**/*.test.ts", "scripts/**/*"]
 }

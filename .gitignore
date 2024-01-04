@@ -5,7 +5,7 @@
 .editorconfig
 
 coverage/
-lib/
+build/
 build-test/
 demo_app/dist/
 demo_app/package-lock.json

@@ -1,6 +1,6 @@
 // Run with
 // node --expose-gc inspect benchmarks/memory/benchmark.memory.js to attach a debugger and take heap snapshots
-const { CpuProfilerBindings } = require('../../lib/sentry_cpu_profiler.js');
+const { CpuProfilerBindings } = require('../../build/sentry_cpu_profiler.js');
 
 function iterateOverLargeHashTable() {
   const table = {};

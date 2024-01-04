@@ -21,8 +21,8 @@ Because the repository requires you to compile the c++ bindings via node-gyp, we
 Since we are using [`TypeScript`](https://www.typescriptlang.org/) and native node addons, you need to transpile the code to JavaScript and compile the c++ bindings in order to be able to run the addon.
 
 - `npm run build` will compile the c++ bindings and ts files.
-- `npm run build:lib` will compile only the ts files
-- `npm run build:bindings` will compile the c++ bindings
+- `npm run build:lib` will compile ts files
+- `npm run build:bindings` will compile c++ bindings
 
 ## Tests
 
