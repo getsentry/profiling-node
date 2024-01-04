@@ -137,7 +137,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: yarn install --production=true --ignore-scripts --frozen-lockfile
+        run: yarn install --ignore-scripts --frozen-lockfile
 
       # configure build test copy x64
       - name: Configure gyp
