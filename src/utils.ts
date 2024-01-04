@@ -162,15 +162,13 @@ export function createProfilingEventFromTransaction(event: ProfiledEvent): Profi
     return null;
   }
 
-  const trace_id = event.contexts && event.contexts['trace'] && event.contexts['trace']['trace_id'];
-
   return createProfilePayload(rawProfile, {
-    release: event.release || '',
-    environment: event.environment || '',
-    event_id: event.event_id || '',
-    transaction: event.transaction || '',
+    release: event.release ?? '',
+    environment: event.environment ?? '',
+    event_id: event.event_id ?? '',
+    transaction: event.transaction ?? '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
-    trace_id: trace_id || '',
+    trace_id: event.contexts?.['trace']?.['trace_id'] ??  '',
     profile_id: rawProfile.profile_id
   });
 }
@@ -186,15 +184,13 @@ export function createProfilingEvent(profile: RawThreadCpuProfile, event: Event)
     return null;
   }
 
-  const trace_id = event.contexts && event.contexts['trace'] && event.contexts['trace']['trace_id'];
-
   return createProfilePayload(profile, {
-    release: event.release || '',
-    environment: event.environment || '',
-    event_id: event.event_id || '',
-    transaction: event.transaction || '',
+    release: event.release ?? '',
+    environment: event.environment ?? '',
+    event_id: event.event_id ?? '',
+    transaction: event.transaction ?? '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
-    trace_id: trace_id || '',
+    trace_id: event.contexts?.['trace']?.['trace_id'] ??  '',
     profile_id: profile.profile_id
   });
 }

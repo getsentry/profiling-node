@@ -95,7 +95,7 @@ export class ProfilingIntegration implements Integration {
 
       client.on('finishTransaction', (transaction) => {
         // @ts-expect-error profile_id is not part of the metadata type
-        const profile_id = transaction && transaction.metadata && transaction.metadata.profile_id;
+        const profile_id = transaction.metadata.profile_id;
         if (profile_id && typeof profile_id === 'string') {
           if (PROFILE_TIMEOUTS[profile_id]) {
             global.clearTimeout(PROFILE_TIMEOUTS[profile_id]);
@@ -124,17 +124,17 @@ export class ProfilingIntegration implements Integration {
         const profilesToAddToEnvelope: Profile[] = [];
 
         for (const profiledTransaction of profiledTransactionEvents) {
-          const profileContext = profiledTransaction.contexts && profiledTransaction.contexts['profile']
-          const profile_id = profileContext && profileContext['profile_id'];
+          const profileContext = profiledTransaction.contexts?.['profile']
+          const profile_id = profileContext?.['profile_id'];
 
           if (!profile_id) {
             throw new TypeError('[Profiling] cannot find profile for a transaction without a profile context');
           }
 
           // Remove the profile from the transaction context before sending, relay will take care of the rest.
-          if (profiledTransaction.contexts && profiledTransaction.contexts['profile']) {
+          if (profileContext) {
             // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-            delete profiledTransaction.contexts['profile'];
+            delete profiledTransaction.contexts?.['profile'];
           }
 
           // We need to find both a profile and a transaction event for the same profile_id.

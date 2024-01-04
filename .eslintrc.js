@@ -6,6 +6,12 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2018,
   },
+  rules: {
+    '@sentry-internal/sdk/no-optional-chaining': 'off',
+    '@sentry-internal/sdk/no-nullish-coalescing': 'off',
+    '@sentry-internal/sdk/no-unsupported-es6-methods': 'off',
+    '@sentry-internal/sdk/no-class-field-initializers': 'off',
+  },
   extends: ['@sentry-internal/sdk/src/base'],
   ignorePatterns: [
     'coverage/**',
