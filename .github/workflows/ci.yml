@@ -9,9 +9,11 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-      - run: npm ci
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - name: Install yarn
+        run: npm install -g yarn
+      - run: yarn install --frozen-lockfile
       - run: |
           git config clangFormat.binary node_modules/.bin/clang-format
           git config clangFormat.style file
@@ -30,6 +32,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
+      - name: Install yarn
+        run: npm install -g yarn
       - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
@@ -39,7 +43,7 @@ jobs:
         uses: microsoft/setup-msbuild@v1.1
         if: ${{ runner.os == 'Windows' }}
 
-      - run: npm install
+      - run: yarn install
       - run: yarn build:configure
       - run: yarn build
       - run: yarn test --silent

@@ -146,6 +146,9 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
+      - name: Install yarn
+        run: npm install -g yarn
+
       - uses: actions/setup-python@v4
         name: Setup python macos 14
         if: contains(matrix.os, 'macos-11') && matrix.node == '14'
@@ -159,7 +162,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: npm install --ignore-scripts
+        run: yarn install --ignore-scripts
 
       # configure build test copy x64
       - name: Configure gyp
@@ -236,7 +239,9 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 18
-      - run: npm ci
+      - name: Install yarn
+        run: npm install -g yarn
+      - run: yarn install --frozen-lockfile
       - run: yarn build:lib
       - uses: actions/download-artifact@v3
         with:
@@ -254,15 +259,17 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 18
+      - name: Install yarn
+        run: npm install -g yarn
 
-      - run: npm ci
+      - run: yarn install --frozen-lockfile
       - run: yarn build:lib
 
       - uses: actions/download-artifact@v3
         with:
           name: binaries-${{ github.sha }}
           path: build/
-      - run: npm pack
+      - run: yarn pack
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v3
@@ -300,7 +307,7 @@ jobs:
 
         # The general workflow for testing a bundler workflow
         # is to build our library, download the generated binaries and
-        # use npm link to link the what will be our final published library
+        # use yarn link to link the what will be our final published library
         # into the demo_app folder. From there, we run the different bundler
         # build commands and attempt to run the demo app.
         bundler: ["esbuild"]
@@ -310,7 +317,7 @@ jobs:
         with:
           node-version: 18
 
-      - run: npm install --ignore-scripts
+      - run: yarn install --ignore-scripts
       - run: yarn build:lib
 
       - uses: actions/download-artifact@v3
@@ -319,8 +326,8 @@ jobs:
           path: build/
       - run: ls -l build/
 
-      - run: npm link
+      - run: yarn link
       - run: yarn test:setup:bundle
       - run: yarn test:${{matrix.bundler}}:build
       - run: yarn test:${{matrix.bundler}}:run
-      - run: rm -rf ./node_modules/ && npm install --omit=dev && node scripts/check-build.mjs
+      - run: rm -rf ./node_modules/ && yarn install && node scripts/check-build.mjs
