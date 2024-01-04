@@ -286,8 +286,9 @@ jobs:
         with:
           node-version: 20
 
-      - run: yarn install --production=true --frozen-lockfile
-      - run: node ./esbuild.mjs
+      - run: yarn install --frozen-lockfile
+      - run: yarn build:lib
+      - run: rm -rf ./node_modules
 
       - uses: actions/download-artifact@v3
         with:
