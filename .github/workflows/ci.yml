@@ -11,8 +11,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
-      - name: Install yarn
-        run: npm install -g yarn
       - run: yarn install --frozen-lockfile
       - run: |
           git config clangFormat.binary node_modules/.bin/clang-format
@@ -32,8 +30,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-      - name: Install yarn
-        run: npm install -g yarn
       - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
