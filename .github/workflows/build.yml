@@ -26,8 +26,6 @@ jobs:
 
           # linux x64 glibc
           - os: ubuntu-20.04
-            node: 14
-          - os: ubuntu-20.04
             node: 16
           - os: ubuntu-20.04
             node: 18
@@ -35,9 +33,6 @@ jobs:
             node: 20
 
           # linux x64 musl
-          - os: ubuntu-20.04
-            container: node:14-alpine3.16
-            node: 14
           - os: ubuntu-20.04
             container: node:16-alpine3.16
             node: 16
@@ -51,9 +46,6 @@ jobs:
           # linux arm64 glibc
           - os: ubuntu-20.04
             arch: arm64
-            node: 14
-          - os: ubuntu-20.04
-            arch: arm64
             node: 16
           - os: ubuntu-20.04
             arch: arm64
@@ -63,10 +55,6 @@ jobs:
             node: 20
 
           # linux arm64 musl
-          - os: ubuntu-20.04
-            container: node:14-alpine3.16
-            arch: arm64
-            node: 14
           - os: ubuntu-20.04
             container: node:16-alpine3.16
             arch: arm64
@@ -81,9 +69,6 @@ jobs:
             node: 20
 
             # macos x64
-          - os: macos-11
-            node: 14
-            arch: x64
           - os: macos-11
             node: 16
             arch: x64
@@ -150,14 +135,7 @@ jobs:
         run: npm install -g yarn
 
       - uses: actions/setup-python@v4
-        name: Setup python macos 14
-        if: contains(matrix.os, 'macos-11') && matrix.node == '14'
-        with:
-          python-version: "3.10"
-
-      - uses: actions/setup-python@v4
         name: Setup python latest
-        if: contains(matrix.os, 'macos-11') && matrix.node != '14'
         with:
           python-version: "3.11"
 

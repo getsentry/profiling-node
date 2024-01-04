@@ -25,22 +25,22 @@ npm install --save @sentry/node @sentry/profiling-node
 ## Usage
 
 ```javascript
-import * as Sentry from '@sentry/node';
-import { ProfilingIntegration } from '@sentry/profiling-node';
+import * as Sentry from "@sentry/node";
+import { ProfilingIntegration } from "@sentry/profiling-node";
 
 Sentry.init({
-  dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
+  dsn: "https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302",
   debug: true,
   tracesSampleRate: 1,
   profilesSampleRate: 1, // Set profiling sampling rate.
-  integrations: [new ProfilingIntegration()]
+  integrations: [new ProfilingIntegration()],
 });
 ```
 
 Sentry SDK will now automatically profile all transactions, even the ones which may be started as a result of using an automatic instrumentation integration.
 
 ```javascript
-const transaction = Sentry.startTransaction({ name: 'some workflow' });
+const transaction = Sentry.startTransaction({ name: "some workflow" });
 
 // The code between startTransaction and transaction.finish will be profiled
 
@@ -64,7 +64,7 @@ npm i -g windows-build-tools
 
 ### Prebuilt binaries
 
-We currently ship prebuilt binaries for a few of the most common platforms and node versions (v14-18).
+We currently ship prebuilt binaries for a few of the most common platforms and node versions (v16-20).
 
 - macOS x64
 - Linux ARM64 (musl)
@@ -84,14 +84,14 @@ To mark the package as external, use the following configuration:
 [Next.js 13+](https://nextjs.org/docs/app/api-reference/next-config-js/serverComponentsExternalPackages)
 
 ```js
-const { withSentryConfig } = require('@sentry/nextjs');
+const { withSentryConfig } = require("@sentry/nextjs");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
     // Add the "@sentry/profiling-node" to serverComponentsExternalPackages.
-    serverComponentsExternalPackages: ['@sentry/profiling-node']
-  }
+    serverComponentsExternalPackages: ["@sentry/profiling-node"],
+  },
 };
 
 module.exports = withSentryConfig(nextConfig, {
@@ -150,7 +150,7 @@ custom:
 
 ```js
 ssr: {
-  external: ['@sentry/profiling-node'];
+  external: ["@sentry/profiling-node"];
 }
 ```
 
@@ -171,12 +171,12 @@ Example of bundling @sentry/profiling-node with esbuild and .copy loader
 
 ```js
 // esbuild.serverless.js
-const { sentryEsbuildPlugin } = require('@sentry/esbuild-plugin');
+const { sentryEsbuildPlugin } = require("@sentry/esbuild-plugin");
 
-require('esbuild').build({
-  entryPoints: ['./index.js'],
-  outfile: './dist',
-  platform: 'node',
+require("esbuild").build({
+  entryPoints: ["./index.js"],
+  outfile: "./dist",
+  platform: "node",
   bundle: true,
   minify: true,
   sourcemap: true,
@@ -184,21 +184,21 @@ require('esbuild').build({
   // external: ["@sentry/profiling-node"],
   loader: {
     // ensures .node binaries are copied to ./dist
-    '.node': 'copy'
+    ".node": "copy",
   },
   plugins: [
     // See https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/esbuild/
     sentryEsbuildPlugin({
-      project: '',
-      org: '',
-      authToken: '',
-      release: '',
+      project: "",
+      org: "",
+      authToken: "",
+      release: "",
       sourcemaps: {
         // Specify the directory containing build artifacts
-        assets: './dist/**'
-      }
-    })
-  ]
+        assets: "./dist/**",
+      },
+    }),
+  ],
 });
 ```
 
@@ -253,7 +253,7 @@ The profiler does not collect function arguments so leaking any PII is unlikely.
 There is one way a profiler could leak pii information, but this is unlikely and would only happen for cases where you might be creating or naming functions which might contain pii information such as
 
 ```js
-eval('function scriptFor${PII_DATA}....');
+eval("function scriptFor${PII_DATA}....");
 ```
 
 In that case it is possible that the function name may end up being reported to Sentry.
