@@ -13,7 +13,8 @@ import type {
   EventItem,
   Envelope,
   EventEnvelope,
-  EventEnvelopeHeaders
+  EventEnvelopeHeaders,
+  Context,
 } from '@sentry/types';
 
 import * as Sentry from '@sentry/node';
@@ -429,8 +430,9 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
         continue
       }
 
+
       // @ts-expect-error profile_id is not part of the metadata type
-      const profile_id = event.contexts?.['profile']?.['profile_id'];
+      const profile_id = (event.contexts as Context)?.['profile']?.['profile_id'];
       
       if (event && profile_id) {
         events.push(item[j] as Event);
