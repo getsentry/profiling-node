@@ -15,7 +15,7 @@ jobs:
       - run: |
           git config clangFormat.binary node_modules/.bin/clang-format
           git config clangFormat.style file
-          npm run lint
+          yarn lint
 
   build-test-matrix:
     strategy:
@@ -33,13 +33,13 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
-      - run: npm run clean
+      - run: yarn clean
 
       - name: Setup windows build tools
         uses: microsoft/setup-msbuild@v1.1
         if: ${{ runner.os == 'Windows' }}
 
       - run: npm install
-      - run: npm run build:configure
-      - run: npm run build
-      - run: npm run test --silent
+      - run: yarn build:configure
+      - run: yarn build
+      - run: yarn test --silent
