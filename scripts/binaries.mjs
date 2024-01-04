@@ -27,4 +27,4 @@ export function getModuleName() {
 }
 
 export const source = path.join(__dirname, '..', 'build', 'Release', 'sentry_cpu_profiler.node');
-export const target = path.join(__dirname, '..', 'lib', getModuleName());
+export const target = path.join(__dirname, '..', 'build', getModuleName());
