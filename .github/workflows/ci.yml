@@ -24,7 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, windows-2019, ubuntu-latest]
-        node-version: [14.x, 16.x, 18.x, 20.x]
+        node-version: [16.x, 18.x, 20.x]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -43,7 +43,7 @@ jobs:
         uses: microsoft/setup-msbuild@v1.1
         if: ${{ runner.os == 'Windows' }}
 
-      - run: yarn install
+      - run: yarn install --frozen-lockfile
       - run: yarn build:configure
       - run: yarn build
       - run: yarn test --silent

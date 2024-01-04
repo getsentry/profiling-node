@@ -162,7 +162,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: yarn install --ignore-scripts
+        run: yarn install --production=true --ignore-scripts --frozen-lockfile
 
       # configure build test copy x64
       - name: Configure gyp
@@ -241,7 +241,7 @@ jobs:
           node-version: 18
       - name: Install yarn
         run: npm install -g yarn
-      - run: yarn install --frozen-lockfile
+      - run: yarn install --production=true --frozen-lockfile
       - run: yarn build:lib
       - uses: actions/download-artifact@v3
         with:
@@ -262,7 +262,7 @@ jobs:
       - name: Install yarn
         run: npm install -g yarn
 
-      - run: yarn install --frozen-lockfile
+      - run: yarn install --production=true --frozen-lockfile
       - run: yarn build:lib
 
       - uses: actions/download-artifact@v3
@@ -317,7 +317,7 @@ jobs:
         with:
           node-version: 18
 
-      - run: yarn install --ignore-scripts
+      - run: yarn install --production=true --frozen-lockfile
       - run: yarn build:lib
 
       - uses: actions/download-artifact@v3
