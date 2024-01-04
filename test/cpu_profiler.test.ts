@@ -140,7 +140,8 @@ describe('Profiler bindings', () => {
         await wait(1000);
         return 0;
       }
-      return await recurseToDepth(depth - 1);
+      const v = await recurseToDepth(depth - 1);
+      return v
     };
 
     const profile = await profiled('profiled-program', async () => {
@@ -224,15 +225,15 @@ describe('Profiler bindings', () => {
     // the cause of low sample count. https://github.com/actions/runner-images/issues/1336 seems relevant.
     if (process.platform === 'darwin' || process.platform === 'win32') {
       if (profile.samples.length < 2) {
-        fail('Only ' + profile.samples.length + ' samples obtained on ' + process.platform + ', expected at least 2');
+        fail(`Only ${  profile.samples.length  } samples obtained on ${  process.platform  }, expected at least 2`);
       }
     } else {
       if (profile.samples.length < 6) {
-        fail('Only ' + profile.samples.length + ' samples obtained on ' + process.platform + ', expected at least 6');
+        fail(`Only ${  profile.samples.length  } samples obtained on ${  process.platform  }, expected at least 6`);
       }
     }
     if (profile.samples.length > 15) {
-      fail('Too many samples on ' + process.platform + ', got ' + profile.samples.length);
+      fail(`Too many samples on ${  process.platform  }, got ${  profile.samples.length}`);
     }
   });
 
@@ -277,6 +278,7 @@ describe('Profiler bindings', () => {
     expect(profile?.measurements?.['memory_footprint']?.values.length).toBeLessThanOrEqual(300);
   });
 
+  // eslint-disable-next-line jest/no-disabled-tests
   it.skip('includes deopt reason', async () => {
     // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#52-the-object-being-iterated-is-not-a-simple-enumerable
     function iterateOverLargeHashTable() {

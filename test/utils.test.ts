@@ -87,17 +87,17 @@ describe('createProfilingEventEnvelope', () => {
 
     expect(() =>
       createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, profile), makeDsn({}), makeSdkMetadata({}))
-    ).toThrowError('Cannot construct profiling event envelope without a valid profile id. Got undefined instead.');
+    ).toThrow('Cannot construct profiling event envelope without a valid profile id. Got undefined instead.');
   });
   it('throws if profile is undefined', () => {
     expect(() =>
       // @ts-expect-error mock profile as undefined
       createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, undefined), makeDsn({}), makeSdkMetadata({}))
-    ).toThrowError('Cannot construct profiling event envelope without a valid profile. Got undefined instead.');
+    ).toThrow('Cannot construct profiling event envelope without a valid profile. Got undefined instead.');
     expect(() =>
       // @ts-expect-error mock profile as null
       createProfilingEventEnvelope(makeEvent({ type: 'transaction' }, null), makeDsn({}), makeSdkMetadata({}))
-    ).toThrowError('Cannot construct profiling event envelope without a valid profile. Got null instead.');
+    ).toThrow('Cannot construct profiling event envelope without a valid profile. Got null instead.');
   });
 
   it('envelope header is of type: profile', () => {
@@ -220,7 +220,7 @@ describe('createProfilingEventEnvelope', () => {
         makeDsn({}),
         makeSdkMetadata({})
       )
-    ).toThrowError('Profiling events may only be attached to transactions, this should never occur.');
+    ).toThrow('Profiling events may only be attached to transactions, this should never occur.');
   });
 
   it('inherits transaction properties', () => {

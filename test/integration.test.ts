@@ -91,6 +91,7 @@ describe('ProfilingIntegration', () => {
           profile: null
         }
       });
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(transport.send).not.toHaveBeenCalled();
     });
 
@@ -220,7 +221,7 @@ describe('ProfilingIntegration', () => {
       const addGlobalEventProcessor = () => void 0;
       integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
 
-      // @TODO mock profiler stop
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(transport.send).not.toHaveBeenCalled();
     });
 
@@ -257,7 +258,7 @@ describe('ProfilingIntegration', () => {
       const addGlobalEventProcessor = jest.fn();
       integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
 
-      expect(spy).toBeCalledTimes(3);
+      expect(spy).toHaveBeenCalledTimes(3);
       expect(spy.mock?.calls?.[0]?.[0]).toBe('startTransaction');
       expect(spy.mock?.calls?.[1]?.[0]).toBe('finishTransaction');
       expect(spy.mock?.calls?.[2]?.[0]).toBe('beforeEnvelope');

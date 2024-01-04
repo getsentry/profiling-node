@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import * as os from 'os';
 import { versions, env } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
@@ -43,6 +44,9 @@ function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile):
 
 // Enriches the profile with threadId of the current thread.
 // This is done in node as we seem to not be able to get the info from C native code.
+/**
+ *
+ */
 export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThreadCpuProfile): ThreadCpuProfile {
   if (!isRawThreadCpuProfile(profile)) {
     return profile;
@@ -135,13 +139,15 @@ export function createProfilingEventFromTransaction(event: ProfiledEvent): Profi
     return null;
   }
 
+  const trace_id = event.contexts && event.contexts['trace'] && event.contexts['trace']['trace_id'];
+
   return createProfilePayload(rawProfile, {
     release: event.release || '',
     environment: event.environment || '',
     event_id: event.event_id || '',
     transaction: event.transaction || '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
-    trace_id: (event?.contexts?.['trace']?.['trace_id'] as string) || '',
+    trace_id: trace_id || '',
     profile_id: rawProfile.profile_id
   });
 }
@@ -156,13 +162,15 @@ export function createProfilingEvent(profile: RawThreadCpuProfile, event: Event)
     return null;
   }
 
+  const trace_id = event.contexts && event.contexts['trace'] && event.contexts['trace']['trace_id'];
+
   return createProfilePayload(profile, {
     release: event.release || '',
     environment: event.environment || '',
     event_id: event.event_id || '',
     transaction: event.transaction || '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
-    trace_id: (event?.contexts?.['trace']?.['trace_id'] as string) || '',
+    trace_id: trace_id || '',
     profile_id: profile.profile_id
   });
 }
@@ -198,7 +206,7 @@ function createProfilePayload(
   // warn users that this is happening if they enable debug flag
   if (trace_id && trace_id.length !== 32) {
     if (isDebugBuild()) {
-      logger.log('[Profiling] Invalid traceId: ' + trace_id + ' on profiled event');
+      logger.log(`[Profiling] Invalid traceId: ${  trace_id  } on profiled event`);
     }
   }
 
@@ -278,6 +286,9 @@ export function createProfilingEventEnvelope(
   return createEnvelope<EventEnvelope>(envelopeHeaders, [envelopeItem]);
 }
 
+/**
+ *
+ */
 export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent {
   return !!(event.sdkProcessingMetadata && event.sdkProcessingMetadata['profile']);
 }
@@ -285,12 +296,15 @@ export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent
 // Due to how profiles are attached to event metadata, we may sometimes want to remove them to ensure
 // they are not processed by other Sentry integrations. This can be the case when we cannot construct a valid
 // profile from the data we have or some of the mechanisms to send the event (Hub, Transport etc) are not available to us.
+/**
+ *
+ */
 export function maybeRemoveProfileFromSdkMetadata(event: Event | ProfiledEvent): Event {
   if (!isProfiledTransactionEvent(event)) {
     return event;
   }
 
-  delete event.sdkProcessingMetadata['profile'];
+  delete event.sdkProcessingMetadata.profile;
   return event;
 }
 
@@ -325,6 +339,9 @@ export function isValidSampleRate(rate: unknown): boolean {
   return true;
 }
 
+/**
+ *
+ */
 export function isValidProfile(profile: RawThreadCpuProfile): profile is RawThreadCpuProfile & { profile_id: string } {
   if (profile.samples.length <= 1) {
     if (isDebugBuild()) {
@@ -372,12 +389,15 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
       return;
     }
 
-    // First item is the type
+    // First item is the type, so we can skip it, everything else is an event
     for (let j = 1; j < item.length; j++) {
       const event = item[j];
 
-      // @ts-expect-error accessing private property
-      if (event && event.contexts && event.contexts['profile'] && event.contexts['profile']['profile_id']) {
+      // @ts-expect-error profile_id is not part of the metadata type
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const profile_id = event && event.contexts && event.contexts['profile'] && event.contexts['profile']['profile_id'];
+      
+      if (event && profile_id) {
         events.push(item[j] as Event);
       }
     }
@@ -387,6 +407,9 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
 }
 
 const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
+/**
+ *
+ */
 export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): DebugImage[] {
   const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
 
@@ -394,19 +417,21 @@ export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): Debug
     return [];
   }
 
-  const stackParser = Sentry.getCurrentHub?.()?.getClient()?.getOptions()?.stackParser;
+  const hub = Sentry.getCurrentHub();
+  const client = hub.getClient();
+  const options = client && client.getOptions();
 
-  if (!stackParser) {
+  if (!options || !options.stackParser) {
     return [];
   }
 
   let debugIdStackFramesCache: Map<string, StackFrame[]>;
-  const cachedDebugIdStackFrameCache = debugIdStackParserCache.get(stackParser);
+  const cachedDebugIdStackFrameCache = debugIdStackParserCache.get(options.stackParser);
   if (cachedDebugIdStackFrameCache) {
     debugIdStackFramesCache = cachedDebugIdStackFrameCache;
   } else {
     debugIdStackFramesCache = new Map<string, StackFrame[]>();
-    debugIdStackParserCache.set(stackParser, debugIdStackFramesCache);
+    debugIdStackParserCache.set(options.stackParser, debugIdStackFramesCache);
   }
 
   // Build a map of filename -> debug_id
@@ -417,13 +442,13 @@ export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): Debug
     if (cachedParsedStack) {
       parsedStack = cachedParsedStack;
     } else {
-      parsedStack = stackParser(debugIdStackTrace);
+      parsedStack = options.stackParser(debugIdStackTrace);
       debugIdStackFramesCache.set(debugIdStackTrace, parsedStack);
     }
 
     for (let i = parsedStack.length - 1; i >= 0; i--) {
       const stackFrame = parsedStack[i];
-      const file = stackFrame?.filename;
+      const file = stackFrame && stackFrame.filename;
 
       if (stackFrame && file) {
         acc[file] = debugIdMap[debugIdStackTrace] as string;
@@ -435,14 +460,12 @@ export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): Debug
 
   const images: DebugImage[] = [];
 
-  for (let i = 0; i < resource_paths.length; i++) {
-    const path = resource_paths[i];
-
-    if (path && filenameDebugIdMap[path]) {
+  for (const resource of resource_paths) {
+    if (resource && filenameDebugIdMap[resource]) {
       images.push({
         type: 'sourcemap',
-        code_file: path,
-        debug_id: filenameDebugIdMap[path] as string
+        code_file: resource,
+        debug_id: filenameDebugIdMap[resource] as string
       });
     }
   }

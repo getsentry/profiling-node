@@ -134,6 +134,7 @@ describe('hubextensions', () => {
     expect(logSpy.mock?.lastCall?.[0]).toBe('[Profiling] Discarding profile because it contains less than 2 samples');
 
     expect((transport.send as any).mock.calls[0][0][1][0][0].type).toBe('transaction');
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(transport.send).toHaveBeenCalledTimes(1);
   });
 

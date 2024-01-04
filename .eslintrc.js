@@ -15,7 +15,11 @@ module.exports = {
     'esm/**',
     'examples/**',
     'test/manual/**',
-    'types/**',
+    'benchmarks/**',
+    'playground/**',
+    'demo_app/**',
+    'test-binaries.entry.js',
+    'jest.config.ts'
   ],
   overrides: [
     {

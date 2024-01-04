@@ -38,11 +38,24 @@ function addToProfileQueue(profile: RawThreadCpuProfile): void {
 // and inspect each event to see if it is a transaction event and if that transaction event
 // contains a profile on it's metadata. If that is the case, we create a profiling event envelope
 // and delete the profile from the transaction metadata.
+/**
+ *
+ */
 export class ProfilingIntegration implements Integration {
-  name = 'ProfilingIntegration';
-  getCurrentHub?: () => Hub = undefined;
+  /*
+  * @inheritDoc
+  */
+  public readonly name: string;
+  public getCurrentHub?: () => Hub;
 
-  setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public constructor(){
+    this.name = 'ProfilingIntegration';
+  }
+
+  /**
+   *
+   */
+  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this.getCurrentHub = getCurrentHub;
     const client = this.getCurrentHub().getClient() as NodeClient;
 
@@ -59,6 +72,7 @@ export class ProfilingIntegration implements Integration {
 
           if (PROFILE_TIMEOUTS[profile_id]) {
             global.clearTimeout(PROFILE_TIMEOUTS[profile_id]);
+            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
             delete PROFILE_TIMEOUTS[profile_id];
           }
 
@@ -83,9 +97,10 @@ export class ProfilingIntegration implements Integration {
       client.on('finishTransaction', (transaction) => {
         // @ts-expect-error profile_id is not part of the metadata type
         const profile_id = transaction && transaction.metadata && transaction.metadata.profile_id;
-        if (profile_id) {
+        if (profile_id && typeof profile_id === 'string') {
           if (PROFILE_TIMEOUTS[profile_id]) {
             global.clearTimeout(PROFILE_TIMEOUTS[profile_id]);
+            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
             delete PROFILE_TIMEOUTS[profile_id];
           }
           const profile = stopTransactionProfile(transaction, profile_id);
@@ -109,17 +124,17 @@ export class ProfilingIntegration implements Integration {
 
         const profilesToAddToEnvelope: Profile[] = [];
 
-        for (let i = 0; i < profiledTransactionEvents.length; i++) {
-          const profiledTransaction = profiledTransactionEvents[i];
-          const profile_id = profiledTransaction?.contexts?.['profile']?.['profile_id'];
+        for (const profiledTransaction of profiledTransactionEvents) {
+          const profileContext = profiledTransaction.contexts && profiledTransaction.contexts['profile']
+          const profile_id = profileContext && profileContext['profile_id'];
 
           if (!profile_id) {
             throw new TypeError('[Profiling] cannot find profile for a transaction without a profile context');
           }
 
           // Remove the profile from the transaction context before sending, relay will take care of the rest.
-          if (profiledTransaction?.contexts?.['.profile']) {
-            delete profiledTransaction.contexts['profile'];
+          if (profiledTransaction.contexts && profiledTransaction.contexts['profile']) {
+            delete profiledTransaction.contexts.profile;
           }
 
           // We need to find both a profile and a transaction event for the same profile_id.
@@ -170,7 +185,10 @@ export class ProfilingIntegration implements Integration {
     }
   }
 
-  handleGlobalEvent(event: Event): Event {
+  /**
+   *
+   */
+  public async handleGlobalEvent(event: Event): Promise<Event> {
     if (this.getCurrentHub === undefined) {
       return maybeRemoveProfileFromSdkMetadata(event);
     }
@@ -217,6 +235,7 @@ export class ProfilingIntegration implements Integration {
       const envelope = createProfilingEventEnvelope(event, dsn);
 
       if (envelope) {
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
         transport.send(envelope);
       }
     }

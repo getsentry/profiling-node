@@ -27,22 +27,22 @@ const noop = () => {};
 
 suite
   .Suite()
-  .add(`Fibonacci`, () => {
+  .add('Fibonacci', () => {
     fibonacci(10);
   })
-  .add(`Fibonacci (profiled)`, () => {
+  .add('Fibonacci (profiled)', () => {
     CpuProfilerBindings.startProfiling('test');
     fibonacci(10);
     CpuProfilerBindings.stopProfiling('test');
   })
-  .add(`Disk I/O`, () => {
+  .add('Disk I/O', () => {
     const outfile = './profile.json';
     if (fs.existsSync(outfile)) {
       fs.unlinkSync(outfile);
     }
     fs.writeFileSync('profile.json', random(2 << 12));
   })
-  .add(`Disk I/O (profiled)`, () => {
+  .add('Disk I/O (profiled)', () => {
     CpuProfilerBindings.startProfiling('test');
     const outfile = './profile.json';
     if (fs.existsSync(outfile)) {

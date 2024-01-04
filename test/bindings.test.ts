@@ -22,7 +22,7 @@ const cases = [
 describe('GetFrameModule', () => {
   it.each(
     platform() === 'win32'
-      ? cases.map(([abs_path, expected]) => [abs_path ? 'C:' + abs_path.replace(/\//g, '\\') : '', expected])
+      ? cases.map(([abs_path, expected]) => [abs_path ? `C:${  abs_path.replace(/\//g, '\\')}` : '', expected])
       : cases
   )('%s => %s', (abs_path: string, expected: string) => {
     expect(PrivateCpuProfilerBindings.getFrameModule(abs_path)).toBe(expected);
