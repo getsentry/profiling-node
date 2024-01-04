@@ -235,6 +235,7 @@ export class ProfilingIntegration implements Integration {
       const envelope = createProfilingEventEnvelope(event, dsn);
 
       if (envelope) {
+        // Fire and forget, we don't want to block the main event processing flow.
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
         transport.send(envelope);
       }

@@ -424,9 +424,13 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
     for (let j = 1; j < item.length; j++) {
       const event = item[j];
 
+      if(!event){
+        // Shouldnt happen, but lets be safe
+        continue
+      }
+
       // @ts-expect-error profile_id is not part of the metadata type
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      const profile_id = event && event.contexts && event.contexts['profile'] && event.contexts['profile']['profile_id'];
+      const profile_id = event.contexts?.['profile']?.['profile_id'];
       
       if (event && profile_id) {
         events.push(item[j] as Event);
