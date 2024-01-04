@@ -297,6 +297,7 @@ jobs:
       - run: ls -l lib/
 
       - run: yarn link
+      - run: yarn install --production=true --frozen-lockfile
       - run: yarn test:setup:bundle
       - run: yarn test:${{matrix.bundler}}:build
       - run: yarn test:${{matrix.bundler}}:run
