@@ -22,5 +22,5 @@
     "typeRoots": ["node_modules/@types"]
   },
   "types": ["node"],
-  "exclude": ["src/**/*.test.ts", "scripts/**/*"]
+  "exclude": ["src/**/*.test.ts", "scripts/**/*", "benchmarks/**/*", "demo_app"]
 }
