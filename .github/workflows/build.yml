@@ -132,9 +132,7 @@ jobs:
           node-version: ${{ matrix.node }}
 
       - uses: actions/setup-python@v4
-        name: Setup python latest
-        with:
-          python-version: "3.11"
+        name: Setup python
 
       - name: Install dependencies
         run: yarn install --ignore-scripts --frozen-lockfile
