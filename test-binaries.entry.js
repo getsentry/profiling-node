@@ -1,6 +1,6 @@
 // See test-binaries.esbuild.mjs
 import * as Sentry from '@sentry/node';
-import { ProfilingIntegration } from './build';
+import { ProfilingIntegration } from './lib';
 import { setTimeout } from 'node:timers';
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
