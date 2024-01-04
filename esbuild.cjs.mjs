@@ -18,6 +18,6 @@ esbuild.build({
   format: 'cjs',
   target: 'node14',
   bundle: true,
-  tsconfig: './tsconfig.cjs.json',
+  tsconfig: './tsconfig.json',
   plugins: [missingBindingsPlugin]
 });
