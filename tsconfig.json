@@ -2,9 +2,8 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "outDir": "build",
-    "module": "umd",
-    "declaration": false,
-    "esModuleInterop": true
+    "module": "CommonJS",
+    "declaration": false
   },
   "include": ["src/**/*.ts"]
 }

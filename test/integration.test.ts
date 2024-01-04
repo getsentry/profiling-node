@@ -95,7 +95,7 @@ describe('ProfilingIntegration', () => {
       expect(transport.send).not.toHaveBeenCalled();
     });
 
-    it('when Hub.getClient returns undefined', () => {
+    it('when Hub.getClient returns undefined', async() => {
       const logSpy = jest.spyOn(logger, 'log');
       const integration = new ProfilingIntegration();
 
@@ -105,12 +105,12 @@ describe('ProfilingIntegration', () => {
       const addGlobalEventProcessor = () => void 0;
       integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
 
-      assertCleanProfile(integration.handleGlobalEvent(makeProfiledEvent()));
+      assertCleanProfile(await integration.handleGlobalEvent(makeProfiledEvent()));
       expect(logSpy).toHaveBeenCalledWith(
         '[Profiling] getClient did not return a Client, removing profile from event and forwarding to next event processors.'
       );
     });
-    it('when getDsn returns undefined', () => {
+    it('when getDsn returns undefined', async () => {
       const logSpy = jest.spyOn(logger, 'log');
       const integration = new ProfilingIntegration();
 
@@ -126,12 +126,12 @@ describe('ProfilingIntegration', () => {
       const addGlobalEventProcessor = () => void 0;
       integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
 
-      assertCleanProfile(integration.handleGlobalEvent(makeProfiledEvent()));
+      assertCleanProfile(await integration.handleGlobalEvent(makeProfiledEvent()));
       expect(logSpy).toHaveBeenCalledWith(
         '[Profiling] getDsn did not return a Dsn, removing profile from event and forwarding to next event processors.'
       );
     });
-    it('when getTransport returns undefined', () => {
+    it('when getTransport returns undefined', async () => {
       const logSpy = jest.spyOn(logger, 'log');
       const integration = new ProfilingIntegration();
 
@@ -150,13 +150,13 @@ describe('ProfilingIntegration', () => {
       const addGlobalEventProcessor = () => void 0;
       integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
 
-      assertCleanProfile(integration.handleGlobalEvent(makeProfiledEvent()));
+      assertCleanProfile(await integration.handleGlobalEvent(makeProfiledEvent()));
       expect(logSpy).toHaveBeenCalledWith(
         '[Profiling] getTransport did not return a Transport, removing profile from event and forwarding to next event processors.'
       );
     });
 
-    it('sends profile to sentry', () => {
+    it('sends profile to sentry', async () => {
       const logSpy = jest.spyOn(logger, 'log');
       const transport: Transport = {
         send: jest.fn().mockImplementation(() => Promise.resolve()),
@@ -184,7 +184,7 @@ describe('ProfilingIntegration', () => {
       const addGlobalEventProcessor = () => void 0;
       integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
 
-      assertCleanProfile(integration.handleGlobalEvent(makeProfiledEvent()));
+      assertCleanProfile(await integration.handleGlobalEvent(makeProfiledEvent()));
       expect(logSpy.mock.calls?.[1]?.[0]).toBe('[Profiling] Preparing envelope and sending a profiling event');
     });
   });
