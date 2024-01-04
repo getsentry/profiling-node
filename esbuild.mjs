@@ -14,7 +14,7 @@ let missingBindingsPlugin = {
 esbuild.build({
   platform: 'node',
   entryPoints: ['./src/index.ts'],
-  outfile: './build/index.js',
+  outfile: './lib/index.js',
   format: 'cjs',
   target: 'node16',
   bundle: true,

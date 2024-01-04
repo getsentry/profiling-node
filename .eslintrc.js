@@ -10,6 +10,7 @@ module.exports = {
   ignorePatterns: [
     'coverage/**',
     'build/**',
+    'lib/**',
     'dist/**',
     'cjs/**',
     'esm/**',

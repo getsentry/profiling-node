@@ -2,7 +2,7 @@
 // For example, if the profiler is started and stopped frequently, it is likely that the overhead is
 // going to be large due to frequent initialization. It also serves to give us a finer grained understanding
 // of where the profiler is spending time and where we may have regressed.
-const { CpuProfilerBindings } = require('./../../build/cpu_profiler');
+const { CpuProfilerBindings } = require('./../../lib/cpu_profiler');
 const { benchmark } = require('./utils');
 
 console.log('\nBenchmarking CPU profiler methods');

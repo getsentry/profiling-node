@@ -1,5 +1,5 @@
 const Sentry = require('@sentry/node');
-const { ProfilingIntegration } = require('./../../../../../build/');
+const { ProfilingIntegration } = require('./../../../../../lib/');
 
 function isNotTransaction(span) {
   return span.op !== 'jest test';

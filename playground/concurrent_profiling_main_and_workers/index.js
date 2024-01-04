@@ -1,7 +1,7 @@
 const Sentry = require('@sentry/node');
 const { writeFileSync, existsSync, unlinkSync } = require('fs');
 const { Worker } = require('node:worker_threads');
-const { ProfilingIntegration } = require('../../build/index'); // this has a addExtensionMethods side effect
+const { ProfilingIntegration } = require('../../lib/index'); // this has a addExtensionMethods side effect
 const path = require('path');
 
 if (existsSync(path.resolve(__dirname, 'main.profile.json'))) {

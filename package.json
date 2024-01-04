@@ -6,8 +6,8 @@
     "type": "git",
     "url": "https://github.com/getsentry/profiling-node.git"
   },
-  "main": "build/index.js",
-  "types": "build/index.d.ts",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "bin": {
     "sentry-prune-profiler-binaries": "scripts/prune-profiler-binaries.mjs"
   },
@@ -15,7 +15,7 @@
     "node": ">=8.0.0"
   },
   "files": [
-    "build",
+    "lib",
     "bindings",
     "binding.gyp",
     "LICENSE",

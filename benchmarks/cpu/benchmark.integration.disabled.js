@@ -1,8 +1,8 @@
 const Sentry = require('@sentry/node');
-require('../../build/index.js');
+require('../../lib/index.js');
 
 const { benchmark, fibonacci } = require('./utils');
-const { ProfilingIntegration } = require('../../build/index'); // this has a addExtensionMethods side effect
+const { ProfilingIntegration } = require('../../lib/index'); // this has a addExtensionMethods side effect
 
 const transport = () => {
   return {
