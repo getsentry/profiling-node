@@ -8,30 +8,30 @@ Profiling worker threads requires the Sentry SDK to be initialized per thread. I
 
 ```ts
 // cpuintense.worker.js
-const Sentry = require('@sentry/node');
-const { parentPort } = require('node:worker_threads');
-const { ProfilingIntegration } = require('@sentry/profiler-node'); // this has a addExtensionMethods side effect
+const Sentry = require("@sentry/node");
+const { parentPort } = require("node:worker_threads");
+const { ProfilingIntegration } = require("@sentry/profiler-node"); // this has a addExtensionMethods side effect
 
 Sentry.init({
-  dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
+  dsn: "https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302",
   debug: true,
   tracesSampleRate: 1,
   profilesSampleRate: 1,
-  integrations: [new ProfilingIntegration()]
+  integrations: [new ProfilingIntegration()],
 });
 
-/*
+/**
  * Synchronous worker example
  */
-const transaction = Sentry.startTransaction({ name: 'worker_profiling' });
+const transaction = Sentry.startTransaction({ name: "worker_profiling" });
 // The code between these two calls will be profiled.
 transaction.finish();
 
 /*
  * Asynchronous worker example
  */
-parentPort.on('message', () => {
-  const transaction = Sentry.startTransaction({ name: 'worker_profiling' });
+parentPort.on("message", () => {
+  const transaction = Sentry.startTransaction({ name: "worker_profiling" });
   // The code between these two calls will be profiled each time a message is received
   transaction.finish();
 });

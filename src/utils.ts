@@ -38,14 +38,21 @@ const TYPE = os.type();
 const MODEL = os.machine ? os.machine() : os.arch();
 const ARCH = os.arch();
 
+/**
+ * Checks if the profile is a raw profile or a profile enriched with thread information.
+ * @param {ThreadCpuProfile | RawThreadCpuProfile} profile
+ * @returns {boolean}
+ */
 function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile): profile is RawThreadCpuProfile {
   return !('thread_metadata' in profile);
 }
 
-// Enriches the profile with threadId of the current thread.
-// This is done in node as we seem to not be able to get the info from C native code.
 /**
- *
+ * Enriches the profile with threadId of the current thread.
+ * This is done in node as we seem to not be able to get the info from C native code.
+ * 
+ * @param {ThreadCpuProfile | RawThreadCpuProfile} profile
+ * @returns {ThreadCpuProfile}
  */
 export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThreadCpuProfile): ThreadCpuProfile {
   if (!isRawThreadCpuProfile(profile)) {
@@ -64,7 +71,11 @@ export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThrea
   };
 }
 
-/** Extract sdk info from from the API metadata */
+/**
+ * Extract sdk info from from the API metadata 
+ * @param {SdkMetadata | undefined} metadata
+ * @returns {SdkInfo | undefined}
+ */
 function getSdkMetadataForEnvelopeHeader(metadata?: SdkMetadata): SdkInfo | undefined {
   if (!metadata || !metadata.sdk) {
     return undefined;
@@ -76,7 +87,11 @@ function getSdkMetadataForEnvelopeHeader(metadata?: SdkMetadata): SdkInfo | unde
 /**
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
  * Merge with existing data if any.
- **/
+ * 
+ * @param {Event} event
+ * @param {SdkInfo | undefined} sdkInfo
+ * @returns {Event}
+ */
 function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
   if (!sdkInfo) {
     return event;
@@ -89,6 +104,14 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
   return event;
 }
 
+/**
+ * 
+ * @param {Event} event
+ * @param {SdkInfo | undefined} sdkInfo
+ * @param {string | undefined} tunnel
+ * @param {DsnComponents} dsn
+ * @returns {EventEnvelopeHeaders}
+ */
 function createEventEnvelopeHeaders(
   event: Event,
   sdkInfo: SdkInfo | undefined,
@@ -112,7 +135,7 @@ function createEventEnvelopeHeaders(
 /**
  * Creates a profiling event envelope from a Sentry event. If profile does not pass
  * validation, returns null.
- * @param event
+ * @param {Event}
  * @returns {Profile | null}
  */
 export function createProfilingEventFromTransaction(event: ProfiledEvent): Profile | null {
@@ -154,7 +177,8 @@ export function createProfilingEventFromTransaction(event: ProfiledEvent): Profi
 
 /**
  * Creates a profiling envelope item, if the profile does not pass validation, returns null.
- * @param event
+ * @param {RawThreadCpuProfile}
+ * @param {Event}
  * @returns {Profile | null}
  */
 export function createProfilingEvent(profile: RawThreadCpuProfile, event: Event): Profile | null {
@@ -177,10 +201,11 @@ export function createProfilingEvent(profile: RawThreadCpuProfile, event: Event)
 
 /**
  * Create a profile
- * @param profile
- * @param options
- * @returns
+ * @param {RawThreadCpuProfile} cpuProfile
+ * @param {options}
+ * @returns {Profile}
  */
+
 function createProfilePayload(
   cpuProfile: RawThreadCpuProfile,
   {
@@ -253,11 +278,11 @@ function createProfilePayload(
 
 /**
  * Creates an envelope from a profiling event.
- * @param event Profile
- * @param dsn
- * @param metadata
- * @param tunnel
- * @returns
+ * @param {Event} Profile
+ * @param {DsnComponents} dsn
+ * @param {SdkMetadata} metadata
+ * @param {string|undefined} tunnel
+ * @returns {Envelope|null}
  */
 export function createProfilingEventEnvelope(
   event: ProfiledEvent,
@@ -287,17 +312,21 @@ export function createProfilingEventEnvelope(
 }
 
 /**
- *
+ * Check if event metadata contains profile information
+ * @param {Event}
+ * @returns {boolean}
  */
 export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent {
   return !!(event.sdkProcessingMetadata && event.sdkProcessingMetadata['profile']);
 }
 
-// Due to how profiles are attached to event metadata, we may sometimes want to remove them to ensure
-// they are not processed by other Sentry integrations. This can be the case when we cannot construct a valid
-// profile from the data we have or some of the mechanisms to send the event (Hub, Transport etc) are not available to us.
 /**
- *
+ * Due to how profiles are attached to event metadata, we may sometimes want to remove them to ensure
+ * they are not processed by other Sentry integrations. This can be the case when we cannot construct a valid
+ * profile from the data we have or some of the mechanisms to send the event (Hub, Transport etc) are not available to us.
+ * 
+ * @param {Event | ProfiledEvent} event
+ * @returns {Event}
  */
 export function maybeRemoveProfileFromSdkMetadata(event: Event | ProfiledEvent): Event {
   if (!isProfiledTransactionEvent(event)) {
@@ -310,6 +339,8 @@ export function maybeRemoveProfileFromSdkMetadata(event: Event | ProfiledEvent):
 
 /**
  * Checks the given sample rate to make sure it is valid type and value (a boolean, or a number between 0 and 1).
+ * @param {unknown} rate
+ * @returns {boolean}
  */
 export function isValidSampleRate(rate: unknown): boolean {
   // we need to check NaN explicitly because it's of type 'number' and therefore wouldn't get caught by this typecheck
@@ -340,7 +371,9 @@ export function isValidSampleRate(rate: unknown): boolean {
 }
 
 /**
- *
+ * Checks if the profile is valid and can be sent to Sentry.
+ * @param {RawThreadCpuProfile} profile
+ * @returns {boolean}
  */
 export function isValidProfile(profile: RawThreadCpuProfile): profile is RawThreadCpuProfile & { profile_id: string } {
   if (profile.samples.length <= 1) {
@@ -362,7 +395,9 @@ export function isValidProfile(profile: RawThreadCpuProfile): profile is RawThre
 
 /**
  * Adds items to envelope if they are not already present - mutates the envelope.
- * @param envelope
+ * @param {Envelope} envelope
+ * @param {Profile[]} profiles
+ * @returns {Envelope}
  */
 export function addProfilesToEnvelope(envelope: Envelope, profiles: Profile[]): Envelope {
   if (!profiles.length) {
@@ -378,8 +413,8 @@ export function addProfilesToEnvelope(envelope: Envelope, profiles: Profile[]): 
 
 /**
  * Finds transactions with profile_id context in the envelope
- * @param envelope
- * @returns
+ * @param {Envelope} envelope
+ * @returns {Event[]}
  */
 export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[] {
   const events: Event[] = [];
@@ -407,8 +442,11 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
 }
 
 const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
+
 /**
- *
+ * Cross reference profile collected resources with debug_ids and return a list of debug images.
+ * @param {string[]} resource_paths
+ * @returns {DebugImage[]}
  */
 export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): DebugImage[] {
   const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
@@ -434,7 +472,7 @@ export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): Debug
     debugIdStackParserCache.set(options.stackParser, debugIdStackFramesCache);
   }
 
-  // Build a map of filename -> debug_id
+  // Build a map of filename -> debug_id.
   const filenameDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
     let parsedStack: StackFrame[];
 

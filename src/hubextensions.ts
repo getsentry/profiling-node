@@ -15,10 +15,9 @@ type StartTransaction = (
   customSamplingContext?: CustomSamplingContext
 ) => Transaction;
 
-// Takes a transaction and determines if it should be profiled or not. If it should be profiled, it returns the
-// profile_id, otherwise returns undefined. Takes care of setting profile context on transaction as well
 /**
- *
+ * Takes a transaction and determines if it should be profiled or not. If it should be profiled, it returns the
+ * profile_id, otherwise returns undefined. Takes care of setting profile context on transaction as well
  */
 export function maybeProfileTransaction(
   client: NodeClient | undefined,
@@ -142,11 +141,10 @@ export function stopTransactionProfile(
   return profile;
 }
 
-// Wraps startTransaction and stopTransaction with profiling related logic.
-// startProfiling is called after the call to startTransaction in order to avoid our own code from
-// being profiled. Because of that same reason, stopProfiling is called before the call to stopTransaction.
 /**
- *
+ * Wraps startTransaction and stopTransaction with profiling related logic.
+ * startProfiling is called after the call to startTransaction in order to avoid our own code from
+ * being profiled. Because of that same reason, stopProfiling is called before the call to stopTransaction.
  */
 export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: StartTransaction): StartTransaction {
   return function wrappedStartTransaction(

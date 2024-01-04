@@ -34,15 +34,14 @@ function addToProfileQueue(profile: RawThreadCpuProfile): void {
   }
 }
 
-// We need this integration in order to actually send data to Sentry. We hook into the event processor
-// and inspect each event to see if it is a transaction event and if that transaction event
-// contains a profile on it's metadata. If that is the case, we create a profiling event envelope
-// and delete the profile from the transaction metadata.
 /**
- *
+ * We need this integration in order to send data to Sentry. We hook into the event processor
+ * and inspect each event to see if it is a transaction event and if that transaction event
+ * contains a profile on it's metadata. If that is the case, we create a profiling event envelope
+ * and delete the profile from the transaction metadata.
  */
 export class ProfilingIntegration implements Integration {
-  /*
+  /**
   * @inheritDoc
   */
   public readonly name: string;
@@ -53,7 +52,7 @@ export class ProfilingIntegration implements Integration {
   }
 
   /**
-   *
+   * @inheritDoc
    */
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this.getCurrentHub = getCurrentHub;
@@ -187,7 +186,7 @@ export class ProfilingIntegration implements Integration {
   }
 
   /**
-   *
+   * @inheritDoc
    */
   public async handleGlobalEvent(event: Event): Promise<Event> {
     if (this.getCurrentHub === undefined) {
