@@ -288,7 +288,6 @@ jobs:
 
       - run: yarn install --frozen-lockfile
       - run: yarn build:lib
-      - run: rm -rf ./node_modules
 
       - uses: actions/download-artifact@v3
         with:
@@ -297,7 +296,6 @@ jobs:
       - run: ls -l lib/
 
       - run: yarn link
-      - run: yarn install --production=true --frozen-lockfile
       - run: yarn test:setup:bundle
       - run: yarn test:${{matrix.bundler}}:build
       - run: yarn test:${{matrix.bundler}}:run
