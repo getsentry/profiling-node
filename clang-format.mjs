@@ -10,7 +10,7 @@ execSync(cmd)
 
 log("clang-format: done, checking tree...")
 
-const diff = execSync(`git diff-index --quiet --cached HEAD --`).toString()
+const diff = execSync(`git status --short`).toString()
 
 console.log(diff)
 if(diff) {
