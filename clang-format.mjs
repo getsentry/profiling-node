@@ -10,9 +10,7 @@ if(process.argv.includes("--fix")){
     args.unshift("-i")
 }
 
-const out = execSync(
-  `clang-format ${args.join(" ")}`,
-  {stdio: "inherit"}
-);
+const cmd  = `clang-format ${args.join(" ")}`;
+const out = execSync(cmd,{stdio: "inherit"});
 
 console.log(out)
