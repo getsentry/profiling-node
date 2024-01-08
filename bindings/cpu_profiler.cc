@@ -232,12 +232,10 @@ class Profiler {
   explicit Profiler(const napi_env &env, v8::Isolate *isolate)
       : measurements_ticker(uv_default_loop()),
         cpu_profiler(
-            v8::CpuProfiler::New(isolate, kNamingMode, GetLoggingMode())) {
-  }
+            v8::CpuProfiler::New(isolate, kNamingMode, GetLoggingMode())) {}
 };
 
-class 
-SentryProfile {
+class SentryProfile {
  private:
   uint64_t started_at;
   uint16_t heap_write_index = 0;
@@ -1038,10 +1036,10 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
   return js_profile;
 };
 
-void FreeAddonData(napi_env env, void *data, void* hint) {
+void FreeAddonData(napi_env env, void *data, void *hint) {
   Profiler *profiler = static_cast<Profiler *>(data);
 
-  if(profiler == nullptr){
+  if (profiler == nullptr) {
     return;
   }
 
@@ -1051,7 +1049,7 @@ void FreeAddonData(napi_env env, void *data, void* hint) {
     }
   }
 
-  if (profiler->cpu_profiler != nullptr){
+  if (profiler->cpu_profiler != nullptr) {
     profiler->cpu_profiler->Dispose();
   }
 
@@ -1069,8 +1067,7 @@ napi_value Init(napi_env env, napi_value exports) {
 
   Profiler *profiler = new Profiler(env, isolate);
 
-  if (napi_set_instance_data(env, profiler, FreeAddonData, NULL) !=
-      napi_ok) {
+  if (napi_set_instance_data(env, profiler, FreeAddonData, NULL) != napi_ok) {
     napi_throw_error(env, nullptr, "Failed to set instance data for profiler.");
     return NULL;
   }

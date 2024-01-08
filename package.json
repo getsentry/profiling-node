@@ -32,7 +32,7 @@
     "clean": "rm -rf ./lib && rm -rf build",
     "lint": "npm run lint:eslint && npm run lint:clang",
     "lint:eslint": "eslint . --format stylish",
-    "lint:clang": "./node_modules/.bin/check-clang-format --style=file",
+    "lint:clang": "./node_modules/.bin/check-clang-format --style=file -i ./**/*.cc",
     "fix": "npm run fix:eslint && npm run fix:clang",
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:clang": "./node_modules/.bin/clang-format --style=file -i ./**/*.cc ",
