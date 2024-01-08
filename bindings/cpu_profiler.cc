@@ -105,6 +105,11 @@ class MeasurementsTicker {
                            const std::function<bool(uint64_t, double)> &cb);
 
   size_t listener_count();
+
+  ~MeasurementsTicker() {
+    uv_timer_stop(&timer);
+    uv_close(reinterpret_cast<uv_handle_t *>(&timer), nullptr);
+  }
 };
 
 size_t MeasurementsTicker::listener_count() {
@@ -227,11 +232,7 @@ class Profiler {
   explicit Profiler(const napi_env &env, v8::Isolate *isolate)
       : measurements_ticker(uv_default_loop()),
         cpu_profiler(
-            v8::CpuProfiler::New(isolate, kNamingMode, GetLoggingMode())) {
-    napi_add_env_cleanup_hook(env, DeleteInstance, this);
-  }
-
-  static void DeleteInstance(void *data);
+            v8::CpuProfiler::New(isolate, kNamingMode, GetLoggingMode())) {}
 };
 
 class SentryProfile {
@@ -332,20 +333,10 @@ static void CleanupSentryProfile(Profiler *profiler,
     return;
   }
 
+  sentry_profile->Stop(profiler);
   profiler->active_profiles.erase(profile_id);
   delete sentry_profile;
 };
-
-void Profiler::DeleteInstance(void *data) {
-  Profiler *profiler = static_cast<Profiler *>(data);
-
-  for (auto &profile : profiler->active_profiles) {
-    CleanupSentryProfile(profiler, profile.second, profile.first);
-  }
-
-  profiler->cpu_profiler->Dispose();
-  delete profiler;
-}
 
 v8::CpuProfile *SentryProfile::Stop(Profiler *profiler) {
   // Stop the CPU Profiler
@@ -1045,6 +1036,26 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
   return js_profile;
 };
 
+void FreeAddonData(napi_env env, void *data, void *hint) {
+  Profiler *profiler = static_cast<Profiler *>(data);
+
+  if (profiler == nullptr) {
+    return;
+  }
+
+  if (!profiler->active_profiles.empty()) {
+    for (auto &profile : profiler->active_profiles) {
+      CleanupSentryProfile(profiler, profile.second, profile.first);
+    }
+  }
+
+  if (profiler->cpu_profiler != nullptr) {
+    profiler->cpu_profiler->Dispose();
+  }
+
+  delete profiler;
+}
+
 napi_value Init(napi_env env, napi_value exports) {
   v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
@@ -1056,22 +1067,14 @@ napi_value Init(napi_env env, napi_value exports) {
 
   Profiler *profiler = new Profiler(env, isolate);
 
-  if (napi_set_instance_data(env, profiler, NULL, NULL) != napi_ok) {
+  if (napi_set_instance_data(env, profiler, FreeAddonData, NULL) != napi_ok) {
     napi_throw_error(env, nullptr, "Failed to set instance data for profiler.");
-    return NULL;
-  }
-
-  napi_value external;
-  if (napi_create_external(env, profiler, nullptr, nullptr, &external) !=
-      napi_ok) {
-    napi_throw_error(env, nullptr,
-                     "Failed to create external for profiler instance.");
     return NULL;
   }
 
   napi_value start_profiling;
   if (napi_create_function(env, "startProfiling", NAPI_AUTO_LENGTH,
-                           StartProfiling, external,
+                           StartProfiling, exports,
                            &start_profiling) != napi_ok) {
     napi_throw_error(env, nullptr, "Failed to create startProfiling function.");
     return NULL;
@@ -1086,7 +1089,7 @@ napi_value Init(napi_env env, napi_value exports) {
 
   napi_value stop_profiling;
   if (napi_create_function(env, "stopProfiling", NAPI_AUTO_LENGTH,
-                           StopProfiling, external,
+                           StopProfiling, exports,
                            &stop_profiling) != napi_ok) {
     napi_throw_error(env, nullptr, "Failed to create stopProfiling function.");
     return NULL;
@@ -1101,7 +1104,7 @@ napi_value Init(napi_env env, napi_value exports) {
 
   napi_value get_frame_module;
   if (napi_create_function(env, "getFrameModule", NAPI_AUTO_LENGTH,
-                           GetFrameModuleWrapped, external,
+                           GetFrameModuleWrapped, exports,
                            &get_frame_module) != napi_ok) {
     napi_throw_error(env, nullptr, "Failed to create getFrameModule function.");
     return NULL;
