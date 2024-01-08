@@ -1,16 +1,9 @@
 import { execSync } from "child_process";
 import { exit } from "process";
-import {error} from "console"
+import {error, log} from "console"
 import process from "process";
 
-const args = ["--Werror", "--style=file", "bindings/cpu_profiler.cc"];
+const args = ["--Werror", "-i", "--style=file", "bindings/cpu_profiler.cc"];
+const cmd  = `./node_modules/.bin/clang-format ${args.join(" ")}`;
 
-if(process.argv.includes("--fix")){
-    // Edit in place
-    args.unshift("-i")
-}
-
-const cmd  = `clang-format ${args.join(" ")}`;
-const out = execSync(cmd,{stdio: "inherit"});
-
-console.log(out)
+execSync(cmd)
