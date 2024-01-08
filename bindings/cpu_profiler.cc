@@ -1045,13 +1045,13 @@ void FreeAddonData(napi_env env, void *data, void* hint) {
     return;
   }
 
-  if (profiler->active_profiles.size() > 0) {
+  if (!profiler->active_profiles.empty()) {
     for (auto &profile : profiler->active_profiles) {
       CleanupSentryProfile(profiler, profile.second, profile.first);
     }
   }
 
-  if(profiler->cpu_profiler != nullptr){
+  if (profiler->cpu_profiler != nullptr){
     profiler->cpu_profiler->Dispose();
   }
 
