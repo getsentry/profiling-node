@@ -1,3 +1,10 @@
+## 1.3.3
+
+### Various fixes & improvements
+
+- ci: make clang-format error when formatting errors are raised. (#230) by @JonasBa
+- fix: cleanup timer and reuse exports (#229) by @JonasBa
+
 ## 1.3.2
 
 ### Various fixes & improvements
