@@ -1,18 +1,15 @@
 
-#include <node_api.h>
-
 #include <assert.h>
 #include <math.h>
+#include <node_api.h>
 #include <string.h>
+#include <uv.h>
+#include <v8-profiler.h>
+#include <v8.h>
 
 #include <functional>
 #include <string>
 #include <unordered_map>
-
-#include <v8-profiler.h>
-#include <v8.h>
-
-#include <uv.h>
 
 #define FORMAT_SAMPLED 2
 #define FORMAT_RAW 1
@@ -26,13 +23,13 @@
 #endif
 
 static const uint8_t kMaxStackDepth(128);
-static const float kSamplingFrequency(99.0); // 99 to avoid lockstep sampling
+static const float kSamplingFrequency(99.0);  // 99 to avoid lockstep sampling
 static const float kSamplingHz(1 / kSamplingFrequency);
 static const int kSamplingInterval(kSamplingHz * 1e6);
-static const v8::CpuProfilingNamingMode
-    kNamingMode(v8::CpuProfilingNamingMode::kDebugNaming);
-static const v8::CpuProfilingLoggingMode
-    kDefaultLoggingMode(v8::CpuProfilingLoggingMode::kEagerLogging);
+static const v8::CpuProfilingNamingMode kNamingMode(
+    v8::CpuProfilingNamingMode::kDebugNaming);
+static const v8::CpuProfilingLoggingMode kDefaultLoggingMode(
+    v8::CpuProfilingLoggingMode::kEagerLogging);
 
 // Allow users to override the default logging mode via env variable. This is
 // useful because sometimes the flow of the profiled program can be to execute
@@ -54,8 +51,7 @@ v8::CpuProfilingLoggingMode GetLoggingMode() {
   // other times it'll likely be set to lazy as eager is the default
   if (strcmp(logging_mode, kLazyLoggingMode) == 0) {
     return v8::CpuProfilingLoggingMode::kLazyLogging;
-  }
-  else if (strcmp(logging_mode, kEagerLoggingMode) == 0) {
+  } else if (strcmp(logging_mode, kEagerLoggingMode) == 0) {
     return v8::CpuProfilingLoggingMode::kEagerLogging;
   }
 
@@ -72,7 +68,7 @@ enum class ProfileStatus {
 };
 
 class MeasurementsTicker {
-private:
+ private:
   uv_timer_t timer;
   uint64_t period_ms;
   std::unordered_map<std::string,
@@ -84,7 +80,7 @@ private:
   v8::HeapStatistics heap_stats;
   uv_cpu_info_t cpu_stats;
 
-public:
+ public:
   MeasurementsTicker(uv_loop_t *loop)
       : period_ms(100), isolate(v8::Isolate::GetCurrent()) {
     uv_timer_init(loop, &timer);
@@ -109,6 +105,11 @@ public:
                            const std::function<bool(uint64_t, double)> &cb);
 
   size_t listener_count();
+
+  ~MeasurementsTicker() {
+    uv_timer_stop(&timer);
+    uv_close(reinterpret_cast<uv_handle_t *>(&timer), nullptr);
+  }
 };
 
 size_t MeasurementsTicker::listener_count() {
@@ -222,7 +223,7 @@ void MeasurementsTicker::remove_cpu_listener(
 };
 
 class Profiler {
-public:
+ public:
   std::unordered_map<std::string, SentryProfile *> active_profiles;
 
   MeasurementsTicker measurements_ticker;
@@ -232,14 +233,12 @@ public:
       : measurements_ticker(uv_default_loop()),
         cpu_profiler(
             v8::CpuProfiler::New(isolate, kNamingMode, GetLoggingMode())) {
-    napi_add_env_cleanup_hook(env, DeleteInstance, this);
   }
-
-  static void DeleteInstance(void *data);
 };
 
-class SentryProfile {
-private:
+class 
+SentryProfile {
+ private:
   uint64_t started_at;
   uint16_t heap_write_index = 0;
   uint16_t cpu_write_index = 0;
@@ -256,7 +255,7 @@ private:
   ProfileStatus status = ProfileStatus::kNotStarted;
   std::string id;
 
-public:
+ public:
   explicit SentryProfile(const char *id)
       : started_at(uv_hrtime()),
         memory_sampler_cb([this](uint64_t ts, v8::HeapStatistics &stats) {
@@ -288,7 +287,8 @@ public:
           return false;
         }),
 
-        status(ProfileStatus::kNotStarted), id(id) {
+        status(ProfileStatus::kNotStarted),
+        id(id) {
     heap_stats_ts.reserve(300);
     heap_stats_usage.reserve(300);
     cpu_stats_ts.reserve(300);
@@ -335,20 +335,10 @@ static void CleanupSentryProfile(Profiler *profiler,
     return;
   }
 
+  sentry_profile->Stop(profiler);
   profiler->active_profiles.erase(profile_id);
   delete sentry_profile;
 };
-
-void Profiler::DeleteInstance(void *data) {
-  Profiler *profiler = static_cast<Profiler *>(data);
-
-  for (auto &profile : profiler->active_profiles) {
-    CleanupSentryProfile(profiler, profile.second, profile.first);
-  }
-
-  profiler->cpu_profiler->Dispose();
-  delete profiler;
-}
 
 v8::CpuProfile *SentryProfile::Stop(Profiler *profiler) {
   // Stop the CPU Profiler
@@ -470,10 +460,10 @@ static napi_value GetFrameModuleWrapped(napi_env env, napi_callback_info info) {
   return napi_module;
 }
 
-napi_value
-CreateFrameNode(const napi_env &env, const v8::CpuProfileNode &node,
-                std::unordered_map<std::string, std::string> &module_cache,
-                napi_value &resources) {
+napi_value CreateFrameNode(
+    const napi_env &env, const v8::CpuProfileNode &node,
+    std::unordered_map<std::string, std::string> &module_cache,
+    napi_value &resources) {
   napi_value js_node;
   napi_create_object(env, &js_node);
 
@@ -681,11 +671,10 @@ static void GetSamples(const napi_env &env, const v8::CpuProfile *profile,
   }
 }
 
-static napi_value
-TranslateMeasurementsDouble(const napi_env &env, const char *unit,
-                            const uint16_t size,
-                            const std::vector<double> &values,
-                            const std::vector<uint64_t> &timestamps) {
+static napi_value TranslateMeasurementsDouble(
+    const napi_env &env, const char *unit, const uint16_t size,
+    const std::vector<double> &values,
+    const std::vector<uint64_t> &timestamps) {
   if (size > values.size() || size > timestamps.size()) {
     napi_throw_range_error(env, "NAPI_ERROR",
                            "CPU measurement size is larger than the number of "
@@ -736,10 +725,10 @@ TranslateMeasurementsDouble(const napi_env &env, const char *unit,
   return measurement;
 }
 
-static napi_value
-TranslateMeasurements(const napi_env &env, const char *unit,
-                      const uint16_t size, const std::vector<uint64_t> &values,
-                      const std::vector<uint64_t> &timestamps) {
+static napi_value TranslateMeasurements(
+    const napi_env &env, const char *unit, const uint16_t size,
+    const std::vector<uint64_t> &values,
+    const std::vector<uint64_t> &timestamps) {
   if (size > values.size() || size > timestamps.size()) {
     napi_throw_range_error(env, "NAPI_ERROR",
                            "Memory measurement size is larger than the number "
@@ -1049,6 +1038,26 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info) {
   return js_profile;
 };
 
+void FreeAddonData(napi_env env, void *data, void* hint) {
+  Profiler *profiler = static_cast<Profiler *>(data);
+
+  if(profiler == nullptr){
+    return;
+  }
+
+  if (profiler->active_profiles.size() > 0) {
+    for (auto &profile : profiler->active_profiles) {
+      CleanupSentryProfile(profiler, profile.second, profile.first);
+    }
+  }
+
+  if(profiler->cpu_profiler != nullptr){
+    profiler->cpu_profiler->Dispose();
+  }
+
+  delete profiler;
+}
+
 napi_value Init(napi_env env, napi_value exports) {
   v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
@@ -1060,22 +1069,15 @@ napi_value Init(napi_env env, napi_value exports) {
 
   Profiler *profiler = new Profiler(env, isolate);
 
-  if (napi_set_instance_data(env, profiler, NULL, NULL) != napi_ok) {
-    napi_throw_error(env, nullptr, "Failed to set instance data for profiler.");
-    return NULL;
-  }
-
-  napi_value external;
-  if (napi_create_external(env, profiler, nullptr, nullptr, &external) !=
+  if (napi_set_instance_data(env, profiler, FreeAddonData, NULL) !=
       napi_ok) {
-    napi_throw_error(env, nullptr,
-                     "Failed to create external for profiler instance.");
+    napi_throw_error(env, nullptr, "Failed to set instance data for profiler.");
     return NULL;
   }
 
   napi_value start_profiling;
   if (napi_create_function(env, "startProfiling", NAPI_AUTO_LENGTH,
-                           StartProfiling, external,
+                           StartProfiling, exports,
                            &start_profiling) != napi_ok) {
     napi_throw_error(env, nullptr, "Failed to create startProfiling function.");
     return NULL;
@@ -1090,7 +1092,7 @@ napi_value Init(napi_env env, napi_value exports) {
 
   napi_value stop_profiling;
   if (napi_create_function(env, "stopProfiling", NAPI_AUTO_LENGTH,
-                           StopProfiling, external,
+                           StopProfiling, exports,
                            &stop_profiling) != napi_ok) {
     napi_throw_error(env, nullptr, "Failed to create stopProfiling function.");
     return NULL;
@@ -1105,7 +1107,7 @@ napi_value Init(napi_env env, napi_value exports) {
 
   napi_value get_frame_module;
   if (napi_create_function(env, "getFrameModule", NAPI_AUTO_LENGTH,
-                           GetFrameModuleWrapped, external,
+                           GetFrameModuleWrapped, exports,
                            &get_frame_module) != napi_ok) {
     napi_throw_error(env, nullptr, "Failed to create getFrameModule function.");
     return NULL;
