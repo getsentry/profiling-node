@@ -12,7 +12,6 @@ log("clang-format: done, checking tree...")
 
 const diff = execSync(`git status --short`).toString()
 
-console.log(diff)
 if(diff) {
     error("clang-format: check failed ❌")
     exit(1)
