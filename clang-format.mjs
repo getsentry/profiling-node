@@ -10,8 +10,9 @@ execSync(cmd)
 
 log("clang-format: done, checking tree...")
 
-const diff = execSync(`git diff-index --quiet --cached HEAD --`)
+const diff = execSync(`git diff-index --quiet --cached HEAD --`).toString()
 
+console.log(diff)
 if(diff) {
     error("clang-format: check failed ❌")
     exit(1)
