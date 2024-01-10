@@ -9,20 +9,20 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-      - run: npm ci
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - run: yarn install --frozen-lockfile
       - run: |
           git config clangFormat.binary node_modules/.bin/clang-format
           git config clangFormat.style file
-          npm run lint
+          yarn lint
 
   build-test-matrix:
     strategy:
       fail-fast: false
       matrix:
         os: [macos-latest, windows-2019, ubuntu-latest]
-        node-version: [14.x, 16.x, 18.x, 20.x]
+        node-version: [16.x, 18.x, 20.x]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -33,13 +33,13 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
-      - run: npm run clean
+      - run: yarn clean
 
       - name: Setup windows build tools
         uses: microsoft/setup-msbuild@v1.1
         if: ${{ runner.os == 'Windows' }}
 
-      - run: npm install
-      - run: npm run build:configure
-      - run: npm run build
-      - run: npm run test --silent
+      - run: yarn install --frozen-lockfile
+      - run: yarn build:configure
+      - run: yarn build
+      - run: yarn test --silent

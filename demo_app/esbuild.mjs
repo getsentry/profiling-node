@@ -15,5 +15,5 @@ esbuild.build({
   loader: {
     '.node': 'copy'
   },
-  tsconfig: path.resolve(__dirname, '../tsconfig.cjs.json')
+  tsconfig: path.resolve(__dirname, '../tsconfig.json')
 });

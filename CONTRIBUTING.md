@@ -20,17 +20,17 @@ Because the repository requires you to compile the c++ bindings via node-gyp, we
 
 Since we are using [`TypeScript`](https://www.typescriptlang.org/) and native node addons, you need to transpile the code to JavaScript and compile the c++ bindings in order to be able to run the addon.
 
-- `npm run build` will compile the c++ bindings and ts files.
-- `npm run build:lib` will compile only the ts files
-- `npm run build:bindings` will compile the c++ bindings
+- `yarn build` will compile the c++ bindings and ts files.
+- `yarn build:lib` will compile ts files
+- `yarn build:bindings` will compile c++ bindings
 
 ## Tests
 
-Tests are colocated with source files and should have a .test.ts suffix. The entire test suite can be ran using the `npm run test` command.
+Tests are colocated with source files and should have a .test.ts suffix. The entire test suite can be ran using the `yarn test` command.
 
 ## Linting
 
-Similar to building and testing, linting can be done via `npm run lint` command.
+Similar to building and testing, linting can be done via `yarn lint` command.
 
 ## Considerations Before Sending Your First PR
 
@@ -42,7 +42,7 @@ When contributing to the codebase, please note:
 
 ## Benchmarks
 
-The repository contains micro benchmarks. You can find all benchmarks at the benchmarks folder in project root directory. The benchmarks can either be ran directly through node via `node benchmarks/cpu/benchmark.profiler.js` or via `npm run benchmark` command. There are also individual npm run benchmark commands like `npm run benchmark:server` or `npm run benchmark:methods` which will only run individual benchmarks.
+The repository contains micro benchmarks. You can find all benchmarks at the benchmarks folder in project root directory. The benchmarks can either be ran directly through node via `node benchmarks/cpu/benchmark.profiler.js` or via `yarn benchmark` command. There are also individual yarn benchmark commands like `yarn benchmark:server` or `yarn benchmark:methods` which will only run individual benchmarks.
 
 Remember that these are micro benchmarks and that results will vary across different OS and architectures.
 

@@ -31,7 +31,7 @@ function computeRunResults(arr) {
     mean: mean(arr),
     stdev: stdev(arr),
     variance: variance(arr),
-    variancepct: '±' + (variancepct(arr) * 100).toFixed(2) + '%',
+    variancepct: `±${  (variancepct(arr) * 100).toFixed(2)  }%`,
     p75: quantile(arr, 0.75),
     p99: quantile(arr, 0.99)
   };

@@ -43,7 +43,7 @@ if (HELP) {
 Usage: sentry-prune-profiler-binaries --target_dir_path=... --target_platform=... --target_arch=... --target_stdlib=...\n
 Arguments:\n
 --target_dir_path: Path to the directory containing the final bundled code. If you are using webpack, this would be the equivalent of output.path option.\n
---target_node: The major node version the code will be running on. Example: 14, 16, 18...\n
+--target_node: The major node version the code will be running on. Example: 16, 18, 20...\n
 --target_platform: The platform the code will be running on. Example: linux, darwin, win32\n
 --target_arch: The architecture the code will be running on. Example: x64, arm64\n
 --target_stdlib: The standard library the code will be running on. Example: glibc, musl\n
@@ -56,7 +56,6 @@ Arguments:\n
 const ARGV_ERRORS = [];
 
 const NODE_TO_ABI = {
-  14: '83',
   16: '93',
   18: '108',
   20: '115'
@@ -65,8 +64,6 @@ const NODE_TO_ABI = {
 if (NODE) {
   if (NODE_TO_ABI[NODE]) {
     NODE = NODE_TO_ABI[NODE];
-  } else if (NODE.startsWith('14')) {
-    NODE = NODE_TO_ABI['14'];
   } else if (NODE.startsWith('16')) {
     NODE = NODE_TO_ABI['16'];
   } else if (NODE.startsWith('18')) {
@@ -75,7 +72,7 @@ if (NODE) {
     NODE = NODE_TO_ABI['20'];
   } else {
     ARGV_ERRORS.push(
-      `❌ Sentry: Invalid node version passed as argument, please make sure --target_node is a valid major node version. Supported versions are 14, 16, 18 and 20.`
+      `❌ Sentry: Invalid node version passed as argument, please make sure --target_node is a valid major node version. Supported versions are 16, 18 and 20.`
     );
   }
 }

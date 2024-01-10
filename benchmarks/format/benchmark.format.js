@@ -6,14 +6,14 @@ const gzip = require('zlib');
 const { ZSTDCompress } = require('simple-zstd');
 
 const { mean, stdev, variancepct, variance, quantile } = require('./../cpu/utils');
-const cpu_profiler = require('../../build/Release/sentry_cpu_profiler.node');
+const cpu_profiler = require('../../lib/Release/sentry_cpu_profiler.node');
 const { threadId } = require('worker_threads');
 
 const relativeChange = (final, initial) => {
   if (initial === 0) return '0%';
   const change = ((final - initial) / initial) * 100;
-  if (change > 0) return '+' + change.toFixed(2) + '%';
-  return change.toFixed(2) + '%';
+  if (change > 0) return `+${  change.toFixed(2)  }%`;
+  return `${change.toFixed(2)  }%`;
 };
 
 function App() {
@@ -90,7 +90,7 @@ function computeResults(json) {
       mean: mean(values),
       stdev: stdev(values),
       variance: variance(values),
-      variancepct: '±' + (variancepct(values) * 100).toFixed(2) + '%',
+      variancepct: `±${  (variancepct(values) * 100).toFixed(2)  }%`,
       p75: quantile(values, 0.75)
     };
   }

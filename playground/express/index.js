@@ -1,6 +1,6 @@
 const express = require('express');
 const Sentry = require('@sentry/node');
-const { ProfilingIntegration } = require('../../lib');
+const { ProfilingIntegration } = require('../../build');
 
 const app = express();
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -46,7 +46,7 @@ app.use(function onError(_err, _req, res, _next) {
   // The error id is attached to `res.sentry` to be returned
   // and optionally displayed to the user for support.
   res.statusCode = 500;
-  res.end(res.sentry + '\n');
+  res.end(`${res.sentry  }\n`);
 });
 
 app.listen(3000, () => {

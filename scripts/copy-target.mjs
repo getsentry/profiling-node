@@ -6,10 +6,10 @@ import { getModuleName } from './binaries.mjs';
 import { log } from 'console';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const lib = path.resolve(__dirname, '..', 'lib');
+const build = path.resolve(__dirname, '..', 'lib');
 
-if (!existsSync(lib)) {
-  mkdirSync(lib);
+if (!existsSync(build)) {
+  mkdirSync(build);
 }
 
 const source = path.join(__dirname, '..', 'build', 'Release', 'sentry_cpu_profiler.node');

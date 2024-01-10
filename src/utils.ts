@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import * as os from 'os';
 import { versions, env } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
@@ -12,7 +13,8 @@ import type {
   EventItem,
   Envelope,
   EventEnvelope,
-  EventEnvelopeHeaders
+  EventEnvelopeHeaders,
+  Context,
 } from '@sentry/types';
 
 import * as Sentry from '@sentry/node';
@@ -37,12 +39,22 @@ const TYPE = os.type();
 const MODEL = os.machine ? os.machine() : os.arch();
 const ARCH = os.arch();
 
+/**
+ * Checks if the profile is a raw profile or a profile enriched with thread information.
+ * @param {ThreadCpuProfile | RawThreadCpuProfile} profile
+ * @returns {boolean}
+ */
 function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile): profile is RawThreadCpuProfile {
   return !('thread_metadata' in profile);
 }
 
-// Enriches the profile with threadId of the current thread.
-// This is done in node as we seem to not be able to get the info from C native code.
+/**
+ * Enriches the profile with threadId of the current thread.
+ * This is done in node as we seem to not be able to get the info from C native code.
+ * 
+ * @param {ThreadCpuProfile | RawThreadCpuProfile} profile
+ * @returns {ThreadCpuProfile}
+ */
 export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThreadCpuProfile): ThreadCpuProfile {
   if (!isRawThreadCpuProfile(profile)) {
     return profile;
@@ -60,7 +72,11 @@ export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThrea
   };
 }
 
-/** Extract sdk info from from the API metadata */
+/**
+ * Extract sdk info from from the API metadata 
+ * @param {SdkMetadata | undefined} metadata
+ * @returns {SdkInfo | undefined}
+ */
 function getSdkMetadataForEnvelopeHeader(metadata?: SdkMetadata): SdkInfo | undefined {
   if (!metadata || !metadata.sdk) {
     return undefined;
@@ -72,7 +88,11 @@ function getSdkMetadataForEnvelopeHeader(metadata?: SdkMetadata): SdkInfo | unde
 /**
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
  * Merge with existing data if any.
- **/
+ * 
+ * @param {Event} event
+ * @param {SdkInfo | undefined} sdkInfo
+ * @returns {Event}
+ */
 function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
   if (!sdkInfo) {
     return event;
@@ -85,6 +105,14 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
   return event;
 }
 
+/**
+ * 
+ * @param {Event} event
+ * @param {SdkInfo | undefined} sdkInfo
+ * @param {string | undefined} tunnel
+ * @param {DsnComponents} dsn
+ * @returns {EventEnvelopeHeaders}
+ */
 function createEventEnvelopeHeaders(
   event: Event,
   sdkInfo: SdkInfo | undefined,
@@ -108,7 +136,7 @@ function createEventEnvelopeHeaders(
 /**
  * Creates a profiling event envelope from a Sentry event. If profile does not pass
  * validation, returns null.
- * @param event
+ * @param {Event}
  * @returns {Profile | null}
  */
 export function createProfilingEventFromTransaction(event: ProfiledEvent): Profile | null {
@@ -136,19 +164,20 @@ export function createProfilingEventFromTransaction(event: ProfiledEvent): Profi
   }
 
   return createProfilePayload(rawProfile, {
-    release: event.release || '',
-    environment: event.environment || '',
-    event_id: event.event_id || '',
-    transaction: event.transaction || '',
+    release: event.release ?? '',
+    environment: event.environment ?? '',
+    event_id: event.event_id ?? '',
+    transaction: event.transaction ?? '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
-    trace_id: (event?.contexts?.['trace']?.['trace_id'] as string) || '',
+    trace_id: event.contexts?.['trace']?.['trace_id'] ??  '',
     profile_id: rawProfile.profile_id
   });
 }
 
 /**
  * Creates a profiling envelope item, if the profile does not pass validation, returns null.
- * @param event
+ * @param {RawThreadCpuProfile}
+ * @param {Event}
  * @returns {Profile | null}
  */
 export function createProfilingEvent(profile: RawThreadCpuProfile, event: Event): Profile | null {
@@ -157,22 +186,23 @@ export function createProfilingEvent(profile: RawThreadCpuProfile, event: Event)
   }
 
   return createProfilePayload(profile, {
-    release: event.release || '',
-    environment: event.environment || '',
-    event_id: event.event_id || '',
-    transaction: event.transaction || '',
+    release: event.release ?? '',
+    environment: event.environment ?? '',
+    event_id: event.event_id ?? '',
+    transaction: event.transaction ?? '',
     start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
-    trace_id: (event?.contexts?.['trace']?.['trace_id'] as string) || '',
+    trace_id: event.contexts?.['trace']?.['trace_id'] ??  '',
     profile_id: profile.profile_id
   });
 }
 
 /**
  * Create a profile
- * @param profile
- * @param options
- * @returns
+ * @param {RawThreadCpuProfile} cpuProfile
+ * @param {options}
+ * @returns {Profile}
  */
+
 function createProfilePayload(
   cpuProfile: RawThreadCpuProfile,
   {
@@ -198,7 +228,7 @@ function createProfilePayload(
   // warn users that this is happening if they enable debug flag
   if (trace_id && trace_id.length !== 32) {
     if (isDebugBuild()) {
-      logger.log('[Profiling] Invalid traceId: ' + trace_id + ' on profiled event');
+      logger.log(`[Profiling] Invalid traceId: ${  trace_id  } on profiled event`);
     }
   }
 
@@ -245,11 +275,11 @@ function createProfilePayload(
 
 /**
  * Creates an envelope from a profiling event.
- * @param event Profile
- * @param dsn
- * @param metadata
- * @param tunnel
- * @returns
+ * @param {Event} Profile
+ * @param {DsnComponents} dsn
+ * @param {SdkMetadata} metadata
+ * @param {string|undefined} tunnel
+ * @returns {Envelope|null}
  */
 export function createProfilingEventEnvelope(
   event: ProfiledEvent,
@@ -278,24 +308,36 @@ export function createProfilingEventEnvelope(
   return createEnvelope<EventEnvelope>(envelopeHeaders, [envelopeItem]);
 }
 
+/**
+ * Check if event metadata contains profile information
+ * @param {Event}
+ * @returns {boolean}
+ */
 export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent {
   return !!(event.sdkProcessingMetadata && event.sdkProcessingMetadata['profile']);
 }
 
-// Due to how profiles are attached to event metadata, we may sometimes want to remove them to ensure
-// they are not processed by other Sentry integrations. This can be the case when we cannot construct a valid
-// profile from the data we have or some of the mechanisms to send the event (Hub, Transport etc) are not available to us.
+/**
+ * Due to how profiles are attached to event metadata, we may sometimes want to remove them to ensure
+ * they are not processed by other Sentry integrations. This can be the case when we cannot construct a valid
+ * profile from the data we have or some of the mechanisms to send the event (Hub, Transport etc) are not available to us.
+ * 
+ * @param {Event | ProfiledEvent} event
+ * @returns {Event}
+ */
 export function maybeRemoveProfileFromSdkMetadata(event: Event | ProfiledEvent): Event {
   if (!isProfiledTransactionEvent(event)) {
     return event;
   }
 
-  delete event.sdkProcessingMetadata['profile'];
+  delete event.sdkProcessingMetadata.profile;
   return event;
 }
 
 /**
  * Checks the given sample rate to make sure it is valid type and value (a boolean, or a number between 0 and 1).
+ * @param {unknown} rate
+ * @returns {boolean}
  */
 export function isValidSampleRate(rate: unknown): boolean {
   // we need to check NaN explicitly because it's of type 'number' and therefore wouldn't get caught by this typecheck
@@ -325,6 +367,11 @@ export function isValidSampleRate(rate: unknown): boolean {
   return true;
 }
 
+/**
+ * Checks if the profile is valid and can be sent to Sentry.
+ * @param {RawThreadCpuProfile} profile
+ * @returns {boolean}
+ */
 export function isValidProfile(profile: RawThreadCpuProfile): profile is RawThreadCpuProfile & { profile_id: string } {
   if (profile.samples.length <= 1) {
     if (isDebugBuild()) {
@@ -345,7 +392,9 @@ export function isValidProfile(profile: RawThreadCpuProfile): profile is RawThre
 
 /**
  * Adds items to envelope if they are not already present - mutates the envelope.
- * @param envelope
+ * @param {Envelope} envelope
+ * @param {Profile[]} profiles
+ * @returns {Envelope}
  */
 export function addProfilesToEnvelope(envelope: Envelope, profiles: Profile[]): Envelope {
   if (!profiles.length) {
@@ -361,8 +410,8 @@ export function addProfilesToEnvelope(envelope: Envelope, profiles: Profile[]): 
 
 /**
  * Finds transactions with profile_id context in the envelope
- * @param envelope
- * @returns
+ * @param {Envelope} envelope
+ * @returns {Event[]}
  */
 export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[] {
   const events: Event[] = [];
@@ -372,12 +421,20 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
       return;
     }
 
-    // First item is the type
+    // First item is the type, so we can skip it, everything else is an event
     for (let j = 1; j < item.length; j++) {
       const event = item[j];
 
-      // @ts-expect-error accessing private property
-      if (event && event.contexts && event.contexts['profile'] && event.contexts['profile']['profile_id']) {
+      if(!event){
+        // Shouldnt happen, but lets be safe
+        continue
+      }
+
+
+      // @ts-expect-error profile_id is not part of the metadata type
+      const profile_id = (event.contexts as Context)?.['profile']?.['profile_id'];
+      
+      if (event && profile_id) {
         events.push(item[j] as Event);
       }
     }
@@ -387,6 +444,12 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
 }
 
 const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
+
+/**
+ * Cross reference profile collected resources with debug_ids and return a list of debug images.
+ * @param {string[]} resource_paths
+ * @returns {DebugImage[]}
+ */
 export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): DebugImage[] {
   const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
 
@@ -394,22 +457,24 @@ export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): Debug
     return [];
   }
 
-  const stackParser = Sentry.getCurrentHub?.()?.getClient()?.getOptions()?.stackParser;
+  const hub = Sentry.getCurrentHub();
+  const client = hub.getClient();
+  const options = client && client.getOptions();
 
-  if (!stackParser) {
+  if (!options || !options.stackParser) {
     return [];
   }
 
   let debugIdStackFramesCache: Map<string, StackFrame[]>;
-  const cachedDebugIdStackFrameCache = debugIdStackParserCache.get(stackParser);
+  const cachedDebugIdStackFrameCache = debugIdStackParserCache.get(options.stackParser);
   if (cachedDebugIdStackFrameCache) {
     debugIdStackFramesCache = cachedDebugIdStackFrameCache;
   } else {
     debugIdStackFramesCache = new Map<string, StackFrame[]>();
-    debugIdStackParserCache.set(stackParser, debugIdStackFramesCache);
+    debugIdStackParserCache.set(options.stackParser, debugIdStackFramesCache);
   }
 
-  // Build a map of filename -> debug_id
+  // Build a map of filename -> debug_id.
   const filenameDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
     let parsedStack: StackFrame[];
 
@@ -417,13 +482,13 @@ export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): Debug
     if (cachedParsedStack) {
       parsedStack = cachedParsedStack;
     } else {
-      parsedStack = stackParser(debugIdStackTrace);
+      parsedStack = options.stackParser(debugIdStackTrace);
       debugIdStackFramesCache.set(debugIdStackTrace, parsedStack);
     }
 
     for (let i = parsedStack.length - 1; i >= 0; i--) {
       const stackFrame = parsedStack[i];
-      const file = stackFrame?.filename;
+      const file = stackFrame && stackFrame.filename;
 
       if (stackFrame && file) {
         acc[file] = debugIdMap[debugIdStackTrace] as string;
@@ -435,14 +500,12 @@ export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): Debug
 
   const images: DebugImage[] = [];
 
-  for (let i = 0; i < resource_paths.length; i++) {
-    const path = resource_paths[i];
-
-    if (path && filenameDebugIdMap[path]) {
+  for (const resource of resource_paths) {
+    if (resource && filenameDebugIdMap[resource]) {
       images.push({
         type: 'sourcemap',
-        code_file: path,
-        debug_id: filenameDebugIdMap[path] as string
+        code_file: resource,
+        debug_id: filenameDebugIdMap[resource] as string
       });
     }
   }

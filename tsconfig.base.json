@@ -21,6 +21,12 @@
     "declaration": false,
     "typeRoots": ["node_modules/@types"]
   },
-  "types": ["./src/types.d.ts"],
-  "exclude": ["src/**/*.test.ts", "scripts/**/*"]
+  "types": ["node"],
+  "exclude": [
+    "src/**/*.test.ts",
+    "scripts/**/*",
+    "benchmarks/**/*",
+    "demo_app",
+    "jest.config.ts"
+  ]
 }

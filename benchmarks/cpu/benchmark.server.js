@@ -26,7 +26,7 @@ db.serialize(() => {
 
   db.parallelize(() => {
     for (let i = 0; i < 1e3; i++) {
-      db.run(`INSERT INTO benchmarks (id, name) VALUES (?, ?);`, [i, `Benchmark ${i}`], (res, err) => {
+      db.run('INSERT INTO benchmarks (id, name) VALUES (?, ?);', [i, `Benchmark ${i}`], (res, err) => {
         if (err) {
           console.log('Failed to insert with', err);
         }

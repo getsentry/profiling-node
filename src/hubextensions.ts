@@ -15,8 +15,10 @@ type StartTransaction = (
   customSamplingContext?: CustomSamplingContext
 ) => Transaction;
 
-// Takes a transaction and determines if it should be profiled or not. If it should be profiled, it returns the
-// profile_id, otherwise returns undefined. Takes care of setting profile context on transaction as well
+/**
+ * Takes a transaction and determines if it should be profiled or not. If it should be profiled, it returns the
+ * profile_id, otherwise returns undefined. Takes care of setting profile context on transaction as well
+ */
 export function maybeProfileTransaction(
   client: NodeClient | undefined,
   transaction: Transaction,
@@ -94,7 +96,7 @@ export function maybeProfileTransaction(
   const profile_id = uuid4();
   CpuProfilerBindings.startProfiling(profile_id);
   if (isDebugBuild()) {
-    logger.log('[Profiling] started profiling transaction: ' + transaction.name);
+    logger.log(`[Profiling] started profiling transaction: ${  transaction.name}`);
   }
 
   // set transaction context - do this regardless if profiling fails down the line
@@ -120,14 +122,14 @@ export function stopTransactionProfile(
   const profile = CpuProfilerBindings.stopProfiling(profile_id);
 
   if (isDebugBuild()) {
-    logger.log('[Profiling] stopped profiling of transaction: ' + transaction.name);
+    logger.log(`[Profiling] stopped profiling of transaction: ${  transaction.name}`);
   }
 
   // In case of an overlapping transaction, stopProfiling may return null and silently ignore the overlapping profile.
   if (!profile) {
     if (isDebugBuild()) {
       logger.log(
-        '[Profiling] profiler returned null profile for: ' + transaction.name,
+        `[Profiling] profiler returned null profile for: ${  transaction.name}`,
         'this may indicate an overlapping transaction or a call to stopProfiling with a profile title that was never started'
       );
     }
@@ -139,9 +141,11 @@ export function stopTransactionProfile(
   return profile;
 }
 
-// Wraps startTransaction and stopTransaction with profiling related logic.
-// startProfiling is called after the call to startTransaction in order to avoid our own code from
-// being profiled. Because of that same reason, stopProfiling is called before the call to stopTransaction.
+/**
+ * Wraps startTransaction and stopTransaction with profiling related logic.
+ * startProfiling is called after the call to startTransaction in order to avoid our own code from
+ * being profiled. Because of that same reason, stopProfiling is called before the call to stopTransaction.
+ */
 export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: StartTransaction): StartTransaction {
   return function wrappedStartTransaction(
     this: Hub,
@@ -189,7 +193,7 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     const originalFinish = transaction.finish.bind(transaction);
 
     // Wrap the transaction finish method to stop profiling and set the profile on the transaction.
-    function profilingWrappedTransactionFinish() {
+    function profilingWrappedTransactionFinish(): void {
       if (!profile_id) {
         return originalFinish();
       }
