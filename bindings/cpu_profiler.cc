@@ -108,7 +108,12 @@ class MeasurementsTicker {
 
   ~MeasurementsTicker() {
     uv_timer_stop(&timer);
-    uv_close(reinterpret_cast<uv_handle_t *>(&timer), nullptr);
+    
+    auto handle = reinterpret_cast<uv_handle_t *>(&timer);
+
+    if(uv_is_active(handle)) {
+      uv_close(handle, nullptr);
+    }
   }
 };
 
