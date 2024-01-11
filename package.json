@@ -7,7 +7,7 @@
     "url": "https://github.com/getsentry/profiling-node.git"
   },
   "main": "lib/index.js",
-  "types": "lib/index.d.ts",
+  "types": "lib/types/index.d.ts",
   "bin": {
     "sentry-prune-profiler-binaries": "scripts/prune-profiler-binaries.mjs"
   },
