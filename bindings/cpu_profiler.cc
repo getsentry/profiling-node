@@ -111,6 +111,7 @@ class MeasurementsTicker {
 
     auto handle = reinterpret_cast<uv_handle_t *>(&timer);
 
+    // Calling uv_close on an inactive handle will cause a segfault.
     if (uv_is_active(handle)) {
       uv_close(handle, nullptr);
     }
