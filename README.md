@@ -10,6 +10,9 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/profiling-node.svg)](https://www.npmjs.com/package/@sentry/profiling-node)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/profiling-node.svg)](https://www.npmjs.com/package/@sentry/profiling-node)
 
+> [!WARNING]  
+> The `@sentry/profiling-node` codebase has been moved to https://github.com/getsentry/sentry-javascript. This repo will no longer get updates. If you were using `1.3.5` earlier, you can upgrade to version `7.100.0` without any breaking changes.
+
 ## Installation
 
 Profiling works as an extension of tracing so you will need both @sentry/node and @sentry/profiling-node installed. The minimum required major version of @sentry/node that supports profiling is 7.x.
