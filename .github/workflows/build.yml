@@ -198,7 +198,7 @@ jobs:
         run: du -sh lib/*
 
       - name: Archive binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: binaries-${{ github.sha }}
           path: |
@@ -241,7 +241,7 @@ jobs:
       - run: yarn pack
 
       - name: Archive artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ github.sha }}
           path: |
